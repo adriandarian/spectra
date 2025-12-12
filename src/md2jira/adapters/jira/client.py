@@ -126,7 +126,7 @@ class JiraApiClient:
         Returns:
             JSON response as dictionary, or empty dict in dry-run mode.
         """
-        if self.dry_run and not endpoint.endswith("/search/jql"):
+        if self.dry_run and not endpoint.endswith("search/jql"):
             self.logger.info(f"[DRY-RUN] Would POST to {endpoint}")
             return {}
         return self.request("POST", endpoint, json=json, **kwargs)
