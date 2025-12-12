@@ -100,6 +100,11 @@ Environment Variables:
     
     # Configuration
     parser.add_argument(
+        "--config", "-c",
+        type=str,
+        help="Path to config file (.md2jira.yaml, .md2jira.toml)"
+    )
+    parser.add_argument(
         "--jira-url",
         type=str,
         help="Override Jira URL"
@@ -191,19 +196,23 @@ def run_sync(
 ) -> int:
     """
     Run the sync operation between markdown and Jira.
-    
+
     Handles the complete sync workflow including configuration loading,
     validation, connection testing, and orchestrating the sync phases.
-    
+
     Args:
         console: Console instance for output.
         args: Parsed command-line arguments.
-        
+
     Returns:
         Exit code (0 for success, 1 for errors).
     """
-    # Load configuration
-    config_provider = EnvironmentConfigProvider(cli_overrides=vars(args))
+    # Load configuration with optional config file
+    config_file = Path(args.config) if args.config else None
+    config_provider = EnvironmentConfigProvider(
+        config_file=config_file,
+        cli_overrides=vars(args),
+    )
     errors = config_provider.validate()
     
     if errors:
@@ -225,7 +234,11 @@ def run_sync(
     
     if config.sync.dry_run:
         console.dry_run_banner()
-    
+
+    # Show config source if loaded from file
+    if config_provider.config_file_path:
+        console.info(f"Config: {config_provider.config_file_path}")
+
     console.info(f"Markdown: {markdown_path}")
     console.info(f"Epic: {args.epic}")
     console.info(f"Mode: {'Execute' if args.execute else 'Dry-run'}")

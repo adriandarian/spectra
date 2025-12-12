@@ -605,6 +605,7 @@ class TestRunSync:
         with patch("md2jira.cli.app.EnvironmentConfigProvider") as MockProvider:
             mock_provider = MockProvider.return_value
             mock_provider.validate.return_value = []
+            mock_provider.config_file_path = None
             mock_provider.load.return_value = Mock(
                 sync=Mock(dry_run=True),
                 tracker=Mock()
@@ -628,6 +629,7 @@ class TestRunSync:
 
             mock_provider = MockProvider.return_value
             mock_provider.validate.return_value = []
+            mock_provider.config_file_path = None
             mock_provider.load.return_value = Mock(
                 sync=Mock(dry_run=True),
                 tracker=Mock()
@@ -655,6 +657,7 @@ class TestRunSync:
 
             mock_provider = MockProvider.return_value
             mock_provider.validate.return_value = []
+            mock_provider.config_file_path = None
             mock_provider.load.return_value = Mock(
                 sync=Mock(dry_run=False),
                 tracker=Mock()
@@ -684,6 +687,7 @@ class TestRunSync:
 
             mock_provider = MockProvider.return_value
             mock_provider.validate.return_value = []
+            mock_provider.config_file_path = None
             mock_provider.load.return_value = Mock(
                 sync=Mock(dry_run=True),
                 tracker=Mock()
@@ -719,6 +723,7 @@ class TestRunSync:
 
             mock_provider = MockProvider.return_value
             mock_provider.validate.return_value = []
+            mock_provider.config_file_path = None
             mock_provider.load.return_value = Mock(
                 sync=Mock(dry_run=True),
                 tracker=Mock()

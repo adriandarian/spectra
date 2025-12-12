@@ -644,6 +644,7 @@ def base_cli_args():
     args.no_confirm = True
     args.phase = "all"
     args.story = None
+    args.config = None  # Config file path
     args.jira_url = None
     args.project = None
     args.verbose = False
