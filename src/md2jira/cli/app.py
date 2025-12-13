@@ -77,6 +77,12 @@ Examples:
   # Scheduled sync - run immediately, then every hour
   md2jira --schedule 1h --markdown EPIC.md --epic PROJ-123 --execute --run-now
 
+  # Webhook server - receive Jira webhooks for auto reverse sync
+  md2jira --webhook --epic PROJ-123 --pull-output EPIC.md --execute
+
+  # Webhook server on custom port with secret
+  md2jira --webhook --webhook-port 9000 --webhook-secret mysecret --epic PROJ-123 --pull-output EPIC.md --execute
+
 Environment Variables:
   JIRA_URL         Jira instance URL (e.g., https://company.atlassian.net)
   JIRA_EMAIL       Jira account email
@@ -374,6 +380,33 @@ Environment Variables:
         type=int,
         metavar="N",
         help="Maximum number of scheduled runs (default: unlimited)"
+    )
+    
+    # Webhook receiver
+    parser.add_argument(
+        "--webhook",
+        action="store_true",
+        help="Start webhook server to receive Jira events for reverse sync"
+    )
+    parser.add_argument(
+        "--webhook-host",
+        type=str,
+        default="0.0.0.0",
+        metavar="HOST",
+        help="Host to bind webhook server to (default: 0.0.0.0)"
+    )
+    parser.add_argument(
+        "--webhook-port",
+        type=int,
+        default=8080,
+        metavar="PORT",
+        help="Port for webhook server (default: 8080)"
+    )
+    parser.add_argument(
+        "--webhook-secret",
+        type=str,
+        metavar="SECRET",
+        help="Webhook secret for signature verification"
     )
     
     return parser
@@ -900,6 +933,123 @@ def run_rollback(args) -> int:
             console.detail(f"... and {len(result.errors) - 10} more")
     
     return ExitCode.SUCCESS if result.success else ExitCode.ERROR
+
+
+def run_webhook(args) -> int:
+    """
+    Run webhook server mode.
+    
+    Starts an HTTP server that receives Jira webhooks and
+    triggers reverse sync when issues are updated.
+    
+    Args:
+        args: Parsed command-line arguments.
+        
+    Returns:
+        Exit code.
+    """
+    from .logging import setup_logging
+    from ..application import WebhookServer, WebhookDisplay
+    from ..application.sync import ReverseSyncOrchestrator
+    from ..adapters import JiraAdapter, ADFFormatter, EnvironmentConfigProvider
+    from ..adapters.formatters import MarkdownWriter
+    
+    # Setup logging
+    log_level = logging.DEBUG if getattr(args, 'verbose', False) else logging.INFO
+    log_format = getattr(args, "log_format", "text")
+    setup_logging(level=log_level, log_format=log_format)
+    
+    # Create console
+    console = Console(
+        color=not getattr(args, 'no_color', False),
+        verbose=getattr(args, 'verbose', False),
+        quiet=getattr(args, 'quiet', False),
+    )
+    
+    epic_key = args.epic
+    output_path = getattr(args, 'pull_output', None) or f"{epic_key}.md"
+    host = getattr(args, 'webhook_host', '0.0.0.0')
+    port = getattr(args, 'webhook_port', 8080)
+    secret = getattr(args, 'webhook_secret', None)
+    dry_run = not getattr(args, 'execute', False)
+    
+    # Load configuration
+    config_file = Path(args.config) if getattr(args, 'config', None) else None
+    config_provider = EnvironmentConfigProvider(
+        config_file=config_file,
+        cli_overrides=vars(args),
+    )
+    errors = config_provider.validate()
+    
+    if errors:
+        console.error("Configuration errors:")
+        for error in errors:
+            console.item(error, "fail")
+        return ExitCode.CONFIG_ERROR
+    
+    config = config_provider.load()
+    config.sync.dry_run = dry_run
+    
+    # Initialize Jira adapter
+    formatter = ADFFormatter()
+    tracker = JiraAdapter(
+        config=config.tracker,
+        dry_run=True,  # Webhook triggers read-only pull
+        formatter=formatter,
+    )
+    
+    # Test connection
+    console.header("md2jira Webhook Server")
+    
+    if dry_run:
+        console.dry_run_banner()
+    
+    console.section("Connecting to Jira")
+    if not tracker.test_connection():
+        console.error("Failed to connect to Jira. Check credentials.")
+        return ExitCode.CONNECTION_ERROR
+    
+    user = tracker.get_current_user()
+    console.success(f"Connected as: {user.get('displayName', user.get('emailAddress', 'Unknown'))}")
+    
+    # Create reverse sync orchestrator
+    reverse_sync = ReverseSyncOrchestrator(
+        tracker=tracker,
+        config=config.sync,
+        writer=MarkdownWriter(),
+    )
+    
+    # Create display handler
+    display = WebhookDisplay(
+        color=not getattr(args, 'no_color', False),
+        quiet=getattr(args, 'quiet', False),
+    )
+    
+    # Create webhook server
+    server = WebhookServer(
+        reverse_sync=reverse_sync,
+        host=host,
+        port=port,
+        epic_key=epic_key,
+        output_path=output_path,
+        secret=secret,
+        on_event=display.show_event,
+        on_sync_start=display.show_sync_start,
+        on_sync_complete=display.show_sync_complete,
+    )
+    
+    # Show start message
+    display.show_start(host, port, epic_key)
+    
+    try:
+        # Run server (blocks until Ctrl+C)
+        server.start()
+    except KeyboardInterrupt:
+        pass
+    finally:
+        display.show_stop(server.stats)
+    
+    return ExitCode.SUCCESS
 
 
 def run_schedule(args) -> int:
@@ -1702,6 +1852,12 @@ def main() -> int:
         if not args.markdown or not args.epic:
             parser.error("--schedule requires --markdown/-m and --epic/-e to be specified")
         return run_schedule(args)
+    
+    # Handle webhook server
+    if args.webhook:
+        if not args.epic:
+            parser.error("--webhook requires --epic/-e to be specified")
+        return run_webhook(args)
     
     # Handle resume-session (loads args from session)
     if args.resume_session:
