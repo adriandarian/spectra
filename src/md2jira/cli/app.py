@@ -8,6 +8,7 @@ import sys
 from pathlib import Path
 
 from .output import Console, Symbols
+from .exit_codes import ExitCode
 from ..adapters import (
     JiraAdapter,
     MarkdownParser,
@@ -219,7 +220,7 @@ def run_sync(
         console.error("Configuration errors:")
         for error in errors:
             console.item(error, "fail")
-        return 1
+        return ExitCode.CONFIG_ERROR
     
     config = config_provider.load()
     
@@ -227,7 +228,7 @@ def run_sync(
     markdown_path = Path(args.markdown)
     if not markdown_path.exists():
         console.error(f"Markdown file not found: {markdown_path}")
-        return 1
+        return ExitCode.FILE_NOT_FOUND
     
     # Show header
     console.header(f"md2jira {Symbols.ROCKET}")
@@ -258,7 +259,7 @@ def run_sync(
     console.section("Connecting to Jira")
     if not tracker.test_connection():
         console.error("Failed to connect to Jira. Check credentials.")
-        return 1
+        return ExitCode.CONNECTION_ERROR
     
     user = tracker.get_current_user()
     console.success(f"Connected as: {user.get('displayName', user.get('emailAddress', 'Unknown'))}")
@@ -285,7 +286,7 @@ def run_sync(
     if args.execute and not args.no_confirm:
         if not console.confirm("Proceed with sync execution?"):
             console.warning("Cancelled by user")
-            return 0
+            return ExitCode.CANCELLED
     
     # Run sync with progress callback
     def progress_callback(phase: str, current: int, total: int) -> None:
@@ -326,7 +327,14 @@ def run_sync(
         
         console.success(f"Exported results to {args.export}")
     
-    return 0 if result.success else 1
+    # Determine exit code based on result
+    if result.success:
+        return ExitCode.SUCCESS
+    elif hasattr(result, 'failed_operations') and result.failed_operations:
+        # Partial success - some operations failed but sync completed
+        return ExitCode.PARTIAL_SUCCESS
+    else:
+        return ExitCode.ERROR
 
 
 def main() -> int:
@@ -362,7 +370,7 @@ def main() -> int:
         # Validate mode
         if args.validate:
             success = validate_markdown(console, args.markdown)
-            return 0 if success else 1
+            return ExitCode.SUCCESS if success else ExitCode.VALIDATION_ERROR
         
         # Run sync
         return run_sync(console, args)
@@ -370,14 +378,14 @@ def main() -> int:
     except KeyboardInterrupt:
         console.print()
         console.warning("Interrupted by user")
-        return 130
+        return ExitCode.SIGINT
     
     except Exception as e:
         console.error(f"Unexpected error: {e}")
         if args.verbose:
             import traceback
             traceback.print_exc()
-        return 1
+        return ExitCode.from_exception(e)
 
 
 def run() -> None:

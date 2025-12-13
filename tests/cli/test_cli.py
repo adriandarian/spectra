@@ -9,6 +9,7 @@ from unittest.mock import Mock, patch, MagicMock
 
 from md2jira.cli.app import create_parser, main, validate_markdown, run_sync
 from md2jira.cli.output import Console, Colors, Symbols
+from md2jira.cli.exit_codes import ExitCode
 from md2jira.application.sync import SyncResult
 
 
@@ -496,7 +497,7 @@ class TestMainFunction:
             with patch("md2jira.cli.app.validate_markdown") as mock_validate:
                 mock_validate.return_value = True
                 result = main()
-                assert result == 0
+                assert result == ExitCode.SUCCESS
                 mock_validate.assert_called_once()
 
     def test_main_keyboard_interrupt(self):
@@ -510,7 +511,7 @@ class TestMainFunction:
             with patch("md2jira.cli.app.validate_markdown") as mock_validate:
                 mock_validate.side_effect = KeyboardInterrupt()
                 result = main()
-                assert result == 130
+                assert result == ExitCode.SIGINT
 
     def test_main_unexpected_error(self):
         """Test main handles unexpected errors gracefully."""
@@ -523,7 +524,7 @@ class TestMainFunction:
             with patch("md2jira.cli.app.validate_markdown") as mock_validate:
                 mock_validate.side_effect = RuntimeError("Unexpected")
                 result = main()
-                assert result == 1
+                assert result == ExitCode.ERROR
 
 
 # =============================================================================
@@ -594,7 +595,7 @@ class TestRunSync:
 
             result = run_sync(console, base_cli_args)
 
-            assert result == 1
+            assert result == ExitCode.CONFIG_ERROR
             captured = capsys.readouterr()
             assert "Missing JIRA_URL" in captured.out
 
@@ -613,7 +614,7 @@ class TestRunSync:
 
             result = run_sync(console, base_cli_args)
 
-            assert result == 1
+            assert result == ExitCode.FILE_NOT_FOUND
             captured = capsys.readouterr()
             assert "not found" in captured.out.lower()
 
@@ -640,7 +641,7 @@ class TestRunSync:
 
             result = run_sync(console, base_cli_args)
 
-            assert result == 1
+            assert result == ExitCode.CONNECTION_ERROR
             captured = capsys.readouterr()
             assert "Failed to connect" in captured.out
 
@@ -671,7 +672,7 @@ class TestRunSync:
             with patch.object(console, "confirm", return_value=False):
                 result = run_sync(console, base_cli_args)
 
-            assert result == 0
+            assert result == ExitCode.CANCELLED
             captured = capsys.readouterr()
             assert "Cancelled" in captured.out
 
@@ -706,7 +707,7 @@ class TestRunSync:
 
             result = run_sync(console, base_cli_args)
 
-            assert result == 0
+            assert result == ExitCode.SUCCESS
 
     def test_run_sync_with_export(self, console, base_cli_args, capsys, tmp_path):
         """Test sync with JSON export."""
@@ -742,7 +743,7 @@ class TestRunSync:
 
             result = run_sync(console, base_cli_args)
 
-            assert result == 0
+            assert result == ExitCode.SUCCESS
             assert export_file.exists()
 
             import json

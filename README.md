@@ -224,6 +224,8 @@ md2jira -m EPIC.md -e PROJ-123 -x --export sync-results.json
 - [Template](docs/TEMPLATE.md) - Blank template to get started
 - [Example](docs/EXAMPLE.md) - Full working example
 - [AI Prompt](docs/AI_PROMPT.md) - Prompt for AI agents to generate content
+- [Configuration](docs/CONFIG.md) - Configuration file format and options
+- [Exit Codes](docs/EXIT_CODES.md) - CLI exit codes for scripting and CI/CD
 
 ## Development
 
