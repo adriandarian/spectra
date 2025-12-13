@@ -4,6 +4,7 @@ Document Parser Port - Abstract interface for parsing source documents.
 Implementations:
 - MarkdownParser: Parse markdown epic files
 - YamlParser: Parse YAML-based specs
+- NotionParser: Parse Notion exports (markdown/CSV/folders)
 - (Future) JsonParser: Parse JSON specs
 """
 
