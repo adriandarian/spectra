@@ -10,7 +10,10 @@ from md2jira.application.sync.backup import (
     Backup,
     BackupManager,
     IssueSnapshot,
+    RestoreResult,
+    RestoreOperation,
     create_pre_sync_backup,
+    restore_from_backup,
 )
 from md2jira.core.ports.issue_tracker import IssueData
 
@@ -354,4 +357,236 @@ class TestCreatePreSyncBackup:
         assert backup.epic_key == "PROJ-1"
         assert backup.metadata.get("trigger") == "pre_sync"
         assert backup.issue_count == 1
+
+
+class TestRestoreResult:
+    """Tests for RestoreResult class."""
+    
+    def test_add_operation_success(self):
+        """Should track successful operations."""
+        result = RestoreResult(backup_id="test", epic_key="PROJ-1")
+        
+        result.add_operation(RestoreOperation(
+            issue_key="PROJ-100",
+            field="description",
+            success=True,
+        ))
+        
+        assert result.success is True
+        assert result.total_operations == 1
+        assert result.successful_operations == 1
+        assert result.failed_operations == 0
+    
+    def test_add_operation_failure(self):
+        """Should track failed operations and mark result as failed."""
+        result = RestoreResult(backup_id="test", epic_key="PROJ-1")
+        
+        result.add_operation(RestoreOperation(
+            issue_key="PROJ-100",
+            field="description",
+            success=False,
+            error="Permission denied",
+        ))
+        
+        assert result.success is False
+        assert result.failed_operations == 1
+        assert len(result.errors) == 1
+        assert "Permission denied" in result.errors[0]
+    
+    def test_skipped_operations(self):
+        """Should track skipped operations."""
+        result = RestoreResult(backup_id="test", epic_key="PROJ-1")
+        
+        result.add_operation(RestoreOperation(
+            issue_key="PROJ-100",
+            field="description",
+            skipped=True,
+            skip_reason="No changes needed",
+        ))
+        
+        # Skipped operations don't affect success status
+        assert result.success is True
+        assert result.skipped_operations == 1
+    
+    def test_summary(self):
+        """Should generate readable summary."""
+        result = RestoreResult(
+            backup_id="test123",
+            epic_key="PROJ-1",
+            dry_run=False,
+        )
+        result.issues_restored = 3
+        result.subtasks_restored = 5
+        
+        summary = result.summary()
+        
+        assert "test123" in summary
+        assert "PROJ-1" in summary
+        assert "Issues restored: 3" in summary
+        assert "Subtasks restored: 5" in summary
+
+
+class TestBackupManagerRestore:
+    """Tests for BackupManager restore functionality."""
+    
+    @pytest.fixture
+    def backup_dir(self, tmp_path):
+        """Create a temporary backup directory."""
+        return tmp_path / "backups"
+    
+    @pytest.fixture
+    def manager(self, backup_dir):
+        """Create a BackupManager with temp directory."""
+        return BackupManager(backup_dir=backup_dir)
+    
+    @pytest.fixture
+    def mock_tracker(self):
+        """Create a mock tracker for backup creation."""
+        tracker = MagicMock()
+        tracker.get_epic_children.return_value = [
+            IssueData(
+                key="PROJ-100",
+                summary="Story 1",
+                description={"type": "doc", "content": [{"type": "paragraph", "content": [{"type": "text", "text": "Original description"}]}]},
+                status="Open",
+                issue_type="Story",
+                subtasks=[
+                    IssueData(key="PROJ-101", summary="Sub 1", status="Todo", story_points=3.0),
+                ],
+            ),
+        ]
+        tracker.get_issue_comments.return_value = []
+        return tracker
+    
+    @pytest.fixture
+    def mock_restore_tracker(self):
+        """Create a mock tracker for restore operations."""
+        tracker = MagicMock()
+        tracker.update_issue_description.return_value = True
+        tracker.update_subtask.return_value = True
+        return tracker
+    
+    def test_restore_backup_dry_run(self, manager, mock_tracker, mock_restore_tracker):
+        """Should simulate restore in dry-run mode."""
+        # Create a backup first
+        backup = manager.create_backup(mock_tracker, "PROJ-1", "/file.md")
+        
+        # Restore in dry-run mode
+        result = manager.restore_backup(
+            tracker=mock_restore_tracker,
+            backup_id=backup.backup_id,
+            epic_key="PROJ-1",
+            dry_run=True,
+        )
+        
+        assert result.success is True
+        assert result.dry_run is True
+        # No actual API calls should be made
+        mock_restore_tracker.update_issue_description.assert_not_called()
+        mock_restore_tracker.update_subtask.assert_not_called()
+    
+    def test_restore_backup_execute(self, manager, mock_tracker, mock_restore_tracker):
+        """Should execute restore operations."""
+        # Create a backup first
+        backup = manager.create_backup(mock_tracker, "PROJ-1", "/file.md")
+        
+        # Restore with execute
+        result = manager.restore_backup(
+            tracker=mock_restore_tracker,
+            backup_id=backup.backup_id,
+            epic_key="PROJ-1",
+            dry_run=False,
+        )
+        
+        assert result.success is True
+        assert result.dry_run is False
+        # API calls should be made
+        mock_restore_tracker.update_issue_description.assert_called()
+        mock_restore_tracker.update_subtask.assert_called()
+    
+    def test_restore_backup_not_found(self, manager, mock_restore_tracker):
+        """Should return error when backup not found."""
+        result = manager.restore_backup(
+            tracker=mock_restore_tracker,
+            backup_id="nonexistent",
+            epic_key="PROJ-1",
+            dry_run=True,
+        )
+        
+        assert result.success is False
+        assert "not found" in result.errors[0].lower()
+    
+    def test_restore_with_issue_filter(self, manager, mock_tracker, mock_restore_tracker):
+        """Should only restore filtered issues."""
+        # Create a backup first
+        backup = manager.create_backup(mock_tracker, "PROJ-1", "/file.md")
+        
+        # Restore with filter - only PROJ-100, not subtasks
+        result = manager.restore_backup(
+            tracker=mock_restore_tracker,
+            backup_id=backup.backup_id,
+            epic_key="PROJ-1",
+            dry_run=False,
+            issue_filter=["PROJ-100"],  # Only parent, not subtask
+        )
+        
+        assert result.success is True
+        # Only parent issue should be restored, not subtask
+        mock_restore_tracker.update_issue_description.assert_called_once()
+        mock_restore_tracker.update_subtask.assert_not_called()
+    
+    def test_restore_handles_api_error(self, manager, mock_tracker):
+        """Should handle API errors gracefully."""
+        # Create a backup first
+        backup = manager.create_backup(mock_tracker, "PROJ-1", "/file.md")
+        
+        # Create tracker that raises an error
+        error_tracker = MagicMock()
+        error_tracker.update_issue_description.side_effect = Exception("API Error")
+        error_tracker.update_subtask.side_effect = Exception("API Error")
+        
+        result = manager.restore_backup(
+            tracker=error_tracker,
+            backup_id=backup.backup_id,
+            epic_key="PROJ-1",
+            dry_run=False,
+        )
+        
+        assert result.success is False
+        assert len(result.errors) > 0
+        assert "API Error" in result.errors[0]
+
+
+class TestRestoreFromBackup:
+    """Tests for restore_from_backup convenience function."""
+    
+    def test_restore_from_backup(self, tmp_path):
+        """Should restore using convenience function."""
+        backup_dir = tmp_path / "backups"
+        
+        # Create a backup first
+        create_tracker = MagicMock()
+        create_tracker.get_epic_children.return_value = [
+            IssueData(key="PROJ-100", summary="Story 1", status="Open", description="Test"),
+        ]
+        create_tracker.get_issue_comments.return_value = []
+        
+        manager = BackupManager(backup_dir=backup_dir)
+        backup = manager.create_backup(create_tracker, "PROJ-1", "/file.md")
+        
+        # Restore using convenience function
+        restore_tracker = MagicMock()
+        restore_tracker.update_issue_description.return_value = True
+        
+        result = restore_from_backup(
+            tracker=restore_tracker,
+            backup_id=backup.backup_id,
+            epic_key="PROJ-1",
+            dry_run=True,
+            backup_dir=backup_dir,
+        )
+        
+        assert result.backup_id == backup.backup_id
+        assert result.epic_key == "PROJ-1"
+        assert result.dry_run is True
 

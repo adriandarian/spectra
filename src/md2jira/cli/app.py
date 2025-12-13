@@ -188,6 +188,12 @@ Environment Variables:
         action="store_true",
         help="List available backups for the specified epic"
     )
+    parser.add_argument(
+        "--restore-backup",
+        type=str,
+        metavar="BACKUP_ID",
+        help="Restore Jira state from a backup (use --list-backups to see available backups)"
+    )
     
     # Special modes
     parser.add_argument(
@@ -355,6 +361,136 @@ def list_backups(backup_manager, epic_key: str = None) -> int:
     print(f"Backup directory: {backup_manager.backup_dir}")
     
     return ExitCode.SUCCESS
+
+
+def run_restore(args) -> int:
+    """
+    Run the restore operation from a backup.
+    
+    Args:
+        args: Parsed command-line arguments.
+        
+    Returns:
+        Exit code.
+    """
+    from .exit_codes import ExitCode
+    from .logging import setup_logging
+    from ..application.sync import BackupManager
+    from ..adapters import JiraAdapter, ADFFormatter, EnvironmentConfigProvider
+    
+    # Setup logging
+    log_level = logging.DEBUG if getattr(args, 'verbose', False) else logging.INFO
+    log_format = getattr(args, "log_format", "text")
+    setup_logging(level=log_level, log_format=log_format)
+    
+    # Create console
+    console = Console(
+        color=not getattr(args, 'no_color', False),
+        verbose=getattr(args, 'verbose', False),
+        quiet=getattr(args, 'quiet', False),
+    )
+    
+    backup_id = args.restore_backup
+    epic_key = getattr(args, 'epic', None)
+    dry_run = not getattr(args, 'execute', False)
+    
+    console.header("md2jira Restore")
+    
+    # Load backup first to get epic key if not provided
+    backup_dir = Path(args.backup_dir) if getattr(args, 'backup_dir', None) else None
+    manager = BackupManager(backup_dir=backup_dir)
+    
+    backup = manager.load_backup(backup_id, epic_key)
+    if not backup:
+        console.error(f"Backup not found: {backup_id}")
+        console.info("Use --list-backups to see available backups")
+        return ExitCode.FILE_NOT_FOUND
+    
+    console.info(f"Backup: {backup.backup_id}")
+    console.info(f"Epic: {backup.epic_key}")
+    console.info(f"Created: {backup.created_at}")
+    console.info(f"Issues: {backup.issue_count}, Subtasks: {backup.subtask_count}")
+    
+    if dry_run:
+        console.dry_run_banner()
+    
+    # Load configuration
+    config_file = Path(args.config) if getattr(args, 'config', None) else None
+    config_provider = EnvironmentConfigProvider(
+        config_file=config_file,
+        cli_overrides=vars(args),
+    )
+    errors = config_provider.validate()
+    
+    if errors:
+        console.error("Configuration errors:")
+        for error in errors:
+            console.item(error, "fail")
+        return ExitCode.CONFIG_ERROR
+    
+    config = config_provider.load()
+    
+    # Initialize Jira adapter
+    formatter = ADFFormatter()
+    tracker = JiraAdapter(
+        config=config.tracker,
+        dry_run=dry_run,
+        formatter=formatter,
+    )
+    
+    # Test connection
+    console.section("Connecting to Jira")
+    if not tracker.test_connection():
+        console.error("Failed to connect to Jira. Check credentials.")
+        return ExitCode.CONNECTION_ERROR
+    
+    user = tracker.get_current_user()
+    console.success(f"Connected as: {user.get('displayName', user.get('emailAddress', 'Unknown'))}")
+    
+    # Confirmation
+    if not dry_run and not getattr(args, 'no_confirm', False):
+        console.warning("This will restore Jira issues to their backed-up state!")
+        console.detail(f"  {backup.issue_count} issues and {backup.subtask_count} subtasks may be modified")
+        if not console.confirm("Proceed with restore?"):
+            console.warning("Cancelled by user")
+            return ExitCode.CANCELLED
+    
+    # Run restore
+    console.section("Restoring from Backup")
+    
+    result = manager.restore_backup(
+        tracker=tracker,
+        backup_id=backup_id,
+        epic_key=backup.epic_key,
+        dry_run=dry_run,
+    )
+    
+    # Show results
+    console.print()
+    if result.success:
+        console.success("Restore completed successfully!")
+    else:
+        console.error("Restore completed with errors")
+    
+    console.detail(f"  Issues restored: {result.issues_restored}")
+    console.detail(f"  Subtasks restored: {result.subtasks_restored}")
+    console.detail(f"  Operations: {result.successful_operations} succeeded, {result.failed_operations} failed, {result.skipped_operations} skipped")
+    
+    if result.errors:
+        console.print()
+        console.error("Errors:")
+        for error in result.errors[:10]:
+            console.item(error, "fail")
+        if len(result.errors) > 10:
+            console.detail(f"... and {len(result.errors) - 10} more")
+    
+    if result.warnings:
+        console.print()
+        console.warning("Warnings:")
+        for warning in result.warnings[:5]:
+            console.item(warning, "warn")
+    
+    return ExitCode.SUCCESS if result.success else ExitCode.ERROR
 
 
 def run_sync(
@@ -622,6 +758,10 @@ def main() -> int:
     if args.list_backups:
         from ..application.sync import BackupManager
         return list_backups(BackupManager(), args.epic)
+    
+    # Handle restore-backup (requires backup ID, optionally epic key)
+    if args.restore_backup:
+        return run_restore(args)
     
     # Handle resume-session (loads args from session)
     if args.resume_session:

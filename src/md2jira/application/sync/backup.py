@@ -21,6 +21,140 @@ logger = logging.getLogger(__name__)
 
 
 @dataclass
+class RestoreOperation:
+    """
+    Record of a single restore operation.
+    
+    Tracks what was restored and whether it succeeded.
+    """
+    issue_key: str
+    field: str  # description, story_points, etc.
+    success: bool = True
+    error: Optional[str] = None
+    skipped: bool = False
+    skip_reason: Optional[str] = None
+    
+    def to_dict(self) -> dict:
+        """Convert to dictionary."""
+        return {
+            "issue_key": self.issue_key,
+            "field": self.field,
+            "success": self.success,
+            "error": self.error,
+            "skipped": self.skipped,
+            "skip_reason": self.skip_reason,
+        }
+
+
+@dataclass
+class RestoreResult:
+    """
+    Result of a restore operation.
+    
+    Tracks all operations performed during restore.
+    """
+    backup_id: str
+    epic_key: str
+    dry_run: bool = True
+    success: bool = True
+    issues_restored: int = 0
+    subtasks_restored: int = 0
+    operations: list[RestoreOperation] = field(default_factory=list)
+    errors: list[str] = field(default_factory=list)
+    warnings: list[str] = field(default_factory=list)
+    started_at: str = field(default_factory=lambda: datetime.now().isoformat())
+    completed_at: Optional[str] = None
+    
+    def add_operation(self, op: RestoreOperation) -> None:
+        """Add an operation result."""
+        self.operations.append(op)
+        if not op.success and not op.skipped:
+            self.success = False
+            if op.error:
+                self.errors.append(f"{op.issue_key} ({op.field}): {op.error}")
+    
+    def add_warning(self, warning: str) -> None:
+        """Add a warning message."""
+        self.warnings.append(warning)
+    
+    def complete(self) -> None:
+        """Mark the restore as complete."""
+        self.completed_at = datetime.now().isoformat()
+    
+    @property
+    def total_operations(self) -> int:
+        """Total number of operations attempted."""
+        return len(self.operations)
+    
+    @property
+    def successful_operations(self) -> int:
+        """Number of successful operations."""
+        return sum(1 for op in self.operations if op.success and not op.skipped)
+    
+    @property
+    def failed_operations(self) -> int:
+        """Number of failed operations."""
+        return sum(1 for op in self.operations if not op.success and not op.skipped)
+    
+    @property
+    def skipped_operations(self) -> int:
+        """Number of skipped operations."""
+        return sum(1 for op in self.operations if op.skipped)
+    
+    def summary(self) -> str:
+        """Generate human-readable summary."""
+        lines = []
+        
+        if self.dry_run:
+            lines.append("DRY RUN - No changes made")
+        
+        if self.success:
+            lines.append("✓ Restore completed successfully")
+        else:
+            lines.append(f"✗ Restore completed with errors ({len(self.errors)} failures)")
+        
+        lines.append(f"  Backup: {self.backup_id}")
+        lines.append(f"  Epic: {self.epic_key}")
+        lines.append(f"  Issues restored: {self.issues_restored}")
+        lines.append(f"  Subtasks restored: {self.subtasks_restored}")
+        lines.append(f"  Operations: {self.successful_operations} succeeded, {self.failed_operations} failed, {self.skipped_operations} skipped")
+        
+        if self.errors:
+            lines.append("")
+            lines.append("Errors:")
+            for error in self.errors[:5]:
+                lines.append(f"  • {error}")
+            if len(self.errors) > 5:
+                lines.append(f"  ... and {len(self.errors) - 5} more")
+        
+        if self.warnings:
+            lines.append("")
+            lines.append("Warnings:")
+            for warning in self.warnings[:5]:
+                lines.append(f"  • {warning}")
+            if len(self.warnings) > 5:
+                lines.append(f"  ... and {len(self.warnings) - 5} more")
+        
+        return "\n".join(lines)
+    
+    def to_dict(self) -> dict:
+        """Convert to dictionary for serialization."""
+        return {
+            "backup_id": self.backup_id,
+            "epic_key": self.epic_key,
+            "dry_run": self.dry_run,
+            "success": self.success,
+            "issues_restored": self.issues_restored,
+            "subtasks_restored": self.subtasks_restored,
+            "operations": [op.to_dict() for op in self.operations],
+            "errors": self.errors,
+            "warnings": self.warnings,
+            "started_at": self.started_at,
+            "completed_at": self.completed_at,
+        }
+
+
+@dataclass
 class IssueSnapshot:
     """
     Snapshot of a single issue's state.
@@ -493,6 +627,250 @@ class BackupManager:
                 total_deleted += self._cleanup_old_backups(epic_key)
         
         return total_deleted
+    
+    def restore_backup(
+        self,
+        tracker: "IssueTrackerPort",
+        backup_id: str,
+        epic_key: Optional[str] = None,
+        dry_run: bool = True,
+        restore_descriptions: bool = True,
+        restore_story_points: bool = True,
+        issue_filter: Optional[list[str]] = None,
+    ) -> RestoreResult:
+        """
+        Restore Jira issues to a previous state from a backup.
+        
+        This will update issue descriptions and story points to match
+        the backed-up state. Comments and status are NOT restored
+        (comments can't be deleted, status transitions are complex).
+        
+        Args:
+            tracker: Issue tracker port to update issues.
+            backup_id: The backup ID to restore from.
+            epic_key: Optional epic key to help find backup.
+            dry_run: If True, only simulate the restore.
+            restore_descriptions: Whether to restore descriptions.
+            restore_story_points: Whether to restore story points.
+            issue_filter: Optional list of issue keys to restore (None = all).
+            
+        Returns:
+            RestoreResult with details of what was restored.
+        """
+        # Load the backup
+        backup = self.load_backup(backup_id, epic_key)
+        if not backup:
+            result = RestoreResult(
+                backup_id=backup_id,
+                epic_key=epic_key or "unknown",
+                dry_run=dry_run,
+                success=False,
+            )
+            result.errors.append(f"Backup not found: {backup_id}")
+            return result
+        
+        logger.info(f"Restoring from backup {backup_id} (dry_run={dry_run})")
+        
+        result = RestoreResult(
+            backup_id=backup_id,
+            epic_key=backup.epic_key,
+            dry_run=dry_run,
+        )
+        
+        # Process each issue in the backup
+        for snapshot in backup.issues:
+            # Apply filter if provided
+            if issue_filter and snapshot.key not in issue_filter:
+                continue
+            
+            self._restore_issue(
+                tracker=tracker,
+                snapshot=snapshot,
+                result=result,
+                dry_run=dry_run,
+                restore_descriptions=restore_descriptions,
+                restore_story_points=restore_story_points,
+            )
+            
+            # Restore subtasks
+            for subtask_snapshot in snapshot.subtasks:
+                if issue_filter and subtask_snapshot.key not in issue_filter:
+                    continue
+                
+                self._restore_subtask(
+                    tracker=tracker,
+                    snapshot=subtask_snapshot,
+                    result=result,
+                    dry_run=dry_run,
+                    restore_descriptions=restore_descriptions,
+                    restore_story_points=restore_story_points,
+                )
+        
+        result.complete()
+        logger.info(f"Restore complete: {result.issues_restored} issues, {result.subtasks_restored} subtasks")
+        return result
+    
+    def _restore_issue(
+        self,
+        tracker: "IssueTrackerPort",
+        snapshot: "IssueSnapshot",
+        result: RestoreResult,
+        dry_run: bool,
+        restore_descriptions: bool,
+        restore_story_points: bool,
+    ) -> None:
+        """
+        Restore a single issue from a snapshot.
+        
+        Args:
+            tracker: Issue tracker port.
+            snapshot: The issue snapshot to restore.
+            result: RestoreResult to update.
+            dry_run: Whether this is a dry run.
+            restore_descriptions: Whether to restore description.
+            restore_story_points: Whether to restore story points.
+        """
+        issue_key = snapshot.key
+        restored_any = False
+        
+        # Restore description
+        if restore_descriptions and snapshot.description is not None:
+            try:
+                if dry_run:
+                    logger.info(f"[DRY-RUN] Would restore description for {issue_key}")
+                    result.add_operation(RestoreOperation(
+                        issue_key=issue_key,
+                        field="description",
+                        success=True,
+                    ))
+                else:
+                    tracker.update_issue_description(issue_key, snapshot.description)
+                    logger.info(f"Restored description for {issue_key}")
+                    result.add_operation(RestoreOperation(
+                        issue_key=issue_key,
+                        field="description",
+                        success=True,
+                    ))
+                restored_any = True
+            except Exception as e:
+                logger.error(f"Failed to restore description for {issue_key}: {e}")
+                result.add_operation(RestoreOperation(
+                    issue_key=issue_key,
+                    field="description",
+                    success=False,
+                    error=str(e),
+                ))
+        
+        # Note: Story points restoration for parent issues would need
+        # the update_subtask method which is designed for subtasks.
+        # For now, we skip story points on parent issues.
+        
+        if restored_any:
+            result.issues_restored += 1
+    
+    def _restore_subtask(
+        self,
+        tracker: "IssueTrackerPort",
+        snapshot: "IssueSnapshot",
+        result: RestoreResult,
+        dry_run: bool,
+        restore_descriptions: bool,
+        restore_story_points: bool,
+    ) -> None:
+        """
+        Restore a subtask from a snapshot.
+        
+        Args:
+            tracker: Issue tracker port.
+            snapshot: The subtask snapshot to restore.
+            result: RestoreResult to update.
+            dry_run: Whether this is a dry run.
+            restore_descriptions: Whether to restore description.
+            restore_story_points: Whether to restore story points.
+        """
+        issue_key = snapshot.key
+        restored_any = False
+        
+        # Prepare update fields
+        description = snapshot.description if restore_descriptions else None
+        story_points = int(snapshot.story_points) if (restore_story_points and snapshot.story_points) else None
+        
+        if description is None and story_points is None:
+            # Nothing to restore
+            result.add_operation(RestoreOperation(
+                issue_key=issue_key,
+                field="subtask",
+                skipped=True,
+                skip_reason="No restorable fields",
+            ))
+            return
+        
+        try:
+            if dry_run:
+                fields = []
+                if description is not None:
+                    fields.append("description")
+                if story_points is not None:
+                    fields.append("story_points")
+                logger.info(f"[DRY-RUN] Would restore {', '.join(fields)} for subtask {issue_key}")
+                result.add_operation(RestoreOperation(
+                    issue_key=issue_key,
+                    field="subtask",
+                    success=True,
+                ))
+            else:
+                tracker.update_subtask(
+                    issue_key=issue_key,
+                    description=description,
+                    story_points=story_points,
+                )
+                logger.info(f"Restored subtask {issue_key}")
+                result.add_operation(RestoreOperation(
+                    issue_key=issue_key,
+                    field="subtask",
+                    success=True,
+                ))
+            restored_any = True
+        except Exception as e:
+            logger.error(f"Failed to restore subtask {issue_key}: {e}")
+            result.add_operation(RestoreOperation(
+                issue_key=issue_key,
+                field="subtask",
+                success=False,
+                error=str(e),
+            ))
+        
+        if restored_any:
+            result.subtasks_restored += 1
+
+
+def restore_from_backup(
+    tracker: "IssueTrackerPort",
+    backup_id: str,
+    epic_key: Optional[str] = None,
+    dry_run: bool = True,
+    backup_dir: Optional[Path] = None,
+) -> RestoreResult:
+    """
+    Convenience function to restore from a backup.
+    
+    Args:
+        tracker: Issue tracker to update issues.
+        backup_id: The backup ID to restore from.
+        epic_key: Optional epic key to help find backup.
+        dry_run: If True, only simulate the restore.
+        backup_dir: Optional custom backup directory.
+        
+    Returns:
+        RestoreResult with restore details.
+    """
+    manager = BackupManager(backup_dir=backup_dir)
+    return manager.restore_backup(
+        tracker=tracker,
+        backup_id=backup_id,
+        epic_key=epic_key,
+        dry_run=dry_run,
+    )
 
 
 def create_pre_sync_backup(
