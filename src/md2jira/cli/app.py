@@ -128,6 +128,16 @@ Environment Variables:
         action="store_true",
         help="Skip confirmation prompts"
     )
+    parser.add_argument(
+        "--incremental",
+        action="store_true",
+        help="Only sync changed stories (skip unchanged)"
+    )
+    parser.add_argument(
+        "--force-full-sync",
+        action="store_true",
+        help="Force full sync even when --incremental is set"
+    )
     
     # Phase control
     parser.add_argument(
@@ -1986,6 +1996,8 @@ def run_sync(
     console.info(f"Markdown: {markdown_path}")
     console.info(f"Epic: {args.epic}")
     console.info(f"Mode: {'Execute' if args.execute else 'Dry-run'}")
+    if getattr(args, 'incremental', False):
+        console.info(f"Incremental: Enabled (only changed stories)")
     if args.execute and config.sync.backup_enabled:
         console.info(f"Backup: Enabled")
     
@@ -2041,6 +2053,10 @@ def run_sync(
     config.sync.backup_enabled = not getattr(args, "no_backup", False)
     if getattr(args, "backup_dir", None):
         config.sync.backup_dir = args.backup_dir
+    
+    # Configure incremental sync
+    config.sync.incremental = getattr(args, "incremental", False)
+    config.sync.force_full_sync = getattr(args, "force_full_sync", False)
     
     # Create state store for persistence
     from ..application.sync import StateStore
@@ -2126,11 +2142,13 @@ def run_sync(
         export_data = {
             "success": result.success,
             "dry_run": result.dry_run,
+            "incremental": result.incremental,
             "matched_stories": result.matched_stories,
             "unmatched_stories": result.unmatched_stories,
             "stats": {
                 "stories_matched": result.stories_matched,
                 "stories_updated": result.stories_updated,
+                "stories_skipped": result.stories_skipped,
                 "subtasks_created": result.subtasks_created,
                 "subtasks_updated": result.subtasks_updated,
                 "comments_added": result.comments_added,

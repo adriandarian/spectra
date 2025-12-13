@@ -52,6 +52,14 @@ from .links import (
     LinkSyncResult,
     LinkChange,
 )
+from .incremental import (
+    StoryFingerprint,
+    ChangeDetectionResult,
+    ChangeTracker,
+    IncrementalSyncStats,
+    compute_story_hash,
+    stories_differ,
+)
 
 # Parallel operations (optional, requires aiohttp)
 try:
@@ -118,6 +126,13 @@ __all__ = [
     "LinkSyncOrchestrator",
     "LinkSyncResult",
     "LinkChange",
+    # Incremental Sync
+    "StoryFingerprint",
+    "ChangeDetectionResult",
+    "ChangeTracker",
+    "IncrementalSyncStats",
+    "compute_story_hash",
+    "stories_differ",
     # Parallel Operations
     "PARALLEL_AVAILABLE",
 ]

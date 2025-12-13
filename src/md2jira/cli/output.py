@@ -391,9 +391,11 @@ class Console:
             output = {
                 "success": result.success,
                 "dry_run": result.dry_run,
+                "incremental": getattr(result, 'incremental', False),
                 "stats": {
                     "stories_matched": result.stories_matched,
                     "stories_updated": result.stories_updated,
+                    "stories_skipped": getattr(result, 'stories_skipped', 0),
                     "subtasks_created": result.subtasks_created,
                     "subtasks_updated": result.subtasks_updated,
                     "comments_added": result.comments_added,
@@ -460,6 +462,10 @@ class Console:
             ["Comments Added", str(result.comments_added)],
             ["Statuses Updated", str(result.statuses_updated)],
         ]
+        
+        # Add incremental stats if applicable
+        if getattr(result, 'incremental', False):
+            stats.insert(2, ["Stories Skipped (unchanged)", str(result.stories_skipped)])
         
         self.table(["Metric", "Count"], stats)
         

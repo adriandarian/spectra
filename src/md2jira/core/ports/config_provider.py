@@ -130,6 +130,11 @@ class SyncConfig:
     cache_ttl: float = 300.0  # Default cache TTL in seconds (5 min)
     cache_max_size: int = 1000  # Maximum cache entries
     cache_dir: Optional[str] = None  # For file-based cache (None = memory)
+    
+    # Incremental sync settings
+    incremental: bool = False  # Enable incremental sync (only changed stories)
+    incremental_state_dir: Optional[str] = None  # Dir to store sync state
+    force_full_sync: bool = False  # Force full sync even if incremental enabled
 
 
 @dataclass

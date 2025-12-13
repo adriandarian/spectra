@@ -14,6 +14,7 @@ from ...core.ports.issue_tracker import IssueTrackerPort, IssueData
 if TYPE_CHECKING:
     from .state import SyncState, StateStore, SyncPhase
     from .backup import Backup, BackupManager
+    from .incremental import ChangeTracker, ChangeDetectionResult
 from ...core.ports.document_parser import DocumentParserPort
 from ...core.ports.document_formatter import DocumentFormatterPort
 from ...core.ports.config_provider import SyncConfig
@@ -73,6 +74,9 @@ class SyncResult:
         failed_operations: List of FailedOperation with detailed error info.
         errors: List of error messages (for backward compatibility).
         warnings: List of warning messages.
+        incremental: Whether incremental sync was used.
+        stories_skipped: Number of unchanged stories skipped (incremental).
+        changed_story_ids: IDs of stories that were changed (incremental).
     """
     
     success: bool = True
@@ -92,6 +96,11 @@ class SyncResult:
     failed_operations: list[FailedOperation] = field(default_factory=list)
     errors: list[str] = field(default_factory=list)
     warnings: list[str] = field(default_factory=list)
+    
+    # Incremental sync stats
+    incremental: bool = False
+    stories_skipped: int = 0
+    changed_story_ids: set[str] = field(default_factory=set)
     
     def add_error(self, error: str) -> None:
         """
@@ -211,6 +220,9 @@ class SyncResult:
         lines.append(f"  Comments added: {self.comments_added}")
         lines.append(f"  Statuses updated: {self.statuses_updated}")
         
+        if self.incremental:
+            lines.append(f"  Stories skipped (unchanged): {self.stories_skipped}")
+        
         if self.failed_operations:
             lines.append("")
             lines.append("Failed operations:")
@@ -279,6 +291,14 @@ class SyncOrchestrator:
         self._matches: dict[str, str] = {}  # story_id -> issue_key
         self._state: Optional["SyncState"] = None
         self._last_backup: Optional["Backup"] = None
+        
+        # Incremental sync support
+        self._change_tracker: Optional["ChangeTracker"] = None
+        self._changed_story_ids: set[str] = set()
+        if self.config.incremental:
+            from .incremental import ChangeTracker
+            state_dir = self.config.incremental_state_dir or "~/.md2jira/sync"
+            self._change_tracker = ChangeTracker(storage_dir=state_dir)
     
     # -------------------------------------------------------------------------
     # Main Entry Points
@@ -356,6 +376,27 @@ class SyncOrchestrator:
         result.stories_matched = len(self._matches)
         result.matched_stories = list(self._matches.items())
         
+        # Phase 1b: Detect changes (incremental sync)
+        if self.config.incremental and self._change_tracker and not self.config.force_full_sync:
+            self._change_tracker.load(epic_key, markdown_path)
+            changes = self._change_tracker.detect_changes(self._md_stories)
+            self._changed_story_ids = {
+                story_id for story_id, change in changes.items()
+                if change.has_changes
+            }
+            result.incremental = True
+            result.changed_story_ids = self._changed_story_ids
+            result.stories_skipped = len(self._md_stories) - len(self._changed_story_ids)
+            
+            if result.stories_skipped > 0:
+                self.logger.info(
+                    f"Incremental sync: {len(self._changed_story_ids)} changed, "
+                    f"{result.stories_skipped} skipped"
+                )
+        else:
+            # Full sync - all stories are "changed"
+            self._changed_story_ids = {str(s.id) for s in self._md_stories}
+        
         # Phase 2: Update descriptions
         if self.config.sync_descriptions:
             self._report_progress(progress_callback, "Updating descriptions", 2, total_phases)
@@ -375,6 +416,13 @@ class SyncOrchestrator:
         if self.config.sync_statuses:
             self._report_progress(progress_callback, "Syncing statuses", 5, total_phases)
             self._sync_statuses(result)
+        
+        # Save incremental sync state (on successful non-dry-run)
+        if (self.config.incremental and 
+            self._change_tracker and 
+            not self.config.dry_run and 
+            result.success):
+            self._change_tracker.save(epic_key, markdown_path)
         
         # Publish complete event
         self.event_bus.publish(SyncCompleted(
@@ -509,6 +557,10 @@ class SyncOrchestrator:
             if story_id not in self._matches:
                 continue
             
+            # Skip unchanged stories in incremental mode
+            if self.config.incremental and story_id not in self._changed_story_ids:
+                continue
+            
             issue_key = self._matches[story_id]
             
             # Only update if story has description
@@ -556,6 +608,10 @@ class SyncOrchestrator:
         for md_story in self._md_stories:
             story_id = str(md_story.id)
             if story_id not in self._matches:
+                continue
+            
+            # Skip unchanged stories in incremental mode
+            if self.config.incremental and story_id not in self._changed_story_ids:
                 continue
             
             issue_key = self._matches[story_id]
@@ -658,6 +714,10 @@ class SyncOrchestrator:
             if not md_story.commits:
                 continue
             
+            # Skip unchanged stories in incremental mode
+            if self.config.incremental and story_id not in self._changed_story_ids:
+                continue
+            
             issue_key = self._matches[story_id]
             
             try:
@@ -735,6 +795,10 @@ class SyncOrchestrator:
             
             # Only sync done stories
             if not md_story.status.is_complete():
+                continue
+            
+            # Skip unchanged stories in incremental mode
+            if self.config.incremental and story_id not in self._changed_story_ids:
                 continue
             
             issue_key = self._matches[story_id]
