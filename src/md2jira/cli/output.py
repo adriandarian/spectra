@@ -112,18 +112,25 @@ class Console:
     Attributes:
         color: Whether to use ANSI color codes.
         verbose: Whether to print debug messages.
+        quiet: Whether to suppress most output (for CI/scripting).
     """
     
-    def __init__(self, color: bool = True, verbose: bool = False):
+    def __init__(self, color: bool = True, verbose: bool = False, quiet: bool = False):
         """
         Initialize the console output helper.
         
         Args:
             color: Enable colored output. Automatically disabled if stdout is not a TTY.
             verbose: Enable verbose debug output.
+            quiet: Suppress most output, only show errors and final summary.
         """
         self.color = color and sys.stdout.isatty()
         self.verbose = verbose
+        self.quiet = quiet
+        
+        # Quiet mode overrides verbose
+        if self.quiet:
+            self.verbose = False
     
     def _c(self, text: str, *codes: str) -> str:
         """
@@ -140,13 +147,16 @@ class Console:
             return text
         return "".join(codes) + text + Colors.RESET
     
-    def print(self, text: str = "") -> None:
+    def print(self, text: str = "", force: bool = False) -> None:
         """
         Print text to stdout.
         
         Args:
             text: Text to print. Defaults to empty string for blank line.
+            force: Print even in quiet mode.
         """
+        if self.quiet and not force:
+            return
         print(text)
     
     def header(self, text: str) -> None:
@@ -156,6 +166,8 @@ class Console:
         Args:
             text: Header text to display.
         """
+        if self.quiet:
+            return
         width = max(len(text) + 4, 50)
         border = Colors.CYAN + Symbols.BOX_H * width + Colors.RESET if self.color else "-" * width
         
@@ -172,6 +184,8 @@ class Console:
         Args:
             text: Section title to display.
         """
+        if self.quiet:
+            return
         self.print()
         self.print(self._c(f"{Symbols.ARROW} {text}", Colors.BOLD, Colors.BLUE))
     
@@ -182,16 +196,21 @@ class Console:
         Args:
             text: Success message to display.
         """
+        if self.quiet:
+            return
         self.print(self._c(f"  {Symbols.CHECK} {text}", Colors.GREEN))
     
     def error(self, text: str) -> None:
         """
         Print an error message with cross symbol.
         
+        Always prints, even in quiet mode.
+        
         Args:
             text: Error message to display.
         """
-        self.print(self._c(f"  {Symbols.CROSS} {text}", Colors.RED))
+        # Errors always print, even in quiet mode
+        print(self._c(f"  {Symbols.CROSS} {text}", Colors.RED))
     
     def warning(self, text: str) -> None:
         """
@@ -200,6 +219,8 @@ class Console:
         Args:
             text: Warning message to display.
         """
+        if self.quiet:
+            return
         self.print(self._c(f"  {Symbols.WARN} {text}", Colors.YELLOW))
     
     def info(self, text: str) -> None:
@@ -209,6 +230,8 @@ class Console:
         Args:
             text: Info message to display.
         """
+        if self.quiet:
+            return
         self.print(self._c(f"  {Symbols.INFO} {text}", Colors.CYAN))
     
     def detail(self, text: str) -> None:
@@ -218,6 +241,8 @@ class Console:
         Args:
             text: Detail text to display.
         """
+        if self.quiet:
+            return
         self.print(self._c(f"    {text}", Colors.DIM))
     
     def debug(self, text: str) -> None:
@@ -242,6 +267,8 @@ class Console:
                 - "fail": Shows red cross
                 - Any other string: Shows dimmed label
         """
+        if self.quiet:
+            return
         status_str = ""
         if status == "ok":
             status_str = self._c(f" [{Symbols.CHECK}]", Colors.GREEN)
@@ -264,6 +291,8 @@ class Console:
             headers: List of column header strings.
             rows: List of rows, where each row is a list of cell values.
         """
+        if self.quiet:
+            return
         # Calculate column widths
         widths = [len(h) for h in headers]
         for row in rows:
@@ -298,6 +327,8 @@ class Console:
             total: Total/maximum progress value.
             message: Optional message to display after the progress bar.
         """
+        if self.quiet:
+            return
         width = 30
         filled = int(width * current / total)
         bar = "█" * filled + "░" * (width - filled)
@@ -316,6 +347,8 @@ class Console:
         
         Displays a highlighted banner indicating that no changes will be made.
         """
+        if self.quiet:
+            return
         self.print()
         banner = f"  {Symbols.GEAR} DRY-RUN MODE - No changes will be made"
         if self.color:
@@ -329,10 +362,32 @@ class Console:
         Print a formatted sync result summary.
         
         Displays statistics, warnings, errors, and final status.
+        In quiet mode, prints a single line summary suitable for CI/scripting.
         
         Args:
             result: SyncResult object containing sync operation details.
         """
+        # Quiet mode: compact one-line output for CI/scripting
+        if self.quiet:
+            status = "OK" if result.success else "FAILED"
+            mode = "dry-run" if result.dry_run else "executed"
+            parts = [
+                f"status={status}",
+                f"mode={mode}",
+                f"matched={result.stories_matched}",
+                f"updated={result.stories_updated}",
+                f"subtasks_created={result.subtasks_created}",
+                f"comments={result.comments_added}",
+            ]
+            if result.errors:
+                parts.append(f"errors={len(result.errors)}")
+            print(" ".join(parts))
+            
+            # Still print errors even in quiet mode
+            for e in result.errors:
+                print(f"ERROR: {e}")
+            return
+        
         self.section("Sync Summary")
         self.print()
         

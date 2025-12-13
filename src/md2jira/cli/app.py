@@ -124,6 +124,11 @@ Environment Variables:
         help="Verbose output"
     )
     parser.add_argument(
+        "--quiet", "-q",
+        action="store_true",
+        help="Quiet mode - only show errors and final summary (for CI/scripting)"
+    )
+    parser.add_argument(
         "--no-color",
         action="store_true",
         help="Disable colored output"
@@ -505,6 +510,7 @@ def main() -> int:
     console = Console(
         color=not args.no_color,
         verbose=args.verbose,
+        quiet=args.quiet,
     )
     
     try:

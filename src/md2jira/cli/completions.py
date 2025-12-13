@@ -20,7 +20,7 @@ _md2jira_completions() {
     prev="${COMP_WORDS[COMP_CWORD-1]}"
     
     # All available options
-    opts="--markdown -m --epic -e --execute -x --no-confirm --phase --story --config -c --jira-url --project --verbose -v --no-color --export --validate --interactive -i --resume --resume-session --list-sessions --version --help -h --completions"
+    opts="--markdown -m --epic -e --execute -x --no-confirm --phase --story --config -c --jira-url --project --verbose -v --quiet -q --no-color --export --validate --interactive -i --resume --resume-session --list-sessions --version --help -h --completions"
     
     # Phase choices
     phases="all descriptions subtasks comments statuses"
@@ -103,6 +103,7 @@ _md2jira() {
         '--jira-url[Override Jira URL]:url:_urls' \\
         '--project[Override Jira project key]:project key:' \\
         '(-v --verbose)'{-v,--verbose}'[Verbose output]' \\
+        '(-q --quiet)'{-q,--quiet}'[Quiet mode - only show errors and summary]' \\
         '--no-color[Disable colored output]' \\
         '--export[Export analysis to JSON file]:json file:_files -g "*.json"' \\
         '--validate[Validate markdown file format]' \\
@@ -160,6 +161,7 @@ complete -c md2jira -l project -d 'Override Jira project key' -x
 
 # Output options
 complete -c md2jira -s v -l verbose -d 'Verbose output'
+complete -c md2jira -s q -l quiet -d 'Quiet mode - only show errors and summary'
 complete -c md2jira -l no-color -d 'Disable colored output'
 complete -c md2jira -l export -d 'Export analysis to JSON file' -r -F -a '*.json'
 

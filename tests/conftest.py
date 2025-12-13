@@ -648,6 +648,7 @@ def base_cli_args():
     args.jira_url = None
     args.project = None
     args.verbose = False
+    args.quiet = False
     args.no_color = False
     args.export = None
     args.validate = False

@@ -43,6 +43,7 @@ _md2jira() {
         '--jira-url[Override Jira URL]:url:_urls' \
         '--project[Override Jira project key]:project key:' \
         '(-v --verbose)'{-v,--verbose}'[Verbose output]' \
+        '(-q --quiet)'{-q,--quiet}'[Quiet mode - only show errors and summary]' \
         '--no-color[Disable colored output]' \
         '--export[Export analysis to JSON file]:json file:_files -g "*.json"' \
         '--validate[Validate markdown file format]' \
