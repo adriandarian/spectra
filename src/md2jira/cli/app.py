@@ -68,6 +68,15 @@ Examples:
   # Watch mode with custom debounce (5 seconds between syncs)
   md2jira --watch --markdown EPIC.md --epic PROJ-123 --execute --debounce 5
 
+  # Scheduled sync - every 5 minutes
+  md2jira --schedule 5m --markdown EPIC.md --epic PROJ-123 --execute
+
+  # Scheduled sync - daily at 9:00 AM
+  md2jira --schedule daily:09:00 --markdown EPIC.md --epic PROJ-123 --execute
+
+  # Scheduled sync - run immediately, then every hour
+  md2jira --schedule 1h --markdown EPIC.md --epic PROJ-123 --execute --run-now
+
 Environment Variables:
   JIRA_URL         Jira instance URL (e.g., https://company.atlassian.net)
   JIRA_EMAIL       Jira account email
@@ -345,6 +354,26 @@ Environment Variables:
         default=1.0,
         metavar="SECONDS",
         help="How often to check for file changes (default: 1.0)"
+    )
+    
+    # Scheduled sync
+    parser.add_argument(
+        "--schedule",
+        type=str,
+        metavar="SPEC",
+        help="Run sync on a schedule. Formats: 30s, 5m, 1h (interval), "
+             "daily:HH:MM, hourly:MM, cron:MIN HOUR DOW"
+    )
+    parser.add_argument(
+        "--run-now",
+        action="store_true",
+        help="Run sync immediately when starting scheduled mode"
+    )
+    parser.add_argument(
+        "--max-runs",
+        type=int,
+        metavar="N",
+        help="Maximum number of scheduled runs (default: unlimited)"
     )
     
     return parser
@@ -871,6 +900,144 @@ def run_rollback(args) -> int:
             console.detail(f"... and {len(result.errors) - 10} more")
     
     return ExitCode.SUCCESS if result.success else ExitCode.ERROR
+
+
+def run_schedule(args) -> int:
+    """
+    Run scheduled sync mode.
+    
+    Syncs at specified intervals or times according to a schedule.
+    
+    Args:
+        args: Parsed command-line arguments.
+        
+    Returns:
+        Exit code.
+    """
+    from .logging import setup_logging
+    from ..application import (
+        SyncOrchestrator,
+        ScheduledSyncRunner,
+        ScheduleDisplay,
+        parse_schedule,
+    )
+    from ..adapters import JiraAdapter, MarkdownParser, ADFFormatter, EnvironmentConfigProvider
+    
+    # Setup logging
+    log_level = logging.DEBUG if getattr(args, 'verbose', False) else logging.INFO
+    log_format = getattr(args, "log_format", "text")
+    setup_logging(level=log_level, log_format=log_format)
+    
+    # Create console
+    console = Console(
+        color=not getattr(args, 'no_color', False),
+        verbose=getattr(args, 'verbose', False),
+        quiet=getattr(args, 'quiet', False),
+    )
+    
+    markdown_path = args.markdown
+    epic_key = args.epic
+    schedule_spec = args.schedule
+    run_now = getattr(args, 'run_now', False)
+    max_runs = getattr(args, 'max_runs', None)
+    dry_run = not getattr(args, 'execute', False)
+    
+    # Validate markdown exists
+    if not Path(markdown_path).exists():
+        console.error(f"Markdown file not found: {markdown_path}")
+        return ExitCode.FILE_NOT_FOUND
+    
+    # Parse schedule
+    try:
+        schedule = parse_schedule(schedule_spec)
+    except ValueError as e:
+        console.error(f"Invalid schedule: {e}")
+        return ExitCode.CONFIG_ERROR
+    
+    # Load configuration
+    config_file = Path(args.config) if getattr(args, 'config', None) else None
+    config_provider = EnvironmentConfigProvider(
+        config_file=config_file,
+        cli_overrides=vars(args),
+    )
+    errors = config_provider.validate()
+    
+    if errors:
+        console.error("Configuration errors:")
+        for error in errors:
+            console.item(error, "fail")
+        return ExitCode.CONFIG_ERROR
+    
+    config = config_provider.load()
+    config.sync.dry_run = dry_run
+    
+    # Configure sync phases from args
+    config.sync.sync_descriptions = args.phase in ("all", "descriptions")
+    config.sync.sync_subtasks = args.phase in ("all", "subtasks")
+    config.sync.sync_comments = args.phase in ("all", "comments")
+    config.sync.sync_statuses = args.phase in ("all", "statuses")
+    
+    # Initialize components
+    formatter = ADFFormatter()
+    parser = MarkdownParser()
+    tracker = JiraAdapter(
+        config=config.tracker,
+        dry_run=dry_run,
+        formatter=formatter,
+    )
+    
+    # Test connection
+    console.header("md2jira Scheduled Sync")
+    
+    if dry_run:
+        console.dry_run_banner()
+    
+    console.section("Connecting to Jira")
+    if not tracker.test_connection():
+        console.error("Failed to connect to Jira. Check credentials.")
+        return ExitCode.CONNECTION_ERROR
+    
+    user = tracker.get_current_user()
+    console.success(f"Connected as: {user.get('displayName', user.get('emailAddress', 'Unknown'))}")
+    
+    # Create sync orchestrator
+    sync_orchestrator = SyncOrchestrator(
+        tracker=tracker,
+        parser=parser,
+        formatter=formatter,
+        config=config.sync,
+    )
+    
+    # Create display handler
+    display = ScheduleDisplay(
+        color=not getattr(args, 'no_color', False),
+        quiet=getattr(args, 'quiet', False),
+    )
+    
+    # Create scheduled runner
+    runner = ScheduledSyncRunner(
+        orchestrator=sync_orchestrator,
+        schedule=schedule,
+        markdown_path=markdown_path,
+        epic_key=epic_key,
+        run_immediately=run_now,
+        max_runs=max_runs,
+        on_run_start=display.show_run_start,
+        on_run_complete=display.show_run_complete,
+    )
+    
+    # Show start message
+    display.show_start(markdown_path, epic_key, schedule)
+    
+    try:
+        # Run scheduled sync (blocks until Ctrl+C or max_runs)
+        runner.start()
+    except KeyboardInterrupt:
+        pass
+    finally:
+        display.show_stop(runner.stats)
+    
+    return ExitCode.SUCCESS
 
 
 def run_watch(args) -> int:
@@ -1529,6 +1696,12 @@ def main() -> int:
         if not args.markdown or not args.epic:
             parser.error("--watch requires --markdown/-m and --epic/-e to be specified")
         return run_watch(args)
+    
+    # Handle scheduled sync
+    if args.schedule:
+        if not args.markdown or not args.epic:
+            parser.error("--schedule requires --markdown/-m and --epic/-e to be specified")
+        return run_schedule(args)
     
     # Handle resume-session (loads args from session)
     if args.resume_session:

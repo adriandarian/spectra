@@ -25,6 +25,18 @@ from .watch import (
     FileChange,
     WatchStats,
 )
+from .scheduler import (
+    Schedule,
+    IntervalSchedule,
+    DailySchedule,
+    HourlySchedule,
+    CronSchedule,
+    ScheduledSyncRunner,
+    ScheduleDisplay,
+    ScheduleStats,
+    ScheduleType,
+    parse_schedule,
+)
 
 __all__ = [
     "SyncOrchestrator",
@@ -42,5 +54,16 @@ __all__ = [
     "WatchEvent",
     "FileChange",
     "WatchStats",
+    # Scheduled sync
+    "Schedule",
+    "IntervalSchedule",
+    "DailySchedule",
+    "HourlySchedule",
+    "CronSchedule",
+    "ScheduledSyncRunner",
+    "ScheduleDisplay",
+    "ScheduleStats",
+    "ScheduleType",
+    "parse_schedule",
 ]
 
