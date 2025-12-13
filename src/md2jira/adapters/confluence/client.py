@@ -17,6 +17,7 @@ from requests.adapters import HTTPAdapter
 from urllib3.util.retry import Retry
 
 from ...core.exceptions import OutputError
+from ...core.constants import ContentType, HttpHeader, ApiDefaults
 
 
 @dataclass
@@ -100,9 +101,9 @@ class ConfluenceClient:
         auth_bytes = base64.b64encode(auth_string.encode()).decode()
         
         self._session.headers.update({
-            "Authorization": f"Basic {auth_bytes}",
-            "Content-Type": "application/json",
-            "Accept": "application/json",
+            HttpHeader.AUTHORIZATION: f"Basic {auth_bytes}",
+            HttpHeader.CONTENT_TYPE: ContentType.JSON,
+            HttpHeader.ACCEPT: ContentType.JSON,
             "X-Atlassian-Token": "no-check",  # Disable XSRF for API calls
         })
         
@@ -115,8 +116,8 @@ class ConfluenceClient:
         )
         adapter = HTTPAdapter(
             max_retries=retry_strategy,
-            pool_connections=10,
-            pool_maxsize=10,
+            pool_connections=ApiDefaults.POOL_CONNECTIONS,
+            pool_maxsize=ApiDefaults.POOL_MAXSIZE,
         )
         self._session.mount("https://", adapter)
         self._session.mount("http://", adapter)

@@ -22,6 +22,7 @@ from ...core.ports.issue_tracker import (
     RateLimitError,
     TransientError,
 )
+from ...core.constants import ContentType, HttpHeader, ApiDefaults, JiraApi
 
 
 # HTTP status codes that should trigger retry
@@ -301,8 +302,8 @@ class JiraApiClient:
             )
         
         self.headers = {
-            "Accept": "application/json",
-            "Content-Type": "application/json",
+            HttpHeader.ACCEPT: ContentType.JSON,
+            HttpHeader.CONTENT_TYPE: ContentType.JSON,
         }
         
         # Configure session with connection pooling

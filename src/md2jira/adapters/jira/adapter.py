@@ -16,6 +16,7 @@ from ...core.ports.issue_tracker import (
 )
 from ...core.ports.config_provider import TrackerConfig
 from ...core.domain.value_objects import CommitRef
+from ...core.constants import JiraField, IssueType
 from ..formatters.adf import ADFFormatter
 from .client import JiraApiClient
 from .batch import JiraBatchClient, BatchResult
@@ -93,17 +94,18 @@ class JiraAdapter(IssueTrackerPort):
         return self._client.get_myself()
     
     def get_issue(self, issue_key: str) -> IssueData:
+        fields = ",".join(JiraField.ISSUE_WITH_SUBTASKS)
         data = self._client.get(
             f"issue/{issue_key}",
-            params={"fields": "summary,description,status,issuetype,subtasks"}
+            params={JiraField.FIELDS: fields}
         )
         return self._parse_issue(data)
     
     def get_epic_children(self, epic_key: str) -> list[IssueData]:
-        jql = f'parent = {epic_key} ORDER BY key ASC'
+        jql = f'{JiraField.PARENT} = {epic_key} ORDER BY {JiraField.KEY} ASC'
         data = self._client.search_jql(
             jql,
-            ["summary", "description", "status", "issuetype", "subtasks"]
+            list(JiraField.ISSUE_WITH_SUBTASKS)
         )
         
         return [
@@ -118,14 +120,14 @@ class JiraAdapter(IssueTrackerPort):
     def get_issue_status(self, issue_key: str) -> str:
         data = self._client.get(
             f"issue/{issue_key}",
-            params={"fields": "status"}
+            params={JiraField.FIELDS: JiraField.STATUS}
         )
-        return data["fields"]["status"]["name"]
+        return data[JiraField.FIELDS][JiraField.STATUS][JiraField.NAME]
     
     def search_issues(self, query: str, max_results: int = 50) -> list[IssueData]:
         data = self._client.search_jql(
             query,
-            ["summary", "description", "status", "issuetype"],
+            list(JiraField.BASIC_FIELDS),
             max_results=max_results
         )
         return [self._parse_issue(issue) for issue in data.get("issues", [])]
@@ -149,7 +151,7 @@ class JiraAdapter(IssueTrackerPort):
         
         self._client.put(
             f"issue/{issue_key}",
-            json={"fields": {"description": description}}
+            json={JiraField.FIELDS: {JiraField.DESCRIPTION: description}}
         )
         self.logger.info(f"Updated description for {issue_key}")
         return True
@@ -176,12 +178,12 @@ class JiraAdapter(IssueTrackerPort):
             description = self.formatter.format_text(description)
         
         fields: dict[str, Any] = {
-            "project": {"key": project_key},
-            "parent": {"key": parent_key},
-            "summary": summary[:255],
-            "description": description,
-            "issuetype": {"name": "Sub-task"},
-            "assignee": {"accountId": assignee},
+            JiraField.PROJECT: {JiraField.KEY: project_key},
+            JiraField.PARENT: {JiraField.KEY: parent_key},
+            JiraField.SUMMARY: summary[:255],
+            JiraField.DESCRIPTION: description,
+            JiraField.ISSUETYPE: {JiraField.NAME: IssueType.JIRA_SUBTASK},
+            JiraField.ASSIGNEE: {JiraField.ACCOUNT_ID: assignee},
         }
         
         if story_points is not None:
@@ -316,23 +318,23 @@ class JiraAdapter(IssueTrackerPort):
     
     def _parse_issue(self, data: dict) -> IssueData:
         """Parse Jira API response into IssueData."""
-        fields = data.get("fields", {})
+        fields = data.get(JiraField.FIELDS, {})
         
         subtasks = []
-        for st in fields.get("subtasks", []):
+        for st in fields.get(JiraField.SUBTASKS, []):
             subtasks.append(IssueData(
-                key=st["key"],
-                summary=st["fields"]["summary"],
-                status=st["fields"]["status"]["name"],
-                issue_type="Sub-task",
+                key=st[JiraField.KEY],
+                summary=st[JiraField.FIELDS][JiraField.SUMMARY],
+                status=st[JiraField.FIELDS][JiraField.STATUS][JiraField.NAME],
+                issue_type=IssueType.SUBTASK,
             ))
         
         return IssueData(
-            key=data["key"],
-            summary=fields.get("summary", ""),
-            description=fields.get("description"),
-            status=fields.get("status", {}).get("name", ""),
-            issue_type=fields.get("issuetype", {}).get("name", ""),
+            key=data[JiraField.KEY],
+            summary=fields.get(JiraField.SUMMARY, ""),
+            description=fields.get(JiraField.DESCRIPTION),
+            status=fields.get(JiraField.STATUS, {}).get(JiraField.NAME, ""),
+            issue_type=fields.get(JiraField.ISSUETYPE, {}).get(JiraField.NAME, ""),
             subtasks=subtasks,
         )
     
