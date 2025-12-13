@@ -47,6 +47,12 @@ class SyncConfig:
     
     # Output
     export_path: Optional[str] = None
+    
+    # Backup settings
+    backup_enabled: bool = True  # Auto-backup before sync
+    backup_dir: Optional[str] = None  # Custom backup directory
+    backup_max_count: int = 10  # Max backups to keep per epic
+    backup_retention_days: int = 30  # Delete backups older than this
 
 
 @dataclass

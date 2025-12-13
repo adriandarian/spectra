@@ -165,6 +165,30 @@ Environment Variables:
         help="Export analysis to JSON file"
     )
     
+    # Backup options
+    parser.add_argument(
+        "--backup",
+        action="store_true",
+        default=True,
+        help="Create backup before sync (default: enabled)"
+    )
+    parser.add_argument(
+        "--no-backup",
+        action="store_true",
+        help="Disable automatic backup before sync"
+    )
+    parser.add_argument(
+        "--backup-dir",
+        type=str,
+        metavar="PATH",
+        help="Custom directory for backups (default: ~/.md2jira/backups)"
+    )
+    parser.add_argument(
+        "--list-backups",
+        action="store_true",
+        help="List available backups for the specified epic"
+    )
+    
     # Special modes
     parser.add_argument(
         "--validate",
@@ -293,6 +317,46 @@ def list_sessions(state_store) -> int:
     return ExitCode.SUCCESS
 
 
+def list_backups(backup_manager, epic_key: str = None) -> int:
+    """
+    List available backups.
+    
+    Args:
+        backup_manager: BackupManager instance.
+        epic_key: Optional epic key to filter by.
+        
+    Returns:
+        Exit code.
+    """
+    from .exit_codes import ExitCode
+    
+    backups = backup_manager.list_backups(epic_key)
+    
+    if not backups:
+        print("No backups found.")
+        if epic_key:
+            print(f"Epic: {epic_key}")
+        print(f"Backup directory: {backup_manager.backup_dir}")
+        return ExitCode.SUCCESS
+    
+    print(f"\n{'Backup ID':<40} {'Epic':<12} {'Issues':<8} {'Created':<20}")
+    print("-" * 82)
+    
+    for b in backups:
+        backup_id = b.get("backup_id", "")[:38]
+        epic = b.get("epic_key", "")[:10]
+        issue_count = str(b.get("issue_count", 0))
+        created = b.get("created_at", "")[:19]
+        
+        print(f"{backup_id:<40} {epic:<12} {issue_count:<8} {created:<20}")
+    
+    print()
+    print(f"Total backups: {len(backups)}")
+    print(f"Backup directory: {backup_manager.backup_dir}")
+    
+    return ExitCode.SUCCESS
+
+
 def run_sync(
     console: Console,
     args: argparse.Namespace,
@@ -345,6 +409,8 @@ def run_sync(
     console.info(f"Markdown: {markdown_path}")
     console.info(f"Epic: {args.epic}")
     console.info(f"Mode: {'Execute' if args.execute else 'Dry-run'}")
+    if args.execute and config.sync.backup_enabled:
+        console.info(f"Backup: Enabled")
     
     # Initialize components
     event_bus = EventBus()
@@ -393,6 +459,11 @@ def run_sync(
     
     if args.story:
         config.sync.story_filter = args.story
+    
+    # Configure backup
+    config.sync.backup_enabled = not getattr(args, "no_backup", False)
+    if getattr(args, "backup_dir", None):
+        config.sync.backup_dir = args.backup_dir
     
     # Create state store for persistence
     from ..application.sync import StateStore
@@ -465,6 +536,12 @@ def run_sync(
     
     # Show results
     console.sync_result(result)
+    
+    # Show backup info if created
+    if orchestrator.last_backup:
+        backup = orchestrator.last_backup
+        console.success(f"Backup created: {backup.backup_id}")
+        console.detail(f"  Issues: {backup.issue_count}, Subtasks: {backup.subtask_count}")
     
     # Export if requested
     if args.export:
@@ -540,6 +617,11 @@ def main() -> int:
     if args.list_sessions:
         from ..application.sync import StateStore
         return list_sessions(StateStore())
+    
+    # Handle list-backups (requires epic key)
+    if args.list_backups:
+        from ..application.sync import BackupManager
+        return list_backups(BackupManager(), args.epic)
     
     # Handle resume-session (loads args from session)
     if args.resume_session:

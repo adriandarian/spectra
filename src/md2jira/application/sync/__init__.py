@@ -5,6 +5,7 @@ Sync Module - Orchestration of synchronization between markdown and issue tracke
 from .orchestrator import SyncOrchestrator, SyncResult, FailedOperation
 from .state import SyncState, StateStore, SyncPhase, OperationRecord
 from .audit import AuditTrail, AuditEntry, AuditTrailRecorder, create_audit_trail
+from .backup import Backup, BackupManager, IssueSnapshot, create_pre_sync_backup
 
 __all__ = [
     "SyncOrchestrator",
@@ -19,5 +20,10 @@ __all__ = [
     "AuditEntry",
     "AuditTrailRecorder",
     "create_audit_trail",
+    # Backup
+    "Backup",
+    "BackupManager",
+    "IssueSnapshot",
+    "create_pre_sync_backup",
 ]
 

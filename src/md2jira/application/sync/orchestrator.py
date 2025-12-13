@@ -6,12 +6,14 @@ This is the main entry point for sync operations.
 
 import logging
 from dataclasses import dataclass, field
+from pathlib import Path
 from typing import Any, Callable, Optional, TYPE_CHECKING
 
 from ...core.ports.issue_tracker import IssueTrackerPort, IssueData
 
 if TYPE_CHECKING:
     from .state import SyncState, StateStore, SyncPhase
+    from .backup import Backup, BackupManager
 from ...core.ports.document_parser import DocumentParserPort
 from ...core.ports.document_formatter import DocumentFormatterPort
 from ...core.ports.config_provider import SyncConfig
@@ -233,6 +235,7 @@ class SyncOrchestrator:
     Orchestrates the synchronization between markdown and issue tracker.
     
     Phases:
+    0. Create backup of current Jira state (if enabled)
     1. Parse markdown into domain entities
     2. Fetch current state from issue tracker
     3. Match markdown stories to tracker issues
@@ -248,6 +251,7 @@ class SyncOrchestrator:
         config: SyncConfig,
         event_bus: Optional[EventBus] = None,
         state_store: Optional["StateStore"] = None,
+        backup_manager: Optional["BackupManager"] = None,
     ):
         """
         Initialize the orchestrator.
@@ -259,6 +263,7 @@ class SyncOrchestrator:
             config: Sync configuration
             event_bus: Optional event bus
             state_store: Optional state store for persistence
+            backup_manager: Optional backup manager for pre-sync backups
         """
         self.tracker = tracker
         self.parser = parser
@@ -266,12 +271,14 @@ class SyncOrchestrator:
         self.config = config
         self.event_bus = event_bus or EventBus()
         self.state_store = state_store
+        self.backup_manager = backup_manager
         self.logger = logging.getLogger("SyncOrchestrator")
         
         self._md_stories: list[UserStory] = []
         self._jira_issues: list[IssueData] = []
         self._matches: dict[str, str] = {}  # story_id -> issue_key
         self._state: Optional["SyncState"] = None
+        self._last_backup: Optional["Backup"] = None
     
     # -------------------------------------------------------------------------
     # Main Entry Points
@@ -333,30 +340,40 @@ class SyncOrchestrator:
             dry_run=self.config.dry_run,
         ))
         
+        # Phase 0: Create backup (only for non-dry-run)
+        if not self.config.dry_run and self.config.backup_enabled:
+            self._report_progress(progress_callback, "Creating backup", 0, 6)
+            try:
+                self._create_backup(markdown_path, epic_key)
+            except Exception as e:
+                self.logger.error(f"Backup failed: {e}")
+                result.add_warning(f"Backup failed: {e}")
+        
         # Phase 1: Analyze
-        self._report_progress(progress_callback, "Analyzing", 1, 5)
+        total_phases = 6 if self.config.backup_enabled else 5
+        self._report_progress(progress_callback, "Analyzing", 1, total_phases)
         self.analyze(markdown_path, epic_key)
         result.stories_matched = len(self._matches)
         result.matched_stories = list(self._matches.items())
         
         # Phase 2: Update descriptions
         if self.config.sync_descriptions:
-            self._report_progress(progress_callback, "Updating descriptions", 2, 5)
+            self._report_progress(progress_callback, "Updating descriptions", 2, total_phases)
             self._sync_descriptions(result)
         
         # Phase 3: Sync subtasks
         if self.config.sync_subtasks:
-            self._report_progress(progress_callback, "Syncing subtasks", 3, 5)
+            self._report_progress(progress_callback, "Syncing subtasks", 3, total_phases)
             self._sync_subtasks(result)
         
         # Phase 4: Add commit comments
         if self.config.sync_comments:
-            self._report_progress(progress_callback, "Adding comments", 4, 5)
+            self._report_progress(progress_callback, "Adding comments", 4, total_phases)
             self._sync_comments(result)
         
         # Phase 5: Sync statuses
         if self.config.sync_statuses:
-            self._report_progress(progress_callback, "Syncing statuses", 5, 5)
+            self._report_progress(progress_callback, "Syncing statuses", 5, total_phases)
             self._sync_statuses(result)
         
         # Publish complete event
@@ -839,6 +856,59 @@ class SyncOrchestrator:
     def current_state(self) -> Optional["SyncState"]:
         """Get the current sync state."""
         return self._state
+    
+    @property
+    def last_backup(self) -> Optional["Backup"]:
+        """Get the last backup created during this sync."""
+        return self._last_backup
+    
+    # -------------------------------------------------------------------------
+    # Backup
+    # -------------------------------------------------------------------------
+    
+    def _create_backup(self, markdown_path: str, epic_key: str) -> Optional["Backup"]:
+        """
+        Create a backup of the current Jira state before modifications.
+        
+        Args:
+            markdown_path: Path to the markdown file.
+            epic_key: Jira epic key.
+            
+        Returns:
+            The created Backup, or None if backup is disabled or failed.
+        """
+        from .backup import BackupManager
+        
+        if not self.config.backup_enabled:
+            return None
+        
+        # Use provided backup manager or create one
+        if self.backup_manager:
+            manager = self.backup_manager
+        else:
+            backup_dir = Path(self.config.backup_dir) if self.config.backup_dir else None
+            manager = BackupManager(
+                backup_dir=backup_dir,
+                max_backups=self.config.backup_max_count,
+                retention_days=self.config.backup_retention_days,
+            )
+        
+        self.logger.info(f"Creating pre-sync backup for {epic_key}")
+        
+        backup = manager.create_backup(
+            tracker=self.tracker,
+            epic_key=epic_key,
+            markdown_path=markdown_path,
+            metadata={
+                "trigger": "pre_sync",
+                "dry_run": self.config.dry_run,
+            },
+        )
+        
+        self._last_backup = backup
+        self.logger.info(f"Backup created: {backup.backup_id} ({backup.issue_count} issues)")
+        
+        return backup
     
     # -------------------------------------------------------------------------
     # Helpers
