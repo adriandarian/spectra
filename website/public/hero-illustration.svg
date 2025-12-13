@@ -1,0 +1,92 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 300" fill="none">
+  <defs>
+    <linearGradient id="bgGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#0052cc;stop-opacity:0.1"/>
+      <stop offset="100%" style="stop-color:#36b37e;stop-opacity:0.1"/>
+    </linearGradient>
+    <linearGradient id="blueGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#0052cc"/>
+      <stop offset="100%" style="stop-color:#2684ff"/>
+    </linearGradient>
+    <linearGradient id="greenGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#00875a"/>
+      <stop offset="100%" style="stop-color:#36b37e"/>
+    </linearGradient>
+    <filter id="shadow" x="-20%" y="-20%" width="140%" height="140%">
+      <feDropShadow dx="0" dy="4" stdDeviation="8" flood-opacity="0.15"/>
+    </filter>
+  </defs>
+  
+  <!-- Background decoration -->
+  <circle cx="50" cy="50" r="100" fill="url(#bgGrad)"/>
+  <circle cx="350" cy="250" r="80" fill="url(#bgGrad)"/>
+  
+  <!-- Markdown Document (left) -->
+  <g filter="url(#shadow)">
+    <rect x="40" y="60" width="120" height="160" rx="8" fill="white"/>
+    <rect x="40" y="60" width="120" height="160" rx="8" stroke="url(#blueGrad)" stroke-width="2"/>
+    
+    <!-- MD icon badge -->
+    <rect x="48" y="68" width="32" height="18" rx="4" fill="url(#blueGrad)"/>
+    <text x="64" y="81" text-anchor="middle" font-family="monospace" font-size="10" font-weight="bold" fill="white">MD</text>
+    
+    <!-- Document lines -->
+    <rect x="56" y="100" width="88" height="6" rx="3" fill="#0052cc" opacity="0.7"/>
+    <rect x="56" y="116" width="70" height="6" rx="3" fill="#0052cc" opacity="0.5"/>
+    <rect x="56" y="132" width="80" height="6" rx="3" fill="#0052cc" opacity="0.4"/>
+    <rect x="56" y="148" width="60" height="6" rx="3" fill="#0052cc" opacity="0.3"/>
+    
+    <!-- Checkbox items -->
+    <rect x="56" y="168" width="12" height="12" rx="2" stroke="#0052cc" stroke-width="2" fill="none"/>
+    <rect x="74" y="171" width="54" height="6" rx="3" fill="#0052cc" opacity="0.5"/>
+    <rect x="56" y="186" width="12" height="12" rx="2" stroke="#0052cc" stroke-width="2" fill="none"/>
+    <path d="M59 192 L63 196 L71 188" stroke="#36b37e" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
+    <rect x="74" y="189" width="50" height="6" rx="3" fill="#0052cc" opacity="0.5"/>
+  </g>
+  
+  <!-- Sync Arrow -->
+  <g>
+    <circle cx="200" cy="140" r="24" fill="url(#greenGrad)" opacity="0.15"/>
+    <path d="M182 140 L218 140" stroke="url(#greenGrad)" stroke-width="4" stroke-linecap="round"/>
+    <path d="M208 130 L218 140 L208 150" stroke="url(#greenGrad)" stroke-width="4" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
+    <!-- Circular arrows -->
+    <path d="M200 116 A24 24 0 0 1 224 140" stroke="url(#greenGrad)" stroke-width="2" fill="none" stroke-linecap="round" opacity="0.5"/>
+    <path d="M200 164 A24 24 0 0 1 176 140" stroke="url(#greenGrad)" stroke-width="2" fill="none" stroke-linecap="round" opacity="0.5"/>
+  </g>
+  
+  <!-- Jira Board (right) -->
+  <g filter="url(#shadow)">
+    <rect x="240" y="60" width="120" height="160" rx="8" fill="white"/>
+    <rect x="240" y="60" width="120" height="160" rx="8" stroke="url(#blueGrad)" stroke-width="2"/>
+    
+    <!-- Jira header -->
+    <rect x="248" y="68" width="104" height="24" rx="4" fill="url(#blueGrad)"/>
+    <text x="300" y="84" text-anchor="middle" font-family="sans-serif" font-size="10" font-weight="bold" fill="white">JIRA</text>
+    
+    <!-- Kanban columns -->
+    <!-- To Do -->
+    <rect x="252" y="100" width="30" height="110" rx="4" fill="#f4f5f7"/>
+    <text x="267" y="112" text-anchor="middle" font-family="sans-serif" font-size="6" font-weight="bold" fill="#5e6c84">TODO</text>
+    <rect x="255" y="118" width="24" height="18" rx="3" fill="#0052cc" opacity="0.8"/>
+    <rect x="255" y="140" width="24" height="18" rx="3" fill="#0052cc" opacity="0.6"/>
+    
+    <!-- In Progress -->
+    <rect x="286" y="100" width="30" height="110" rx="4" fill="#f4f5f7"/>
+    <text x="301" y="112" text-anchor="middle" font-family="sans-serif" font-size="5" font-weight="bold" fill="#5e6c84">DOING</text>
+    <rect x="289" y="118" width="24" height="18" rx="3" fill="#ff991f"/>
+    
+    <!-- Done -->
+    <rect x="320" y="100" width="30" height="110" rx="4" fill="#f4f5f7"/>
+    <text x="335" y="112" text-anchor="middle" font-family="sans-serif" font-size="6" font-weight="bold" fill="#5e6c84">DONE</text>
+    <rect x="323" y="118" width="24" height="18" rx="3" fill="#36b37e"/>
+    <rect x="323" y="140" width="24" height="18" rx="3" fill="#36b37e" opacity="0.7"/>
+    <rect x="323" y="162" width="24" height="18" rx="3" fill="#36b37e" opacity="0.5"/>
+  </g>
+  
+  <!-- Sparkles/Stars decoration -->
+  <path d="M170 70 L172 76 L178 78 L172 80 L170 86 L168 80 L162 78 L168 76 Z" fill="#2684ff" opacity="0.6"/>
+  <path d="M220 200 L222 206 L228 208 L222 210 L220 216 L218 210 L212 208 L218 206 Z" fill="#36b37e" opacity="0.6"/>
+  <path d="M90 240 L92 244 L96 246 L92 248 L90 252 L88 248 L84 246 L88 244 Z" fill="#0052cc" opacity="0.4"/>
+  <path d="M320 50 L322 54 L326 56 L322 58 L320 62 L318 58 L314 56 L318 54 Z" fill="#36b37e" opacity="0.4"/>
+</svg>
+

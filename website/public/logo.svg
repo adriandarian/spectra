@@ -1,0 +1,22 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128" fill="none">
+  <defs>
+    <linearGradient id="gradient" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#0052cc"/>
+      <stop offset="50%" style="stop-color:#2684ff"/>
+      <stop offset="100%" style="stop-color:#36b37e"/>
+    </linearGradient>
+  </defs>
+  
+  <!-- Document/Markdown icon -->
+  <rect x="20" y="16" width="88" height="96" rx="8" fill="url(#gradient)" opacity="0.15"/>
+  <rect x="20" y="16" width="88" height="96" rx="8" stroke="url(#gradient)" stroke-width="4" fill="none"/>
+  
+  <!-- Markdown lines -->
+  <rect x="36" y="40" width="56" height="6" rx="3" fill="url(#gradient)"/>
+  <rect x="36" y="56" width="44" height="6" rx="3" fill="url(#gradient)" opacity="0.7"/>
+  <rect x="36" y="72" width="50" height="6" rx="3" fill="url(#gradient)" opacity="0.5"/>
+  
+  <!-- Arrow pointing right (to Jira) -->
+  <path d="M70 88 L90 88 L82 80 M90 88 L82 96" stroke="url(#gradient)" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"/>
+</svg>
+

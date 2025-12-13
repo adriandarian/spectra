@@ -1,0 +1,177 @@
+# Environment Variables
+
+md2jira uses environment variables for sensitive configuration like API credentials. This page covers all supported variables and best practices.
+
+## Required Variables
+
+These are required for md2jira to connect to Jira:
+
+| Variable | Description | Example |
+|----------|-------------|---------|
+| `JIRA_URL` | Your Jira instance URL | `https://company.atlassian.net` |
+| `JIRA_EMAIL` | Your Jira account email | `you@company.com` |
+| `JIRA_API_TOKEN` | Jira API token | `ATATT3xFf...` |
+
+## Optional Variables
+
+| Variable | Description | Default |
+|----------|-------------|---------|
+| `JIRA_PROJECT` | Default project key | None |
+| `MD2JIRA_VERBOSE` | Enable verbose output | `false` |
+| `MD2JIRA_LOG_LEVEL` | Logging level | `INFO` |
+| `MD2JIRA_NO_COLOR` | Disable colored output | `false` |
+
+## Setting Environment Variables
+
+### Temporary (Current Session)
+
+::: code-group
+
+```bash [Bash/Zsh]
+export JIRA_URL=https://your-company.atlassian.net
+export JIRA_EMAIL=your.email@company.com
+export JIRA_API_TOKEN=your-api-token
+```
+
+```fish [Fish]
+set -x JIRA_URL https://your-company.atlassian.net
+set -x JIRA_EMAIL your.email@company.com
+set -x JIRA_API_TOKEN your-api-token
+```
+
+```powershell [PowerShell]
+$env:JIRA_URL = "https://your-company.atlassian.net"
+$env:JIRA_EMAIL = "your.email@company.com"
+$env:JIRA_API_TOKEN = "your-api-token"
+```
+
+:::
+
+### Permanent (.env File)
+
+Create a `.env` file in your project directory:
+
+```bash
+# .env
+JIRA_URL=https://your-company.atlassian.net
+JIRA_EMAIL=your.email@company.com
+JIRA_API_TOKEN=your-api-token
+
+# Optional
+JIRA_PROJECT=MYPROJ
+MD2JIRA_VERBOSE=true
+```
+
+md2jira automatically loads `.env` files from:
+1. Current working directory
+2. Home directory (`~/.env`)
+
+::: danger Security Warning
+**Never commit `.env` files to version control!**
+
+Add to your `.gitignore`:
+```gitignore
+.env
+.env.local
+.env.*.local
+```
+:::
+
+## Getting a Jira API Token
+
+1. Go to [Atlassian Account Settings](https://id.atlassian.com/manage-profile/security/api-tokens)
+2. Click **Create API token**
+3. Give it a descriptive name (e.g., "md2jira CLI")
+4. Copy the token immediately (you won't see it again)
+
+::: tip Token Best Practices
+- Create a dedicated token for md2jira
+- Use a descriptive name for auditing
+- Rotate tokens periodically (every 90 days)
+- Revoke tokens when no longer needed
+:::
+
+## CI/CD Configuration
+
+### GitHub Actions
+
+```yaml
+# .github/workflows/sync.yml
+jobs:
+  sync-jira:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      
+      - name: Install md2jira
+        run: pip install md2jira
+      
+      - name: Sync to Jira
+        env:
+          JIRA_URL: ${{ secrets.JIRA_URL }}
+          JIRA_EMAIL: ${{ secrets.JIRA_EMAIL }}
+          JIRA_API_TOKEN: ${{ secrets.JIRA_API_TOKEN }}
+        run: |
+          md2jira --markdown EPIC.md --epic PROJ-123 --execute --no-confirm
+```
+
+### GitLab CI
+
+```yaml
+# .gitlab-ci.yml
+sync-jira:
+  image: python:3.12
+  variables:
+    JIRA_URL: $JIRA_URL
+    JIRA_EMAIL: $JIRA_EMAIL
+    JIRA_API_TOKEN: $JIRA_API_TOKEN
+  script:
+    - pip install md2jira
+    - md2jira --markdown EPIC.md --epic PROJ-123 --execute --no-confirm
+```
+
+### Docker
+
+```bash
+docker run --rm \
+  -e JIRA_URL=$JIRA_URL \
+  -e JIRA_EMAIL=$JIRA_EMAIL \
+  -e JIRA_API_TOKEN=$JIRA_API_TOKEN \
+  -v $(pwd):/workspace \
+  adriandarian/md2jira:latest \
+  --markdown EPIC.md --epic PROJ-123 --execute
+```
+
+## Troubleshooting
+
+### Token Not Working
+
+If you get authentication errors:
+
+1. **Check token validity** - Tokens expire and can be revoked
+2. **Verify email** - Must match the account that created the token
+3. **Check URL** - Must include `https://` and be the correct domain
+4. **Test with curl**:
+
+```bash
+curl -u "$JIRA_EMAIL:$JIRA_API_TOKEN" \
+  "$JIRA_URL/rest/api/3/myself"
+```
+
+### Environment Not Loading
+
+If `.env` isn't being loaded:
+
+1. Check file location (same directory as running command)
+2. Verify file syntax (no quotes around values, no spaces around `=`)
+3. Try explicit loading:
+
+```bash
+source .env && md2jira --markdown EPIC.md --epic PROJ-123
+```
+
