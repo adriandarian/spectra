@@ -121,6 +121,9 @@ class UserStory:
     commits: list[CommitRef] = field(default_factory=list)
     comments: list[Comment] = field(default_factory=list)
     
+    # Links to other issues (cross-project linking)
+    links: list[tuple[str, str]] = field(default_factory=list)  # [(link_type, target_key), ...]
+    
     # External references
     external_key: Optional[IssueKey] = None
     external_url: Optional[str] = None

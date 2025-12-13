@@ -47,6 +47,11 @@ from .multi_epic import (
     MultiEpicSyncResult,
     EpicSyncResult,
 )
+from .links import (
+    LinkSyncOrchestrator,
+    LinkSyncResult,
+    LinkChange,
+)
 
 __all__ = [
     "SyncOrchestrator",
@@ -98,5 +103,9 @@ __all__ = [
     "MultiEpicSyncOrchestrator",
     "MultiEpicSyncResult",
     "EpicSyncResult",
+    # Link Sync
+    "LinkSyncOrchestrator",
+    "LinkSyncResult",
+    "LinkChange",
 ]
 

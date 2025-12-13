@@ -92,6 +92,12 @@ Examples:
   # List epics in a multi-epic file
   md2jira --list-epics --markdown ROADMAP.md
 
+  # Sync cross-project links from markdown
+  md2jira --sync-links --markdown EPIC.md --epic PROJ-123 --execute
+
+  # Analyze links without syncing
+  md2jira --analyze-links --markdown EPIC.md --epic PROJ-123
+
 Environment Variables:
   JIRA_URL         Jira instance URL (e.g., https://company.atlassian.net)
   JIRA_EMAIL       Jira account email
@@ -439,6 +445,18 @@ Environment Variables:
         "--list-epics",
         action="store_true",
         help="List epics found in markdown file without syncing"
+    )
+    
+    # Cross-project linking
+    parser.add_argument(
+        "--sync-links",
+        action="store_true",
+        help="Sync issue links across projects"
+    )
+    parser.add_argument(
+        "--analyze-links",
+        action="store_true",
+        help="Analyze links in markdown without syncing"
     )
     
     return parser
@@ -965,6 +983,177 @@ def run_rollback(args) -> int:
             console.detail(f"... and {len(result.errors) - 10} more")
     
     return ExitCode.SUCCESS if result.success else ExitCode.ERROR
+
+
+def run_sync_links(args) -> int:
+    """
+    Run link sync mode.
+    
+    Syncs cross-project issue links from markdown to Jira.
+    
+    Args:
+        args: Parsed command-line arguments.
+        
+    Returns:
+        Exit code.
+    """
+    from .logging import setup_logging
+    from ..application.sync import SyncOrchestrator, LinkSyncOrchestrator
+    from ..adapters import JiraAdapter, ADFFormatter, EnvironmentConfigProvider
+    from ..adapters.parsers import MarkdownParser
+    
+    # Setup logging
+    log_level = logging.DEBUG if getattr(args, 'verbose', False) else logging.INFO
+    log_format = getattr(args, "log_format", "text")
+    setup_logging(level=log_level, log_format=log_format)
+    
+    # Create console
+    console = Console(
+        color=not getattr(args, 'no_color', False),
+        verbose=getattr(args, 'verbose', False),
+        quiet=getattr(args, 'quiet', False),
+    )
+    
+    markdown_path = args.markdown
+    epic_key = args.epic
+    dry_run = not getattr(args, 'execute', False)
+    analyze_only = getattr(args, 'analyze_links', False)
+    
+    # Check markdown file exists
+    if not Path(markdown_path).exists():
+        console.error(f"Markdown file not found: {markdown_path}")
+        return ExitCode.FILE_NOT_FOUND
+    
+    console.header("md2jira Link Sync")
+    
+    if analyze_only:
+        console.info("Analyze mode - no changes will be made")
+    elif dry_run:
+        console.dry_run_banner()
+    
+    # Load configuration
+    config_file = Path(args.config) if getattr(args, 'config', None) else None
+    config_provider = EnvironmentConfigProvider(
+        config_file=config_file,
+        cli_overrides=vars(args),
+    )
+    errors = config_provider.validate()
+    
+    if errors:
+        console.error("Configuration errors:")
+        for error in errors:
+            console.item(error, "fail")
+        return ExitCode.CONFIG_ERROR
+    
+    config = config_provider.load()
+    config.sync.dry_run = dry_run
+    
+    # Initialize components
+    formatter = ADFFormatter()
+    tracker = JiraAdapter(
+        config=config.tracker,
+        dry_run=dry_run,
+        formatter=formatter,
+    )
+    parser = MarkdownParser()
+    
+    # Test connection
+    console.section("Connecting to Jira")
+    if not tracker.test_connection():
+        console.error("Failed to connect to Jira. Check credentials.")
+        return ExitCode.CONNECTION_ERROR
+    
+    user = tracker.get_current_user()
+    console.success(f"Connected as: {user.get('displayName', user.get('emailAddress', 'Unknown'))}")
+    
+    # Parse stories
+    console.section("Parsing Markdown")
+    stories = parser.parse_stories(markdown_path)
+    console.info(f"Found {len(stories)} stories")
+    
+    # Count stories with links
+    stories_with_links = [s for s in stories if s.links]
+    total_links = sum(len(s.links) for s in stories)
+    console.info(f"Stories with links: {len(stories_with_links)}")
+    console.info(f"Total links defined: {total_links}")
+    
+    if not stories_with_links:
+        console.warning("No links found in markdown")
+        return ExitCode.SUCCESS
+    
+    # Create link sync orchestrator
+    link_sync = LinkSyncOrchestrator(
+        tracker=tracker,
+        dry_run=dry_run,
+    )
+    
+    # Analyze links
+    analysis = link_sync.analyze_links(stories)
+    
+    console.section("Link Analysis")
+    console.info(f"Cross-project links: {analysis['cross_project_links']}")
+    console.info(f"Same-project links: {analysis['same_project_links']}")
+    
+    if analysis['link_types']:
+        print()
+        console.info("Link types:")
+        for link_type, count in analysis['link_types'].items():
+            console.item(f"{link_type}: {count}", "info")
+    
+    if analysis['target_projects']:
+        print()
+        console.info("Target projects:")
+        for project, count in analysis['target_projects'].items():
+            console.item(f"{project}: {count} links", "info")
+    
+    if analyze_only:
+        return ExitCode.SUCCESS
+    
+    # Match stories to Jira issues
+    console.section("Matching Stories to Jira Issues")
+    
+    # Create sync orchestrator to match stories
+    sync_orchestrator = SyncOrchestrator(
+        tracker=tracker,
+        parser=parser,
+        formatter=formatter,
+        config=config.sync,
+    )
+    sync_orchestrator.analyze(markdown_path, epic_key)
+    
+    # Update stories with external keys
+    matched = 0
+    for story in stories:
+        if str(story.id) in sync_orchestrator._matches:
+            story.external_key = sync_orchestrator._matches[str(story.id)]
+            matched += 1
+    
+    console.info(f"Matched {matched} stories to Jira issues")
+    
+    # Sync links
+    console.section("Syncing Links")
+    
+    def on_progress(msg: str, current: int, total: int):
+        console.info(f"[{current}/{total}] {msg}")
+    
+    result = link_sync.sync_all_links(stories, progress_callback=on_progress)
+    
+    # Show results
+    console.section("Results")
+    console.info(f"Stories processed: {result.stories_processed}")
+    console.item(f"Links created: {result.links_created}", "success" if result.links_created else "info")
+    console.item(f"Links unchanged: {result.links_unchanged}", "info")
+    
+    if result.links_failed:
+        console.item(f"Links failed: {result.links_failed}", "fail")
+    
+    if result.errors:
+        print()
+        console.error(f"Errors ({len(result.errors)}):")
+        for error in result.errors[:5]:
+            console.item(error, "fail")
+    
+    return ExitCode.SUCCESS if result.success else ExitCode.SYNC_ERROR
 
 
 def run_multi_epic(args) -> int:
@@ -2062,6 +2251,12 @@ def main() -> int:
         if not args.markdown:
             parser.error("--multi-epic and --list-epics require --markdown/-m to be specified")
         return run_multi_epic(args)
+    
+    # Handle link sync
+    if args.sync_links or args.analyze_links:
+        if not args.markdown or not args.epic:
+            parser.error("--sync-links and --analyze-links require --markdown/-m and --epic/-e to be specified")
+        return run_sync_links(args)
     
     # Handle resume-session (loads args from session)
     if args.resume_session:

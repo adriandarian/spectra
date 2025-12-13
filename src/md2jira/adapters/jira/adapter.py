@@ -12,6 +12,8 @@ from ...core.ports.issue_tracker import (
     IssueData,
     IssueTrackerError,
     TransitionError,
+    IssueLink,
+    LinkType,
 )
 from ...core.ports.config_provider import TrackerConfig
 from ...core.domain.entities import UserStory, Subtask
@@ -365,4 +367,224 @@ class JiraAdapter(IssueTrackerPort):
             "story_points": fields.get(self.STORY_POINTS_FIELD),
             "status": fields.get("status", {}).get("name", ""),
         }
+    
+    # -------------------------------------------------------------------------
+    # Link Operations (Cross-Project Linking)
+    # -------------------------------------------------------------------------
+    
+    def get_issue_links(self, issue_key: str) -> list[IssueLink]:
+        """
+        Get all links for an issue.
+        
+        Args:
+            issue_key: Issue to get links for
+            
+        Returns:
+            List of IssueLinks
+        """
+        try:
+            data = self._client.get(
+                f"issue/{issue_key}",
+                params={"fields": "issuelinks"}
+            )
+        except IssueTrackerError as e:
+            self.logger.error(f"Failed to get links for {issue_key}: {e}")
+            return []
+        
+        links = []
+        fields = data.get("fields", {})
+        issue_links = fields.get("issuelinks", [])
+        
+        for link in issue_links:
+            link_type_data = link.get("type", {})
+            
+            # Determine direction and get target
+            if "outwardIssue" in link:
+                target = link["outwardIssue"]
+                link_name = link_type_data.get("outward", "relates to")
+            elif "inwardIssue" in link:
+                target = link["inwardIssue"]
+                link_name = link_type_data.get("inward", "relates to")
+            else:
+                continue
+            
+            target_key = target.get("key", "")
+            if target_key:
+                links.append(IssueLink(
+                    link_type=LinkType.from_string(link_name),
+                    target_key=target_key,
+                    source_key=issue_key,
+                ))
+        
+        return links
+    
+    def create_link(
+        self,
+        source_key: str,
+        target_key: str,
+        link_type: LinkType,
+    ) -> bool:
+        """
+        Create a link between two issues.
+        
+        Supports cross-project linking - issues can be in different Jira projects.
+        
+        Args:
+            source_key: Source issue key (e.g., "PROJ-123")
+            target_key: Target issue key (e.g., "OTHER-456")
+            link_type: Type of link to create
+            
+        Returns:
+            True if successful
+        """
+        if self._dry_run:
+            self.logger.info(
+                f"[DRY-RUN] Would create link: {source_key} {link_type.value} {target_key}"
+            )
+            return True
+        
+        # Determine inward/outward based on link type
+        if link_type.is_outward:
+            payload = {
+                "type": {"name": link_type.jira_name},
+                "outwardIssue": {"key": target_key},
+                "inwardIssue": {"key": source_key},
+            }
+        else:
+            payload = {
+                "type": {"name": link_type.jira_name},
+                "inwardIssue": {"key": target_key},
+                "outwardIssue": {"key": source_key},
+            }
+        
+        try:
+            self._client.post("issueLink", json=payload)
+            self.logger.info(f"Created link: {source_key} {link_type.value} {target_key}")
+            return True
+        except IssueTrackerError as e:
+            self.logger.error(f"Failed to create link: {e}")
+            return False
+    
+    def delete_link(
+        self,
+        source_key: str,
+        target_key: str,
+        link_type: Optional[LinkType] = None,
+    ) -> bool:
+        """
+        Delete a link between issues.
+        
+        Args:
+            source_key: Source issue key
+            target_key: Target issue key  
+            link_type: Optional specific link type to delete
+            
+        Returns:
+            True if successful
+        """
+        if self._dry_run:
+            self.logger.info(
+                f"[DRY-RUN] Would delete link: {source_key} -> {target_key}"
+            )
+            return True
+        
+        # Get existing links to find the link ID
+        try:
+            data = self._client.get(
+                f"issue/{source_key}",
+                params={"fields": "issuelinks"}
+            )
+        except IssueTrackerError as e:
+            self.logger.error(f"Failed to get links for deletion: {e}")
+            return False
+        
+        fields = data.get("fields", {})
+        issue_links = fields.get("issuelinks", [])
+        
+        for link in issue_links:
+            link_id = link.get("id")
+            if not link_id:
+                continue
+            
+            # Check if this is the link we want to delete
+            outward = link.get("outwardIssue", {}).get("key")
+            inward = link.get("inwardIssue", {}).get("key")
+            
+            if target_key in (outward, inward):
+                # If link_type specified, check it matches
+                if link_type:
+                    link_type_data = link.get("type", {})
+                    link_name = link_type_data.get("name", "")
+                    if link_name != link_type.jira_name:
+                        continue
+                
+                try:
+                    self._client.delete(f"issueLink/{link_id}")
+                    self.logger.info(f"Deleted link: {source_key} -> {target_key}")
+                    return True
+                except IssueTrackerError as e:
+                    self.logger.error(f"Failed to delete link: {e}")
+                    return False
+        
+        self.logger.warning(f"Link not found: {source_key} -> {target_key}")
+        return False
+    
+    def get_link_types(self) -> list[dict[str, Any]]:
+        """
+        Get available link types from Jira.
+        
+        Returns:
+            List of link type definitions
+        """
+        try:
+            data = self._client.get("issueLinkType")
+            return data.get("issueLinkTypes", [])
+        except IssueTrackerError as e:
+            self.logger.error(f"Failed to get link types: {e}")
+            return []
+    
+    def sync_links(
+        self,
+        issue_key: str,
+        desired_links: list[tuple[str, str]],
+    ) -> dict[str, int]:
+        """
+        Sync links for an issue to match the desired state.
+        
+        Args:
+            issue_key: Issue to sync links for
+            desired_links: List of (link_type, target_key) tuples
+            
+        Returns:
+            Dict with created, deleted, unchanged counts
+        """
+        result = {"created": 0, "deleted": 0, "unchanged": 0}
+        
+        # Get existing links
+        existing = self.get_issue_links(issue_key)
+        existing_set = {
+            (link.link_type.value, link.target_key) for link in existing
+        }
+        
+        # Convert desired to set
+        desired_set = set(desired_links)
+        
+        # Links to create
+        to_create = desired_set - existing_set
+        for link_type_str, target_key in to_create:
+            link_type = LinkType.from_string(link_type_str)
+            if self.create_link(issue_key, target_key, link_type):
+                result["created"] += 1
+        
+        # Links to delete
+        to_delete = existing_set - desired_set
+        for link_type_str, target_key in to_delete:
+            link_type = LinkType.from_string(link_type_str)
+            if self.delete_link(issue_key, target_key, link_type):
+                result["deleted"] += 1
+        
+        # Unchanged
+        result["unchanged"] = len(existing_set & desired_set)
+        
+        return result
 

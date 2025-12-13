@@ -10,11 +10,106 @@ Implementations:
 
 from abc import ABC, abstractmethod
 from dataclasses import dataclass, field
+from enum import Enum
 from typing import Any, Optional
 
 from ..domain.entities import Epic, UserStory, Subtask, Comment
 from ..domain.value_objects import IssueKey
 from ..domain.enums import Status
+
+
+class LinkType(Enum):
+    """
+    Standard issue link types.
+    
+    These map to common link types across issue trackers:
+    - Jira: blocks, is blocked by, relates to, etc.
+    - GitHub: cross-references
+    - Azure DevOps: related, predecessor, successor
+    """
+    
+    BLOCKS = "blocks"
+    IS_BLOCKED_BY = "is blocked by"
+    RELATES_TO = "relates to"
+    DUPLICATES = "duplicates"
+    IS_DUPLICATED_BY = "is duplicated by"
+    CLONES = "clones"
+    IS_CLONED_BY = "is cloned by"
+    DEPENDS_ON = "depends on"
+    IS_DEPENDENCY_OF = "is dependency of"
+    
+    @classmethod
+    def from_string(cls, value: str) -> "LinkType":
+        """Parse link type from string."""
+        value_lower = value.lower().strip()
+        
+        mappings = {
+            "blocks": cls.BLOCKS,
+            "is blocked by": cls.IS_BLOCKED_BY,
+            "blocked by": cls.IS_BLOCKED_BY,
+            "relates to": cls.RELATES_TO,
+            "related to": cls.RELATES_TO,
+            "relates": cls.RELATES_TO,
+            "duplicates": cls.DUPLICATES,
+            "duplicate of": cls.DUPLICATES,
+            "is duplicated by": cls.IS_DUPLICATED_BY,
+            "clones": cls.CLONES,
+            "is cloned by": cls.IS_CLONED_BY,
+            "depends on": cls.DEPENDS_ON,
+            "dependency of": cls.IS_DEPENDENCY_OF,
+            "is dependency of": cls.IS_DEPENDENCY_OF,
+        }
+        
+        return mappings.get(value_lower, cls.RELATES_TO)
+    
+    @property
+    def jira_name(self) -> str:
+        """Get Jira link type name."""
+        jira_mappings = {
+            LinkType.BLOCKS: "Blocks",
+            LinkType.IS_BLOCKED_BY: "Blocks",  # Jira uses same type, direction differs
+            LinkType.RELATES_TO: "Relates",
+            LinkType.DUPLICATES: "Duplicate",
+            LinkType.IS_DUPLICATED_BY: "Duplicate",
+            LinkType.CLONES: "Cloners",
+            LinkType.IS_CLONED_BY: "Cloners",
+            LinkType.DEPENDS_ON: "Dependency",
+            LinkType.IS_DEPENDENCY_OF: "Dependency",
+        }
+        return jira_mappings.get(self, "Relates")
+    
+    @property
+    def is_outward(self) -> bool:
+        """Check if this is an outward link direction."""
+        return self in (
+            LinkType.BLOCKS,
+            LinkType.DUPLICATES,
+            LinkType.CLONES,
+            LinkType.IS_DEPENDENCY_OF,
+        )
+
+
+@dataclass
+class IssueLink:
+    """
+    A link between two issues.
+    
+    Supports cross-project linking by storing full issue keys.
+    """
+    
+    link_type: LinkType
+    target_key: str  # Full issue key (e.g., "OTHER-123")
+    source_key: Optional[str] = None  # Optional source key
+    
+    def __str__(self) -> str:
+        return f"{self.link_type.value} → {self.target_key}"
+    
+    @property
+    def target_project(self) -> str:
+        """Extract project key from target issue key."""
+        if "-" in self.target_key:
+            return self.target_key.split("-")[0]
+        return ""
 
 
 class IssueTrackerError(Exception):
@@ -83,6 +178,14 @@ class IssueData:
     story_points: Optional[float] = None
     subtasks: list["IssueData"] = field(default_factory=list)
     comments: list[dict[str, Any]] = field(default_factory=list)
+    links: list[IssueLink] = field(default_factory=list)
+    
+    @property
+    def project_key(self) -> str:
+        """Extract project key from issue key."""
+        if "-" in self.key:
+            return self.key.split("-")[0]
+        return ""
 
 
 class IssueTrackerPort(ABC):
@@ -294,4 +397,69 @@ class IssueTrackerPort(ABC):
             Tracker-specific format (e.g., ADF for Jira)
         """
         ...
+    
+    # -------------------------------------------------------------------------
+    # Link Operations (Optional - default implementations provided)
+    # -------------------------------------------------------------------------
+    
+    def get_issue_links(self, issue_key: str) -> list[IssueLink]:
+        """
+        Get all links for an issue.
+        
+        Args:
+            issue_key: Issue to get links for
+            
+        Returns:
+            List of IssueLinks
+        """
+        return []
+    
+    def create_link(
+        self,
+        source_key: str,
+        target_key: str,
+        link_type: LinkType,
+    ) -> bool:
+        """
+        Create a link between two issues.
+        
+        Supports cross-project linking.
+        
+        Args:
+            source_key: Source issue key (e.g., "PROJ-123")
+            target_key: Target issue key (e.g., "OTHER-456")
+            link_type: Type of link to create
+            
+        Returns:
+            True if successful
+        """
+        return False
+    
+    def delete_link(
+        self,
+        source_key: str,
+        target_key: str,
+        link_type: Optional[LinkType] = None,
+    ) -> bool:
+        """
+        Delete a link between issues.
+        
+        Args:
+            source_key: Source issue key
+            target_key: Target issue key  
+            link_type: Optional specific link type to delete
+            
+        Returns:
+            True if successful
+        """
+        return False
+    
+    def get_link_types(self) -> list[dict[str, Any]]:
+        """
+        Get available link types from the tracker.
+        
+        Returns:
+            List of link type definitions
+        """
+        return []
 

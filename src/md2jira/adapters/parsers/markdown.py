@@ -11,6 +11,7 @@ from pathlib import Path
 from typing import Optional, Union
 
 from ...core.ports.document_parser import DocumentParserPort, ParserError
+from ...core.ports.issue_tracker import IssueLink, LinkType
 from ...core.domain.entities import Epic, UserStory, Subtask
 from ...core.domain.value_objects import (
     StoryId,
@@ -304,6 +305,9 @@ class MarkdownParser(DocumentParserPort):
         # Extract technical notes
         tech_notes = self._extract_technical_notes(content)
         
+        # Extract links (cross-project)
+        links = self._extract_links(content)
+        
         return UserStory(
             id=StoryId(story_id),
             title=title,
@@ -315,6 +319,7 @@ class MarkdownParser(DocumentParserPort):
             status=Status.from_string(status),
             subtasks=subtasks,
             commits=commits,
+            links=links,
         )
     
     def _extract_field(
@@ -417,4 +422,61 @@ class MarkdownParser(DocumentParserPort):
         if section:
             return section.group(1).strip()
         return ""
+    
+    def _extract_links(self, content: str) -> list[tuple[str, str]]:
+        """
+        Extract issue links from content.
+        
+        Supported formats:
+        - #### Links section with table: | blocks | PROJ-123 |
+        - Inline: **Blocks:** PROJ-123, PROJ-456
+        - Inline: **Depends on:** OTHER-789
+        - Bullet list: - blocks: PROJ-123
+        
+        Returns:
+            List of (link_type, target_key) tuples
+        """
+        links = []
+        
+        # Pattern for Links section table
+        section = re.search(
+            r'#### (?:Links|Related Issues|Dependencies)\n([\s\S]*?)(?=####|\n---|\Z)',
+            content
+        )
+        
+        if section:
+            section_content = section.group(1)
+            # Parse table rows: | link_type | target_key |
+            table_pattern = r'\|\s*([^|]+)\s*\|\s*([A-Z]+-\d+)\s*\|'
+            for match in re.finditer(table_pattern, section_content):
+                link_type = match.group(1).strip().lower()
+                target_key = match.group(2).strip()
+                if target_key and not link_type.startswith('-'):
+                    links.append((link_type, target_key))
+            
+            # Parse bullet list: - blocks: PROJ-123
+            bullet_pattern = r'[-*]\s*(blocks|blocked by|relates to|depends on|duplicates)[:\s]+([A-Z]+-\d+)'
+            for match in re.finditer(bullet_pattern, section_content, re.IGNORECASE):
+                link_type = match.group(1).strip().lower()
+                target_key = match.group(2).strip()
+                links.append((link_type, target_key))
+        
+        # Pattern for inline links: **Blocks:** PROJ-123, PROJ-456
+        inline_patterns = [
+            (r'\*\*Blocks[:\s]*\*\*\s*([A-Z]+-\d+(?:\s*,\s*[A-Z]+-\d+)*)', 'blocks'),
+            (r'\*\*Blocked by[:\s]*\*\*\s*([A-Z]+-\d+(?:\s*,\s*[A-Z]+-\d+)*)', 'blocked by'),
+            (r'\*\*Depends on[:\s]*\*\*\s*([A-Z]+-\d+(?:\s*,\s*[A-Z]+-\d+)*)', 'depends on'),
+            (r'\*\*Related to[:\s]*\*\*\s*([A-Z]+-\d+(?:\s*,\s*[A-Z]+-\d+)*)', 'relates to'),
+            (r'\*\*Relates to[:\s]*\*\*\s*([A-Z]+-\d+(?:\s*,\s*[A-Z]+-\d+)*)', 'relates to'),
+            (r'\*\*Duplicates[:\s]*\*\*\s*([A-Z]+-\d+(?:\s*,\s*[A-Z]+-\d+)*)', 'duplicates'),
+        ]
+        
+        for pattern, link_type in inline_patterns:
+            match = re.search(pattern, content, re.IGNORECASE)
+            if match:
+                keys_str = match.group(1)
+                for key in re.findall(r'[A-Z]+-\d+', keys_str):
+                    links.append((link_type, key))
+        
+        return links
 
