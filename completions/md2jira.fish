@@ -46,6 +46,9 @@ complete -c md2jira -l export -d 'Export analysis to JSON file' -r -F -a '*.json
 # Special modes
 complete -c md2jira -l validate -d 'Validate markdown file format'
 complete -c md2jira -s i -l interactive -d 'Interactive mode with step-by-step guided sync'
+complete -c md2jira -l resume -d 'Resume an interrupted sync session'
+complete -c md2jira -l resume-session -d 'Resume a specific sync session by ID' -x
+complete -c md2jira -l list-sessions -d 'List all resumable sync sessions'
 complete -c md2jira -l version -d 'Show version and exit'
 complete -c md2jira -s h -l help -d 'Show help message'
 

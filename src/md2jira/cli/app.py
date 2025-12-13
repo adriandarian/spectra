@@ -146,6 +146,22 @@ Environment Variables:
         help="Interactive mode with step-by-step guided sync"
     )
     parser.add_argument(
+        "--resume",
+        action="store_true",
+        help="Resume an interrupted sync session"
+    )
+    parser.add_argument(
+        "--resume-session",
+        type=str,
+        metavar="SESSION_ID",
+        help="Resume a specific sync session by ID"
+    )
+    parser.add_argument(
+        "--list-sessions",
+        action="store_true",
+        help="List all resumable sync sessions"
+    )
+    parser.add_argument(
         "--completions",
         type=str,
         choices=["bash", "zsh", "fish"],
@@ -202,6 +218,48 @@ def validate_markdown(
     console.detail(f"Total commits: {total_commits}")
     
     return True
+
+
+def list_sessions(state_store) -> int:
+    """
+    List all resumable sync sessions.
+    
+    Args:
+        state_store: StateStore instance.
+        
+    Returns:
+        Exit code.
+    """
+    from .exit_codes import ExitCode
+    
+    sessions = state_store.list_sessions()
+    
+    if not sessions:
+        print("No sync sessions found.")
+        print(f"State directory: {state_store.state_dir}")
+        return ExitCode.SUCCESS
+    
+    print(f"\n{'Session ID':<14} {'Epic':<12} {'Phase':<12} {'Progress':<10} {'Updated':<20}")
+    print("-" * 70)
+    
+    for s in sessions:
+        session_id = s.get("session_id", "")[:12]
+        epic = s.get("epic_key", "")[:10]
+        phase = s.get("phase", "")[:10]
+        progress = s.get("progress", "0/0")
+        updated = s.get("updated_at", "")[:19]
+        
+        # Highlight incomplete sessions
+        if phase not in ("completed", "failed"):
+            print(f"\033[1m{session_id:<14} {epic:<12} {phase:<12} {progress:<10} {updated:<20}\033[0m")
+        else:
+            print(f"{session_id:<14} {epic:<12} {phase:<12} {progress:<10} {updated:<20}")
+    
+    print()
+    print("To resume a session:")
+    print("  md2jira --resume-session <SESSION_ID> --execute")
+    
+    return ExitCode.SUCCESS
 
 
 def run_sync(
@@ -286,13 +344,18 @@ def run_sync(
     if args.story:
         config.sync.story_filter = args.story
     
-    # Create orchestrator
+    # Create state store for persistence
+    from ..application.sync import StateStore
+    state_store = StateStore()
+    
+    # Create orchestrator with state store
     orchestrator = SyncOrchestrator(
         tracker=tracker,
         parser=parser,
         formatter=formatter,
         config=config.sync,
         event_bus=event_bus,
+        state_store=state_store,
     )
     
     # Interactive mode
@@ -307,9 +370,32 @@ def run_sync(
         )
         return ExitCode.SUCCESS if success else ExitCode.CANCELLED
     
+    # Check for resumable session
+    resume_state = None
+    if args.resume or args.resume_session:
+        if args.resume_session:
+            # Load specific session
+            resume_state = state_store.load(args.resume_session)
+            if not resume_state:
+                console.error(f"Session '{args.resume_session}' not found")
+                return ExitCode.FILE_NOT_FOUND
+        else:
+            # Find latest resumable session for this markdown/epic
+            resume_state = state_store.find_latest_resumable(
+                str(markdown_path), args.epic
+            )
+        
+        if resume_state:
+            console.info(f"Resuming session: {resume_state.session_id}")
+            console.detail(f"Progress: {resume_state.completed_count}/{resume_state.total_count} operations")
+            console.detail(f"Phase: {resume_state.phase}")
+        elif args.resume:
+            console.info("No resumable session found, starting fresh")
+    
     # Confirmation
     if args.execute and not args.no_confirm:
-        if not console.confirm("Proceed with sync execution?"):
+        action = "Resume sync" if resume_state else "Proceed with sync"
+        if not console.confirm(f"{action} execution?"):
             console.warning("Cancelled by user")
             return ExitCode.CANCELLED
     
@@ -318,10 +404,13 @@ def run_sync(
         console.progress(current, total, phase)
     
     console.section("Running Sync")
-    result = orchestrator.sync(
+    
+    # Use resumable sync for state persistence
+    result = orchestrator.sync_resumable(
         markdown_path=str(markdown_path),
         epic_key=args.epic,
         progress_callback=progress_callback,
+        resume_state=resume_state,
     )
     
     # Show results
@@ -380,6 +469,23 @@ def main() -> int:
         from .completions import print_completion
         success = print_completion(args.completions)
         return ExitCode.SUCCESS if success else ExitCode.ERROR
+    
+    # Handle list-sessions (doesn't require other args)
+    if args.list_sessions:
+        from ..application.sync import StateStore
+        return list_sessions(StateStore())
+    
+    # Handle resume-session (loads args from session)
+    if args.resume_session:
+        from ..application.sync import StateStore
+        state_store = StateStore()
+        state = state_store.load(args.resume_session)
+        if not state:
+            print(f"Error: Session '{args.resume_session}' not found")
+            return ExitCode.FILE_NOT_FOUND
+        # Override args from session
+        args.markdown = state.markdown_path
+        args.epic = state.epic_key
     
     # Validate required arguments for other modes
     if not args.markdown or not args.epic:

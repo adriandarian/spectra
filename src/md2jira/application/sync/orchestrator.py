@@ -6,9 +6,12 @@ This is the main entry point for sync operations.
 
 import logging
 from dataclasses import dataclass, field
-from typing import Any, Callable, Optional
+from typing import Any, Callable, Optional, TYPE_CHECKING
 
 from ...core.ports.issue_tracker import IssueTrackerPort, IssueData
+
+if TYPE_CHECKING:
+    from .state import SyncState, StateStore, SyncPhase
 from ...core.ports.document_parser import DocumentParserPort
 from ...core.ports.document_formatter import DocumentFormatterPort
 from ...core.ports.config_provider import SyncConfig
@@ -244,6 +247,7 @@ class SyncOrchestrator:
         formatter: DocumentFormatterPort,
         config: SyncConfig,
         event_bus: Optional[EventBus] = None,
+        state_store: Optional["StateStore"] = None,
     ):
         """
         Initialize the orchestrator.
@@ -254,17 +258,20 @@ class SyncOrchestrator:
             formatter: Document formatter port
             config: Sync configuration
             event_bus: Optional event bus
+            state_store: Optional state store for persistence
         """
         self.tracker = tracker
         self.parser = parser
         self.formatter = formatter
         self.config = config
         self.event_bus = event_bus or EventBus()
+        self.state_store = state_store
         self.logger = logging.getLogger("SyncOrchestrator")
         
         self._md_stories: list[UserStory] = []
         self._jira_issues: list[IssueData] = []
         self._matches: dict[str, str] = {}  # story_id -> issue_key
+        self._state: Optional["SyncState"] = None
     
     # -------------------------------------------------------------------------
     # Main Entry Points
@@ -767,6 +774,71 @@ class SyncOrchestrator:
                         story_id=story_id,
                     )
                     self.logger.exception(f"Unexpected error transitioning {jira_subtask.key}")
+    
+    # -------------------------------------------------------------------------
+    # Resumable Sync
+    # -------------------------------------------------------------------------
+    
+    def sync_resumable(
+        self,
+        markdown_path: str,
+        epic_key: str,
+        progress_callback: Optional[Callable[[str, int, int], None]] = None,
+        resume_state: Optional["SyncState"] = None,
+    ) -> SyncResult:
+        """
+        Run a resumable sync with state persistence.
+        
+        Args:
+            markdown_path: Path to markdown file.
+            epic_key: Jira epic key.
+            progress_callback: Optional progress callback.
+            resume_state: Optional state to resume from.
+            
+        Returns:
+            SyncResult with sync details.
+        """
+        from .state import SyncState, SyncPhase
+        
+        # Initialize or resume state
+        if resume_state:
+            self._state = resume_state
+            self._matches = dict(self._state.matched_stories)
+            self.logger.info(f"Resuming session {self._state.session_id}")
+        else:
+            session_id = SyncState.generate_session_id(markdown_path, epic_key)
+            self._state = SyncState(
+                session_id=session_id,
+                markdown_path=markdown_path,
+                epic_key=epic_key,
+                dry_run=self.config.dry_run,
+            )
+            self.logger.info(f"Starting session {session_id}")
+        
+        self._state.set_phase(SyncPhase.ANALYZING)
+        self._save_state()
+        
+        # Run the normal sync
+        result = self.sync(markdown_path, epic_key, progress_callback)
+        
+        # Update state with results
+        self._state.matched_stories = result.matched_stories
+        self._state.set_phase(
+            SyncPhase.COMPLETED if result.success else SyncPhase.FAILED
+        )
+        self._save_state()
+        
+        return result
+    
+    def _save_state(self) -> None:
+        """Save current state to the state store."""
+        if self._state and self.state_store:
+            self.state_store.save(self._state)
+    
+    @property
+    def current_state(self) -> Optional["SyncState"]:
+        """Get the current sync state."""
+        return self._state
     
     # -------------------------------------------------------------------------
     # Helpers

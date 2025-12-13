@@ -47,6 +47,9 @@ _md2jira() {
         '--export[Export analysis to JSON file]:json file:_files -g "*.json"' \
         '--validate[Validate markdown file format]' \
         '(-i --interactive)'{-i,--interactive}'[Interactive mode with step-by-step guided sync]' \
+        '--resume[Resume an interrupted sync session]' \
+        '--resume-session[Resume a specific sync session by ID]:session id:' \
+        '--list-sessions[List all resumable sync sessions]' \
         '--version[Show version and exit]' \
         '--completions[Generate shell completion script]:shell:->shells' \
         '(-h --help)'{-h,--help}'[Show help message]' \

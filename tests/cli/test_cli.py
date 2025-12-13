@@ -663,7 +663,8 @@ class TestRunSync:
         base_cli_args.no_confirm = False
 
         with patch("md2jira.cli.app.EnvironmentConfigProvider") as MockProvider, \
-             patch("md2jira.cli.app.JiraAdapter") as MockAdapter:
+             patch("md2jira.cli.app.JiraAdapter") as MockAdapter, \
+             patch("md2jira.application.sync.StateStore") as MockStateStore:
 
             mock_provider = MockProvider.return_value
             mock_provider.validate.return_value = []
@@ -676,6 +677,8 @@ class TestRunSync:
             mock_adapter = MockAdapter.return_value
             mock_adapter.test_connection.return_value = True
             mock_adapter.get_current_user.return_value = {"displayName": "Test User"}
+            
+            MockStateStore.return_value.find_latest_resumable.return_value = None
 
             # Mock console.confirm to return False
             with patch.object(console, "confirm", return_value=False):
@@ -693,7 +696,8 @@ class TestRunSync:
 
         with patch("md2jira.cli.app.EnvironmentConfigProvider") as MockProvider, \
              patch("md2jira.cli.app.JiraAdapter") as MockAdapter, \
-             patch("md2jira.cli.app.SyncOrchestrator") as MockOrchestrator:
+             patch("md2jira.cli.app.SyncOrchestrator") as MockOrchestrator, \
+             patch("md2jira.application.sync.StateStore") as MockStateStore:
 
             mock_provider = MockProvider.return_value
             mock_provider.validate.return_value = []
@@ -708,11 +712,13 @@ class TestRunSync:
             mock_adapter.get_current_user.return_value = {"displayName": "Test User"}
 
             mock_orchestrator = MockOrchestrator.return_value
-            mock_orchestrator.sync.return_value = SyncResult(
+            mock_orchestrator.sync_resumable.return_value = SyncResult(
                 success=True,
                 dry_run=True,
                 stories_matched=3,
             )
+            
+            MockStateStore.return_value.find_latest_resumable.return_value = None
 
             result = run_sync(console, base_cli_args)
 
@@ -729,7 +735,8 @@ class TestRunSync:
 
         with patch("md2jira.cli.app.EnvironmentConfigProvider") as MockProvider, \
              patch("md2jira.cli.app.JiraAdapter") as MockAdapter, \
-             patch("md2jira.cli.app.SyncOrchestrator") as MockOrchestrator:
+             patch("md2jira.cli.app.SyncOrchestrator") as MockOrchestrator, \
+             patch("md2jira.application.sync.StateStore") as MockStateStore:
 
             mock_provider = MockProvider.return_value
             mock_provider.validate.return_value = []
@@ -744,11 +751,13 @@ class TestRunSync:
             mock_adapter.get_current_user.return_value = {"displayName": "Test User"}
 
             mock_orchestrator = MockOrchestrator.return_value
-            mock_orchestrator.sync.return_value = SyncResult(
+            mock_orchestrator.sync_resumable.return_value = SyncResult(
                 success=True,
                 dry_run=True,
                 stories_matched=3,
             )
+            
+            MockStateStore.return_value.find_latest_resumable.return_value = None
 
             result = run_sync(console, base_cli_args)
 

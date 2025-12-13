@@ -653,5 +653,8 @@ def base_cli_args():
     args.validate = False
     args.interactive = False  # Interactive mode disabled by default
     args.completions = None  # Shell completions disabled by default
+    args.resume = False  # Resume mode disabled by default
+    args.resume_session = None  # Resume specific session
+    args.list_sessions = False  # List sessions disabled by default
     return args
 

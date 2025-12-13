@@ -20,7 +20,7 @@ _md2jira_completions() {
     prev="${COMP_WORDS[COMP_CWORD-1]}"
     
     # All available options
-    opts="--markdown -m --epic -e --execute -x --no-confirm --phase --story --config -c --jira-url --project --verbose -v --no-color --export --validate --interactive -i --version --help -h --completions"
+    opts="--markdown -m --epic -e --execute -x --no-confirm --phase --story --config -c --jira-url --project --verbose -v --no-color --export --validate --interactive -i --resume --resume-session --list-sessions --version --help -h --completions"
     
     # Phase choices
     phases="all descriptions subtasks comments statuses"
@@ -107,6 +107,9 @@ _md2jira() {
         '--export[Export analysis to JSON file]:json file:_files -g "*.json"' \\
         '--validate[Validate markdown file format]' \\
         '(-i --interactive)'{-i,--interactive}'[Interactive mode with step-by-step guided sync]' \\
+        '--resume[Resume an interrupted sync session]' \\
+        '--resume-session[Resume a specific sync session by ID]:session id:' \\
+        '--list-sessions[List all resumable sync sessions]' \\
         '--version[Show version and exit]' \\
         '--completions[Generate shell completion script]:shell:->shells' \\
         '(-h --help)'{-h,--help}'[Show help message]' \\
@@ -163,6 +166,9 @@ complete -c md2jira -l export -d 'Export analysis to JSON file' -r -F -a '*.json
 # Special modes
 complete -c md2jira -l validate -d 'Validate markdown file format'
 complete -c md2jira -s i -l interactive -d 'Interactive mode with step-by-step guided sync'
+complete -c md2jira -l resume -d 'Resume an interrupted sync session'
+complete -c md2jira -l resume-session -d 'Resume a specific sync session by ID' -x
+complete -c md2jira -l list-sessions -d 'List all resumable sync sessions'
 complete -c md2jira -l version -d 'Show version and exit'
 complete -c md2jira -s h -l help -d 'Show help message'
 

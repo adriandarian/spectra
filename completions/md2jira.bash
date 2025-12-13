@@ -18,7 +18,7 @@ _md2jira_completions() {
     prev="${COMP_WORDS[COMP_CWORD-1]}"
     
     # All available options
-    opts="--markdown -m --epic -e --execute -x --no-confirm --phase --story --config -c --jira-url --project --verbose -v --no-color --export --validate --interactive -i --version --help -h --completions"
+    opts="--markdown -m --epic -e --execute -x --no-confirm --phase --story --config -c --jira-url --project --verbose -v --no-color --export --validate --interactive -i --resume --resume-session --list-sessions --version --help -h --completions"
     
     # Phase choices
     phases="all descriptions subtasks comments statuses"
