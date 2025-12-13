@@ -129,6 +129,13 @@ Environment Variables:
         help="Quiet mode - only show errors and final summary (for CI/scripting)"
     )
     parser.add_argument(
+        "--output", "-o",
+        type=str,
+        choices=["text", "json"],
+        default="text",
+        help="Output format: text (default) or json for programmatic use"
+    )
+    parser.add_argument(
         "--no-color",
         action="store_true",
         help="Disable colored output"
@@ -511,6 +518,7 @@ def main() -> int:
         color=not args.no_color,
         verbose=args.verbose,
         quiet=args.quiet,
+        json_mode=(args.output == "json"),
     )
     
     try:

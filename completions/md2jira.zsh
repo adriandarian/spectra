@@ -44,6 +44,7 @@ _md2jira() {
         '--project[Override Jira project key]:project key:' \
         '(-v --verbose)'{-v,--verbose}'[Verbose output]' \
         '(-q --quiet)'{-q,--quiet}'[Quiet mode - only show errors and summary]' \
+        '(-o --output)'{-o,--output}'[Output format]:format:(text json)' \
         '--no-color[Disable colored output]' \
         '--export[Export analysis to JSON file]:json file:_files -g "*.json"' \
         '--validate[Validate markdown file format]' \

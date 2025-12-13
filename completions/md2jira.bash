@@ -18,7 +18,7 @@ _md2jira_completions() {
     prev="${COMP_WORDS[COMP_CWORD-1]}"
     
     # All available options
-    opts="--markdown -m --epic -e --execute -x --no-confirm --phase --story --config -c --jira-url --project --verbose -v --quiet -q --no-color --export --validate --interactive -i --resume --resume-session --list-sessions --version --help -h --completions"
+    opts="--markdown -m --epic -e --execute -x --no-confirm --phase --story --config -c --jira-url --project --verbose -v --quiet -q --output -o --no-color --export --validate --interactive -i --resume --resume-session --list-sessions --version --help -h --completions"
     
     # Phase choices
     phases="all descriptions subtasks comments statuses"
@@ -70,6 +70,11 @@ _md2jira_completions() {
         --completions)
             # Complete shell types
             COMPREPLY=( $(compgen -W "bash zsh fish" -- "${cur}") )
+            return 0
+            ;;
+        --output|-o)
+            # Complete output formats
+            COMPREPLY=( $(compgen -W "text json" -- "${cur}") )
             return 0
             ;;
     esac

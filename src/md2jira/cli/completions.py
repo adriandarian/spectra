@@ -20,7 +20,7 @@ _md2jira_completions() {
     prev="${COMP_WORDS[COMP_CWORD-1]}"
     
     # All available options
-    opts="--markdown -m --epic -e --execute -x --no-confirm --phase --story --config -c --jira-url --project --verbose -v --quiet -q --no-color --export --validate --interactive -i --resume --resume-session --list-sessions --version --help -h --completions"
+    opts="--markdown -m --epic -e --execute -x --no-confirm --phase --story --config -c --jira-url --project --verbose -v --quiet -q --output -o --no-color --export --validate --interactive -i --resume --resume-session --list-sessions --version --help -h --completions"
     
     # Phase choices
     phases="all descriptions subtasks comments statuses"
@@ -50,6 +50,10 @@ _md2jira_completions() {
             ;;
         --completions)
             COMPREPLY=( $(compgen -W "bash zsh fish" -- "${cur}") )
+            return 0
+            ;;
+        --output|-o)
+            COMPREPLY=( $(compgen -W "text json" -- "${cur}") )
             return 0
             ;;
         --epic|-e|--story|--jira-url|--project)
@@ -104,6 +108,7 @@ _md2jira() {
         '--project[Override Jira project key]:project key:' \\
         '(-v --verbose)'{-v,--verbose}'[Verbose output]' \\
         '(-q --quiet)'{-q,--quiet}'[Quiet mode - only show errors and summary]' \\
+        '(-o --output)'{-o,--output}'[Output format]:format:(text json)' \\
         '--no-color[Disable colored output]' \\
         '--export[Export analysis to JSON file]:json file:_files -g "*.json"' \\
         '--validate[Validate markdown file format]' \\
@@ -162,6 +167,7 @@ complete -c md2jira -l project -d 'Override Jira project key' -x
 # Output options
 complete -c md2jira -s v -l verbose -d 'Verbose output'
 complete -c md2jira -s q -l quiet -d 'Quiet mode - only show errors and summary'
+complete -c md2jira -s o -l output -d 'Output format' -x -a 'text json'
 complete -c md2jira -l no-color -d 'Disable colored output'
 complete -c md2jira -l export -d 'Export analysis to JSON file' -r -F -a '*.json'
 

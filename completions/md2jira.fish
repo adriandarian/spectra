@@ -41,6 +41,7 @@ complete -c md2jira -l project -d 'Override Jira project key' -x
 # Output options
 complete -c md2jira -s v -l verbose -d 'Verbose output'
 complete -c md2jira -s q -l quiet -d 'Quiet mode - only show errors and summary'
+complete -c md2jira -s o -l output -d 'Output format' -x -a 'text json'
 complete -c md2jira -l no-color -d 'Disable colored output'
 complete -c md2jira -l export -d 'Export analysis to JSON file' -r -F -a '*.json'
 

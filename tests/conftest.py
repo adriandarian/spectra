@@ -649,6 +649,7 @@ def base_cli_args():
     args.project = None
     args.verbose = False
     args.quiet = False
+    args.output = "text"
     args.no_color = False
     args.export = None
     args.validate = False

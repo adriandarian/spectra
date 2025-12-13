@@ -113,9 +113,16 @@ class Console:
         color: Whether to use ANSI color codes.
         verbose: Whether to print debug messages.
         quiet: Whether to suppress most output (for CI/scripting).
+        json_mode: Whether to output JSON format for programmatic use.
     """
     
-    def __init__(self, color: bool = True, verbose: bool = False, quiet: bool = False):
+    def __init__(
+        self,
+        color: bool = True,
+        verbose: bool = False,
+        quiet: bool = False,
+        json_mode: bool = False,
+    ):
         """
         Initialize the console output helper.
         
@@ -123,10 +130,16 @@ class Console:
             color: Enable colored output. Automatically disabled if stdout is not a TTY.
             verbose: Enable verbose debug output.
             quiet: Suppress most output, only show errors and final summary.
+            json_mode: Output JSON format instead of text.
         """
-        self.color = color and sys.stdout.isatty()
+        self.json_mode = json_mode
+        self.color = color and sys.stdout.isatty() and not json_mode
         self.verbose = verbose
-        self.quiet = quiet
+        self.quiet = quiet or json_mode  # JSON mode implies quiet for intermediate output
+        
+        # JSON mode collects messages for final output
+        self._json_messages: list[dict] = []
+        self._json_errors: list[str] = []
         
         # Quiet mode overrides verbose
         if self.quiet:
@@ -204,11 +217,14 @@ class Console:
         """
         Print an error message with cross symbol.
         
-        Always prints, even in quiet mode.
+        Always prints, even in quiet mode. Collected in JSON mode.
         
         Args:
             text: Error message to display.
         """
+        if self.json_mode:
+            self._json_errors.append(text)
+            return
         # Errors always print, even in quiet mode
         print(self._c(f"  {Symbols.CROSS} {text}", Colors.RED))
     
@@ -362,11 +378,48 @@ class Console:
         Print a formatted sync result summary.
         
         Displays statistics, warnings, errors, and final status.
+        In JSON mode, outputs a structured JSON object.
         In quiet mode, prints a single line summary suitable for CI/scripting.
         
         Args:
             result: SyncResult object containing sync operation details.
         """
+        import json
+        
+        # JSON mode: structured output for programmatic use
+        if self.json_mode:
+            output = {
+                "success": result.success,
+                "dry_run": result.dry_run,
+                "stats": {
+                    "stories_matched": result.stories_matched,
+                    "stories_updated": result.stories_updated,
+                    "subtasks_created": result.subtasks_created,
+                    "subtasks_updated": result.subtasks_updated,
+                    "comments_added": result.comments_added,
+                    "statuses_updated": result.statuses_updated,
+                },
+                "matched_stories": result.matched_stories,
+                "unmatched_stories": result.unmatched_stories,
+                "errors": result.errors + self._json_errors,
+                "warnings": result.warnings,
+            }
+            
+            # Include failed operations if present
+            if hasattr(result, 'failed_operations') and result.failed_operations:
+                output["failed_operations"] = [
+                    {
+                        "operation": op.operation,
+                        "issue_key": op.issue_key,
+                        "error": op.error,
+                        "story_id": op.story_id,
+                    }
+                    for op in result.failed_operations
+                ]
+            
+            print(json.dumps(output, indent=2))
+            return
+        
         # Quiet mode: compact one-line output for CI/scripting
         if self.quiet:
             status = "OK" if result.success else "FAILED"
