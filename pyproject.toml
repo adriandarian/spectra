@@ -43,15 +43,23 @@ dependencies = [
 ]
 
 [project.optional-dependencies]
+async = [
+    "aiohttp>=3.8.0",  # Async HTTP client for parallel API calls
+]
 dev = [
     "pytest>=7.0",
     "pytest-cov>=4.0",
     "pytest-mock>=3.10",
+    "pytest-asyncio>=0.21.0",  # Async test support
+    "aiohttp>=3.8.0",  # For testing async functionality
     "mypy>=1.0",
     "ruff>=0.1.0",
     "black>=23.0",
     "pre-commit>=3.0",
     "types-PyYAML>=6.0",  # Type stubs for PyYAML
+]
+all = [
+    "aiohttp>=3.8.0",  # Async HTTP client for parallel API calls
 ]
 docs = [
     "mkdocs>=1.5",

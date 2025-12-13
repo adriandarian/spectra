@@ -53,6 +53,17 @@ from .links import (
     LinkChange,
 )
 
+# Parallel operations (optional, requires aiohttp)
+try:
+    from .parallel import (
+        ParallelSyncOperations,
+        ParallelSyncResult,
+        is_parallel_available,
+    )
+    PARALLEL_AVAILABLE = True
+except ImportError:
+    PARALLEL_AVAILABLE = False
+
 __all__ = [
     "SyncOrchestrator",
     "SyncResult",
@@ -107,5 +118,7 @@ __all__ = [
     "LinkSyncOrchestrator",
     "LinkSyncResult",
     "LinkChange",
+    # Parallel Operations
+    "PARALLEL_AVAILABLE",
 ]
 
