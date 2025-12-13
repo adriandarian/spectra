@@ -4,7 +4,7 @@ Issue Tracker Port - Abstract interface for issue tracking systems.
 Implementations:
 - JiraAdapter: Atlassian Jira
 - GitHubAdapter: GitHub Issues
-- (Future) LinearAdapter: Linear
+- LinearAdapter: Linear
 - (Future) AzureDevOpsAdapter: Azure DevOps
 """
 

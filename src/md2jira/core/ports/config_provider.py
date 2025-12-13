@@ -17,7 +17,7 @@ class TrackerType(Enum):
     
     JIRA = "jira"
     GITHUB = "github"
-    LINEAR = "linear"  # Future
+    LINEAR = "linear"
     AZURE_DEVOPS = "azure_devops"  # Future
 
 
@@ -65,6 +65,19 @@ class GitHubConfig:
     def is_valid(self) -> bool:
         """Check if configuration is valid."""
         return bool(self.token and self.owner and self.repo)
+
+
+@dataclass
+class LinearConfig:
+    """Configuration for Linear tracker."""
+    
+    api_key: str
+    team_key: str
+    api_url: str = "https://api.linear.app/graphql"
+    
+    def is_valid(self) -> bool:
+        """Check if configuration is valid."""
+        return bool(self.api_key and self.team_key)
 
 
 @dataclass
