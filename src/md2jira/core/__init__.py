@@ -29,4 +29,14 @@ from .services import (
     create_test_container,
     create_sync_orchestrator,
 )
+from .result import (
+    Result,
+    Ok,
+    Err,
+    ResultError,
+    OperationError,
+    OperationResult,
+    BatchItem,
+    BatchResult,
+)
 
