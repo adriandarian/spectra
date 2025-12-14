@@ -35,6 +35,9 @@ def create_parser() -> argparse.ArgumentParser:
         formatter_class=argparse.RawDescriptionHelpFormatter,
         epilog="""
 Examples:
+  # First-time setup wizard
+  md2jira --init
+
   # Analyze without making changes (dry-run)
   md2jira --markdown EPIC.md --epic PROJ-123
 
@@ -267,6 +270,11 @@ Environment Variables:
     )
     
     # Special modes
+    parser.add_argument(
+        "--init",
+        action="store_true",
+        help="Run first-time setup wizard to configure md2jira"
+    )
     parser.add_argument(
         "--validate",
         action="store_true",
@@ -2187,6 +2195,15 @@ def main() -> int:
         from .completions import print_completion
         success = print_completion(args.completions)
         return ExitCode.SUCCESS if success else ExitCode.ERROR
+    
+    # Handle init wizard (doesn't require other args)
+    if args.init:
+        from .init import run_init
+        console = Console(
+            color=not getattr(args, 'no_color', False),
+            verbose=getattr(args, 'verbose', False),
+        )
+        return run_init(console)
     
     # Handle list-sessions (doesn't require other args)
     if args.list_sessions:
