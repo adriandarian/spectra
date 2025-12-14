@@ -7,7 +7,7 @@ import time
 from datetime import datetime, timedelta
 from unittest.mock import Mock
 
-from md2jira.application.scheduler import (
+from spectra.application.scheduler import (
     IntervalSchedule,
     DailySchedule,
     HourlySchedule,

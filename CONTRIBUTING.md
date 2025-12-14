@@ -1,6 +1,6 @@
-# Contributing to md2jira
+# Contributing to spectra
 
-First off, thank you for considering contributing to md2jira! 🎉
+First off, thank you for considering contributing to spectra! 🎉
 
 This document provides guidelines and instructions for contributing. Following these guidelines helps communicate that you respect the time of the developers maintaining this project.
 
@@ -37,7 +37,7 @@ This project adheres to the [Contributor Covenant Code of Conduct](CODE_OF_CONDU
 
 ### Finding Something to Work On
 
-- Check the [Issues](https://github.com/adriandarian/md2jira/issues) page for open issues
+- Check the [Issues](https://github.com/adriandarian/spectra/issues) page for open issues
 - Look for issues labeled `good first issue` for beginner-friendly tasks
 - Check [IMPROVEMENTS.md](IMPROVEMENTS.md) for the project roadmap
 - Feel free to propose new ideas by opening an issue first
@@ -56,8 +56,8 @@ This project adheres to the [Contributor Covenant Code of Conduct](CODE_OF_CONDU
 
 ```bash
 # Fork the repository on GitHub, then:
-git clone https://github.com/YOUR_USERNAME/md2jira.git
-cd md2jira
+git clone https://github.com/YOUR_USERNAME/spectra.git
+cd spectra
 ```
 
 ### 2. Create a Virtual Environment
@@ -68,8 +68,8 @@ python -m venv .venv
 source .venv/bin/activate  # On Windows: .venv\Scripts\activate
 
 # Or using pyenv
-pyenv virtualenv 3.10 md2jira
-pyenv activate md2jira
+pyenv virtualenv 3.10 spectra
+pyenv activate spectra
 ```
 
 ### 3. Install Dependencies
@@ -119,10 +119,10 @@ JIRA_API_TOKEN=your-api-token
 
 ## Architecture Overview
 
-md2jira follows **Clean Architecture** / **Hexagonal Architecture** principles. Understanding this structure is crucial for contributing:
+spectra follows **Clean Architecture** / **Hexagonal Architecture** principles. Understanding this structure is crucial for contributing:
 
 ```
-src/md2jira/
+src/spectra/
 ├── core/                 # Pure domain logic (no external dependencies)
 │   ├── domain/           # Entities, value objects, enums, events
 │   └── ports/            # Abstract interfaces (protocols)
@@ -203,7 +203,7 @@ test(commands): add unit tests for UpdateDescriptionCommand
 
 ```bash
 # Add upstream remote (one-time)
-git remote add upstream https://github.com/adriandarian/md2jira.git
+git remote add upstream https://github.com/adriandarian/spectra.git
 
 # Sync with upstream
 git fetch upstream
@@ -277,8 +277,8 @@ from pathlib import Path
 import requests
 
 # Local
-from md2jira.core.domain import Epic, UserStory
-from md2jira.core.ports import IssueTrackerPort
+from spectra.core.domain import Epic, UserStory
+from spectra.core.ports import IssueTrackerPort
 ```
 
 ### Line Length
@@ -327,7 +327,7 @@ tests/
 
 ```python
 import pytest
-from md2jira.core.domain import UserStory, StoryPoints
+from spectra.core.domain import UserStory, StoryPoints
 
 
 class TestUserStory:
@@ -382,7 +382,7 @@ def test_jira_connection():
 pytest
 
 # Run with coverage
-pytest --cov=src/md2jira
+pytest --cov=src/spectra
 
 # Run specific test file
 pytest tests/core/test_domain.py
@@ -489,7 +489,7 @@ Closes #123
 Use the bug report template and include:
 
 - **Clear title** describing the bug
-- **Environment** (Python version, OS, md2jira version)
+- **Environment** (Python version, OS, spectra version)
 - **Steps to reproduce** the issue
 - **Expected behavior** vs actual behavior
 - **Error messages** and stack traces
@@ -500,13 +500,13 @@ Use the bug report template and include:
 What went wrong?
 
 ## Environment
-- md2jira version: 2.0.0
+- spectra version: 2.0.0
 - Python version: 3.10.12
 - OS: macOS 14.0 / Ubuntu 22.04 / Windows 11
 
 ## Steps to Reproduce
 1. Create a markdown file with...
-2. Run `md2jira --markdown file.md --epic PROJ-123`
+2. Run `spectra --markdown file.md --epic PROJ-123`
 3. See error
 
 ## Expected Behavior
@@ -574,10 +574,10 @@ Contributors are recognized in:
 
 ## License
 
-By contributing to md2jira, you agree that your contributions will be licensed under the [MIT License](LICENSE).
+By contributing to spectra, you agree that your contributions will be licensed under the [MIT License](LICENSE).
 
 ---
 
-Thank you for contributing to md2jira! Your help makes this project better for everyone. 💙
+Thank you for contributing to spectra! Your help makes this project better for everyone. 💙
 
 

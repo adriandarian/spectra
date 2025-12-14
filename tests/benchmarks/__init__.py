@@ -1,5 +1,5 @@
 """
-Performance Benchmarks for md2jira.
+Performance Benchmarks for spectra.
 
 This module contains performance benchmarks for critical operations.
 Run with: pytest tests/benchmarks/ --benchmark-only

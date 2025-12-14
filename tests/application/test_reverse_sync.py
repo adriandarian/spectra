@@ -5,23 +5,23 @@ Tests for reverse sync (pull from Jira to markdown).
 import pytest
 from unittest.mock import Mock
 
-from md2jira.application.sync.reverse_sync import (
+from spectra.application.sync.reverse_sync import (
     ReverseSyncOrchestrator,
     PullResult,
     PullChanges,
     ChangeDetail,
 )
-from md2jira.adapters.formatters.markdown_writer import MarkdownWriter, MarkdownUpdater
-from md2jira.core.domain.entities import Epic, UserStory, Subtask
-from md2jira.core.domain.value_objects import (
+from spectra.adapters.formatters.markdown_writer import MarkdownWriter, MarkdownUpdater
+from spectra.core.domain.entities import Epic, UserStory, Subtask
+from spectra.core.domain.value_objects import (
     StoryId,
     IssueKey,
     Description,
     AcceptanceCriteria,
 )
-from md2jira.core.domain.enums import Status, Priority
-from md2jira.core.ports.issue_tracker import IssueData
-from md2jira.core.ports.config_provider import SyncConfig
+from spectra.core.domain.enums import Status, Priority
+from spectra.core.ports.issue_tracker import IssueData
+from spectra.core.ports.config_provider import SyncConfig
 
 
 class TestMarkdownWriter:

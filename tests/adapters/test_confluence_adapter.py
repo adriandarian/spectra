@@ -5,25 +5,25 @@ Tests for Confluence Adapter.
 import pytest
 from unittest.mock import Mock, MagicMock, patch
 
-from md2jira.adapters.confluence.client import (
+from spectra.adapters.confluence.client import (
     ConfluenceClient,
     ConfluenceConfig,
     ConfluenceAPIError,
 )
-from md2jira.adapters.confluence.adapter import ConfluenceAdapter
-from md2jira.adapters.confluence.plugin import ConfluencePlugin, create_plugin
-from md2jira.core.ports.document_output import (
+from spectra.adapters.confluence.adapter import ConfluenceAdapter
+from spectra.adapters.confluence.plugin import ConfluencePlugin, create_plugin
+from spectra.core.ports.document_output import (
     NotFoundError,
     AuthenticationError,
 )
-from md2jira.core.domain.entities import Epic, UserStory, Subtask
-from md2jira.core.domain.value_objects import (
+from spectra.core.domain.entities import Epic, UserStory, Subtask
+from spectra.core.domain.value_objects import (
     IssueKey,
     StoryId,
     Description,
     AcceptanceCriteria,
 )
-from md2jira.core.domain.enums import Status, Priority
+from spectra.core.domain.enums import Status, Priority
 
 
 # =============================================================================

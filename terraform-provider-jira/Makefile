@@ -3,7 +3,7 @@
 BINARY_NAME=terraform-provider-jira
 VERSION=1.0.0
 OS_ARCH=$(shell go env GOOS)_$(shell go env GOARCH)
-PLUGIN_DIR=~/.terraform.d/plugins/registry.terraform.io/md2jira/jira/$(VERSION)/$(OS_ARCH)
+PLUGIN_DIR=~/.terraform.d/plugins/registry.terraform.io/spectra/jira/$(VERSION)/$(OS_ARCH)
 
 .PHONY: build install clean test testacc fmt lint help
 

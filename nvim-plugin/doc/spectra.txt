@@ -1,0 +1,230 @@
+*spectra.txt*  Neovim plugin for spectra - Sync markdown with Jira
+
+==============================================================================
+CONTENTS                                                    *spectra-contents*
+
+    1. Introduction .......................... |spectra-introduction|
+    2. Requirements .......................... |spectra-requirements|
+    3. Installation .......................... |spectra-installation|
+    4. Configuration ......................... |spectra-configuration|
+    5. Commands .............................. |spectra-commands|
+    6. Keymaps ............................... |spectra-keymaps|
+    7. Telescope Integration ................. |spectra-telescope|
+    8. Lua API ............................... |spectra-api|
+
+==============================================================================
+1. INTRODUCTION                                         *spectra-introduction*
+
+spectra.nvim integrates the spectra CLI tool with Neovim, allowing you to:
+
+- Validate markdown documentation
+- Sync stories to Jira (dry-run or execute)
+- Browse stories with Telescope fuzzy finder
+- View sync dashboard
+- Run setup wizard
+
+==============================================================================
+2. REQUIREMENTS                                         *spectra-requirements*
+
+- Neovim >= 0.9.0
+- spectra CLI installed and in PATH
+- (Optional) telescope.nvim for fuzzy finding
+
+==============================================================================
+3. INSTALLATION                                         *spectra-installation*
+
+Using lazy.nvim: >lua
+    {
+      "spectra/nvim-plugin",
+      dependencies = {
+        "nvim-telescope/telescope.nvim",  -- optional
+      },
+      ft = "markdown",
+      config = function()
+        require("spectra").setup({})
+      end,
+    }
+<
+
+Using packer.nvim: >lua
+    use {
+      "spectra/nvim-plugin",
+      requires = { "nvim-telescope/telescope.nvim" },
+      config = function()
+        require("spectra").setup({})
+      end,
+    }
+<
+
+Manual installation:
+  Copy the `nvim-plugin` directory to your Neovim runtime path.
+
+==============================================================================
+4. CONFIGURATION                                       *spectra-configuration*
+
+Call `setup()` with a configuration table: >lua
+
+    require("spectra").setup({
+      -- Path to spectra executable (nil = use PATH)
+      executable = nil,
+
+      -- Default arguments passed to all commands
+      default_args = {},
+
+      -- Auto-detect epic key from file content
+      auto_detect_epic = true,
+
+      -- Show notifications
+      notify = true,
+
+      -- Floating window settings
+      float = {
+        border = "rounded",  -- none, single, double, rounded, shadow
+        width = 0.8,         -- 0-1 = percentage, >1 = columns
+        height = 0.8,
+      },
+
+      -- Keymaps (set to false to disable all, or individual keys)
+      keymaps = {
+        validate = "<leader>jv",
+        sync = "<leader>js",
+        sync_execute = "<leader>jS",
+        dashboard = "<leader>jd",
+        stories = "<leader>jf",
+        init = "<leader>ji",
+      },
+    })
+<
+
+==============================================================================
+5. COMMANDS                                                 *spectra-commands*
+
+*:Md2JiraValidate*[!]
+    Validate the current markdown file.
+    With `!`, uses strict mode (warnings as errors).
+
+*:Md2JiraSync* [epic_key]
+    Sync current markdown to Jira (dry-run mode).
+    If epic_key is not provided, it's auto-detected from the file.
+
+*:Md2JiraSyncExecute* [epic_key]
+    Sync current markdown to Jira (execute mode - makes changes).
+
+*:Md2JiraDashboard*
+    Show the spectra status dashboard.
+
+*:Md2JiraInit*
+    Run the spectra first-time setup wizard.
+
+*:Md2JiraStories*
+    Open Telescope picker to browse stories in the current file.
+
+==============================================================================
+6. KEYMAPS                                                   *spectra-keymaps*
+
+Default keymaps (can be customized in setup):
+
+    `<leader>jv`  Validate markdown file
+    `<leader>js`  Sync (dry-run)
+    `<leader>jS`  Sync (execute)
+    `<leader>jd`  Show dashboard
+    `<leader>jf`  Find stories (Telescope)
+    `<leader>ji`  Run init wizard
+
+To disable all keymaps: >lua
+    require("spectra").setup({
+      keymaps = false,
+    })
+<
+
+To customize specific keymaps: >lua
+    require("spectra").setup({
+      keymaps = {
+        validate = "<leader>mv",  -- custom
+        sync = false,             -- disable this one
+      },
+    })
+<
+
+==============================================================================
+7. TELESCOPE INTEGRATION                                   *spectra-telescope*
+
+The plugin provides Telescope pickers for browsing content:
+
+Stories picker: >lua
+    :Telescope spectra stories
+    -- or
+    require("spectra").telescope_stories()
+<
+
+Epics picker (for multi-epic files): >lua
+    :Telescope spectra epics
+<
+
+Commands picker: >lua
+    :Telescope spectra commands
+    -- or
+    :Telescope spectra
+<
+
+Telescope picker keymaps:~
+    `<CR>`     Jump to selected story/epic
+    `<C-y>`    Copy story ID to clipboard
+    `<C-s>`    Sync selected story
+
+==============================================================================
+8. LUA API                                                       *spectra-api*
+
+The plugin exposes a Lua API for custom integrations:
+
+*spectra.setup()*
+    Configure the plugin. Must be called before using other functions.
+
+*spectra.validate()*
+    Validate the current markdown file.
+
+*spectra.sync()*
+    Sync current file (dry-run mode).
+
+*spectra.sync_execute()*
+    Sync current file (execute mode).
+
+*spectra.dashboard()*
+    Show the status dashboard.
+
+*spectra.init()*
+    Run the setup wizard.
+
+*spectra.parse_stories()*
+    Parse stories from current buffer. Returns a table of:
+    `{ id = "US-001", title = "Story Title", line = 10 }`
+
+*spectra.goto_story(story_id)*
+    Jump to a story by ID.
+
+*spectra.detect_epic()*
+    Auto-detect epic key from current buffer.
+
+*spectra.run_async(args, opts)*
+    Run spectra command asynchronously.
+    `args`: table of command-line arguments
+    `opts.on_complete`: callback function(result)
+
+*spectra.run_sync(args)*
+    Run spectra command synchronously.
+    Returns `{ code, stdout, stderr }`.
+
+Example custom integration: >lua
+    local spectra = require("spectra")
+
+    -- Custom status line component
+    function MyStatusLine()
+      local epic = spectra.detect_epic()
+      local stories = spectra.parse_stories()
+      return string.format("[%s: %d stories]", epic or "?", #stories)
+    end
+<
+
+==============================================================================
+vim:tw=78:ts=8:ft=help:norl:
+

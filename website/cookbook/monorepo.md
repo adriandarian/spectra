@@ -30,7 +30,7 @@ monorepo/
 │   └── platform/
 │       └── EPIC.md              → PLATFORM-100
 ├── package.json
-└── .md2jira/
+└── .spectra/
     └── config.yaml
 ```
 
@@ -39,7 +39,7 @@ monorepo/
 ### Root Config
 
 ```yaml
-# .md2jira/config.yaml
+# .spectra/config.yaml
 jira:
   url: https://company.atlassian.net
   email: ${JIRA_EMAIL}
@@ -60,7 +60,7 @@ epics:
 Each package can have its own config:
 
 ```yaml
-# apps/web/.md2jira.yaml
+# apps/web/.spectra.yaml
 jira:
   project: WEB
 
@@ -89,7 +89,7 @@ find . -name "EPIC.md" -type f | while read -r file; do
   
   if [ -n "$epic_key" ]; then
     echo "Syncing $file → $epic_key"
-    md2jira -m "$file" -e "$epic_key" -x --no-confirm
+    spectra -m "$file" -e "$epic_key" -x --no-confirm
   else
     echo "Skipping $file (no epic key)"
   fi
@@ -115,7 +115,7 @@ for file in $changed_files; do
     epic_key=$(grep -m1 "epic:" "$file" | awk '{print $2}')
     if [ -n "$epic_key" ]; then
       echo "Syncing changed: $file → $epic_key"
-      md2jira -m "$file" -e "$epic_key" -x --no-confirm
+      spectra -m "$file" -e "$epic_key" -x --no-confirm
     fi
   fi
 done
@@ -146,7 +146,7 @@ fi
 epic_key=$(grep -m1 "epic:" "$epic_file" | awk '{print $2}')
 
 echo "Syncing $PACKAGE: $epic_file → $epic_key"
-md2jira -m "$epic_file" -e "$epic_key" -x
+spectra -m "$epic_file" -e "$epic_key" -x
 ```
 
 ## CI/CD Integration
@@ -211,7 +211,7 @@ jobs:
         with:
           python-version: '3.12'
       
-      - run: pip install md2jira
+      - run: pip install spectra
       
       - name: Sync ${{ matrix.epic }}
         env:
@@ -219,7 +219,7 @@ jobs:
           JIRA_EMAIL: ${{ secrets.JIRA_EMAIL }}
           JIRA_API_TOKEN: ${{ secrets.JIRA_API_TOKEN }}
         run: |
-          md2jira -m "${{ matrix.file }}" -e "${{ matrix.epic }}" -x --no-confirm
+          spectra -m "${{ matrix.file }}" -e "${{ matrix.epic }}" -x --no-confirm
 ```
 
 ### Turborepo Integration
@@ -241,7 +241,7 @@ jobs:
 // apps/web/package.json
 {
   "scripts": {
-    "sync:jira": "md2jira -m docs/EPIC.md -e WEB-100 -x --no-confirm"
+    "sync:jira": "spectra -m docs/EPIC.md -e WEB-100 -x --no-confirm"
   }
 }
 ```
@@ -263,7 +263,7 @@ turbo run sync:jira --filter=[HEAD^1]
     "sync-jira": {
       "executor": "nx:run-commands",
       "options": {
-        "command": "md2jira -m docs/EPIC.md -e WEB-100 -x --no-confirm"
+        "command": "spectra -m docs/EPIC.md -e WEB-100 -x --no-confirm"
       },
       "inputs": ["docs/EPIC.md"]
     }

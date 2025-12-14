@@ -1,7 +1,7 @@
 """Tests for domain entities and value objects."""
 
 import pytest
-from md2jira.core.domain import (
+from spectra.core.domain import (
     Status,
     Priority,
     StoryId,

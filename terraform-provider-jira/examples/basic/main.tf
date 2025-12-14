@@ -5,7 +5,7 @@
 terraform {
   required_providers {
     jira = {
-      source  = "md2jira/jira"
+      source  = "spectra/jira"
       version = "~> 1.0"
     }
   }

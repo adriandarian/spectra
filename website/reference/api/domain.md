@@ -1,6 +1,6 @@
 # Core Domain
 
-API reference for md2jira's core domain entities and value objects.
+API reference for spectra's core domain entities and value objects.
 
 ## Entities
 
@@ -9,7 +9,7 @@ API reference for md2jira's core domain entities and value objects.
 Represents a Jira epic with associated user stories.
 
 ```python
-from md2jira.core.domain import Epic
+from spectra.core.domain import Epic
 
 class Epic:
     """An epic containing user stories."""
@@ -27,7 +27,7 @@ class Epic:
 Represents a user story with subtasks and metadata.
 
 ```python
-from md2jira.core.domain import UserStory
+from spectra.core.domain import UserStory
 
 class UserStory:
     """A user story with description and subtasks."""
@@ -48,7 +48,7 @@ class UserStory:
 Represents a subtask under a user story.
 
 ```python
-from md2jira.core.domain import Subtask
+from spectra.core.domain import Subtask
 
 class Subtask:
     """A subtask under a user story."""
@@ -65,7 +65,7 @@ class Subtask:
 Represents a comment on an issue.
 
 ```python
-from md2jira.core.domain import Comment
+from spectra.core.domain import Comment
 
 class Comment:
     """A comment on an issue."""
@@ -83,7 +83,7 @@ class Comment:
 Immutable identifier for user stories.
 
 ```python
-from md2jira.core.domain import StoryId
+from spectra.core.domain import StoryId
 
 class StoryId:
     """User story identifier (e.g., US-001)."""
@@ -106,7 +106,7 @@ class StoryId:
 Jira issue key value object.
 
 ```python
-from md2jira.core.domain import IssueKey
+from spectra.core.domain import IssueKey
 
 class IssueKey:
     """Jira issue key (e.g., PROJ-123)."""
@@ -128,7 +128,7 @@ class IssueKey:
 Structured user story description.
 
 ```python
-from md2jira.core.domain import Description
+from spectra.core.domain import Description
 
 class Description:
     """User story description in As a/I want/So that format."""
@@ -154,7 +154,7 @@ class Description:
 Issue status values.
 
 ```python
-from md2jira.core.domain import Status
+from spectra.core.domain import Status
 
 class Status(Enum):
     """Issue status."""
@@ -182,7 +182,7 @@ class Status(Enum):
 Issue priority values.
 
 ```python
-from md2jira.core.domain import Priority
+from spectra.core.domain import Priority
 
 class Priority(Enum):
     """Issue priority."""
@@ -207,7 +207,7 @@ class Priority(Enum):
 Jira issue type values.
 
 ```python
-from md2jira.core.domain import IssueType
+from spectra.core.domain import IssueType
 
 class IssueType(Enum):
     """Jira issue type."""
@@ -224,7 +224,7 @@ class IssueType(Enum):
 ### Creating Entities
 
 ```python
-from md2jira.core.domain import (
+from spectra.core.domain import (
     Epic, UserStory, Subtask, Description,
     StoryId, Status, Priority
 )
@@ -277,7 +277,7 @@ epic = Epic(
 ### Working with Value Objects
 
 ```python
-from md2jira.core.domain import IssueKey, StoryId
+from spectra.core.domain import IssueKey, StoryId
 
 # Parse issue key
 key = IssueKey.from_string("PROJ-123")
@@ -303,7 +303,7 @@ print(desc.to_markdown())
 ### Status Conversions
 
 ```python
-from md2jira.core.domain import Status
+from spectra.core.domain import Status
 
 # From emoji
 status = Status.from_emoji("✅")

@@ -1,6 +1,6 @@
 # Multi-Team Workflows
 
-Coordinate work across multiple teams using md2jira with shared or separate epics.
+Coordinate work across multiple teams using spectra with shared or separate epics.
 
 ## Scenarios
 
@@ -181,13 +181,13 @@ docs/
 
 ```bash
 # Frontend team syncs their epic
-md2jira -m docs/epics/frontend-v2.md -e FRONT-100 -x
+spectra -m docs/epics/frontend-v2.md -e FRONT-100 -x
 
 # Backend team syncs their epic
-md2jira -m docs/epics/backend-v2.md -e BACK-200 -x
+spectra -m docs/epics/backend-v2.md -e BACK-200 -x
 
 # DevOps syncs infrastructure
-md2jira -m docs/epics/infrastructure.md -e INFRA-50 -x
+spectra -m docs/epics/infrastructure.md -e INFRA-50 -x
 ```
 
 ### Sync All Epics
@@ -205,7 +205,7 @@ declare -A EPICS=(
 for file in "${!EPICS[@]}"; do
   epic="${EPICS[$file]}"
   echo "Syncing $file → $epic"
-  md2jira -m "$file" -e "$epic" -x --no-confirm
+  spectra -m "$file" -e "$epic" -x --no-confirm
 done
 ```
 
@@ -261,14 +261,14 @@ jobs:
     
     steps:
       - uses: actions/checkout@v4
-      - run: pip install md2jira
+      - run: pip install spectra
       - name: Sync ${{ matrix.epic }}
         env:
           JIRA_URL: ${{ secrets.JIRA_URL }}
           JIRA_EMAIL: ${{ secrets.JIRA_EMAIL }}
           JIRA_API_TOKEN: ${{ secrets.JIRA_API_TOKEN }}
         run: |
-          md2jira -m ${{ matrix.file }} -e ${{ matrix.epic }} -x --no-confirm
+          spectra -m ${{ matrix.file }} -e ${{ matrix.epic }} -x --no-confirm
 ```
 
 ## Team-Specific Config
@@ -276,7 +276,7 @@ jobs:
 Each team can have their own config:
 
 ```yaml
-# .md2jira.frontend.yaml
+# .spectra.frontend.yaml
 jira:
   url: https://company.atlassian.net
   project: FRONT
@@ -287,7 +287,7 @@ sync:
 
 ```bash
 # Use team-specific config
-md2jira --config .md2jira.frontend.yaml -m frontend.md -e FRONT-100 -x
+spectra --config .spectra.frontend.yaml -m frontend.md -e FRONT-100 -x
 ```
 
 ## Tips

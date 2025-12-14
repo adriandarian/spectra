@@ -5,7 +5,7 @@ Tests for conflict detection and resolution.
 import tempfile
 from pathlib import Path
 
-from md2jira.application.sync.conflict import (
+from spectra.application.sync.conflict import (
     ConflictType,
     ResolutionStrategy,
     Conflict,
@@ -19,10 +19,10 @@ from md2jira.application.sync.conflict import (
     SnapshotStore,
     create_snapshot_from_sync,
 )
-from md2jira.core.domain.entities import UserStory, Subtask
-from md2jira.core.domain.value_objects import StoryId, Description
-from md2jira.core.domain.enums import Status
-from md2jira.core.ports.issue_tracker import IssueData
+from spectra.core.domain.entities import UserStory, Subtask
+from spectra.core.domain.value_objects import StoryId, Description
+from spectra.core.domain.enums import Status
+from spectra.core.ports.issue_tracker import IssueData
 
 
 class TestFieldSnapshot:

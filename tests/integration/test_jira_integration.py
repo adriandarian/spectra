@@ -18,9 +18,9 @@ import pytest
 from unittest.mock import Mock, patch
 import json
 
-from md2jira.adapters.jira.client import JiraApiClient, RateLimiter
-from md2jira.adapters.jira.adapter import JiraAdapter
-from md2jira.core.ports.issue_tracker import (
+from spectra.adapters.jira.client import JiraApiClient, RateLimiter
+from spectra.adapters.jira.adapter import JiraAdapter
+from spectra.core.ports.issue_tracker import (
     IssueTrackerError,
     AuthenticationError,
     NotFoundError,
@@ -1129,7 +1129,7 @@ class TestSyncFlowIntegration:
 
     def test_analyze_matches_stories(self, mock_tracker_with_children, mock_parser, mock_formatter, sync_config):
         """Test that analyze correctly matches markdown stories to Jira issues."""
-        from md2jira.application.sync.orchestrator import SyncOrchestrator
+        from spectra.application.sync.orchestrator import SyncOrchestrator
 
         orchestrator = SyncOrchestrator(
             tracker=mock_tracker_with_children,
@@ -1147,7 +1147,7 @@ class TestSyncFlowIntegration:
 
     def test_sync_updates_descriptions(self, mock_tracker_with_children, mock_parser, mock_formatter, sync_config):
         """Test that sync updates story descriptions."""
-        from md2jira.application.sync.orchestrator import SyncOrchestrator
+        from spectra.application.sync.orchestrator import SyncOrchestrator
 
         orchestrator = SyncOrchestrator(
             tracker=mock_tracker_with_children,
@@ -1163,7 +1163,7 @@ class TestSyncFlowIntegration:
 
     def test_sync_creates_new_subtasks(self, mock_tracker_with_children, mock_parser, mock_formatter, sync_config):
         """Test that sync creates subtasks that don't exist."""
-        from md2jira.application.sync.orchestrator import SyncOrchestrator
+        from spectra.application.sync.orchestrator import SyncOrchestrator
 
         orchestrator = SyncOrchestrator(
             tracker=mock_tracker_with_children,
@@ -1181,7 +1181,7 @@ class TestSyncFlowIntegration:
 
     def test_sync_dry_run_no_changes(self, mock_tracker_with_children, mock_parser, mock_formatter, sync_config_dry_run):
         """Test that dry_run mode doesn't make actual changes."""
-        from md2jira.application.sync.orchestrator import SyncOrchestrator
+        from spectra.application.sync.orchestrator import SyncOrchestrator
 
         orchestrator = SyncOrchestrator(
             tracker=mock_tracker_with_children,
@@ -1198,10 +1198,10 @@ class TestSyncFlowIntegration:
 
     def test_sync_handles_unmatched_stories(self, mock_tracker_with_children, mock_parser, mock_formatter, sync_config):
         """Test that unmatched stories are reported as warnings."""
-        from md2jira.application.sync.orchestrator import SyncOrchestrator
-        from md2jira.core.domain.entities import UserStory
-        from md2jira.core.domain.enums import Status
-        from md2jira.core.domain.value_objects import StoryId, Description
+        from spectra.application.sync.orchestrator import SyncOrchestrator
+        from spectra.core.domain.entities import UserStory
+        from spectra.core.domain.enums import Status
+        from spectra.core.domain.value_objects import StoryId, Description
 
         # Add an unmatched story
         mock_parser.parse_stories.return_value.append(

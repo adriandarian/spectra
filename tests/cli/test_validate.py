@@ -7,7 +7,7 @@ Tests comprehensive markdown validation.
 import pytest
 from pathlib import Path
 
-from md2jira.cli.validate import (
+from spectra.cli.validate import (
     ValidationIssue,
     ValidationResult,
     MarkdownValidator,
@@ -15,8 +15,8 @@ from md2jira.cli.validate import (
     format_validation_result,
     run_validate,
 )
-from md2jira.cli.output import Console
-from md2jira.cli.exit_codes import ExitCode
+from spectra.cli.output import Console
+from spectra.cli.exit_codes import ExitCode
 
 
 # =============================================================================

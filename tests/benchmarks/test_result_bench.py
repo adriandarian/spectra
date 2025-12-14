@@ -9,7 +9,7 @@ Tests performance of Result operations including:
 """
 
 import pytest
-from md2jira.core.result import Ok, Err, Result
+from spectra.core.result import Ok, Err, Result
 
 
 # =============================================================================

@@ -5,10 +5,10 @@ Tests for GitHub Issues Adapter.
 import pytest
 from unittest.mock import MagicMock, patch
 
-from md2jira.adapters.github.client import GitHubApiClient, GitHubRateLimiter
-from md2jira.adapters.github.adapter import GitHubAdapter
-from md2jira.adapters.github.plugin import GitHubTrackerPlugin, create_plugin
-from md2jira.core.ports.issue_tracker import (
+from spectra.adapters.github.client import GitHubApiClient, GitHubRateLimiter
+from spectra.adapters.github.adapter import GitHubAdapter
+from spectra.adapters.github.plugin import GitHubTrackerPlugin, create_plugin
+from spectra.core.ports.issue_tracker import (
     AuthenticationError,
     NotFoundError,
 )
@@ -85,7 +85,7 @@ class TestGitHubApiClient:
     @pytest.fixture
     def mock_session(self):
         """Create a mock session for testing."""
-        with patch("md2jira.adapters.github.client.requests.Session") as mock:
+        with patch("spectra.adapters.github.client.requests.Session") as mock:
             session = MagicMock()
             mock.return_value = session
             yield session
@@ -219,7 +219,7 @@ class TestGitHubAdapter:
     @pytest.fixture
     def mock_client(self):
         """Create a mock API client."""
-        with patch("md2jira.adapters.github.adapter.GitHubApiClient") as mock:
+        with patch("spectra.adapters.github.adapter.GitHubApiClient") as mock:
             client = MagicMock()
             client.list_labels.return_value = []
             mock.return_value = client
@@ -448,7 +448,7 @@ class TestGitHubTrackerPlugin:
             "dry_run": True,
         })
         
-        with patch("md2jira.adapters.github.plugin.GitHubAdapter") as MockAdapter:
+        with patch("spectra.adapters.github.plugin.GitHubAdapter") as MockAdapter:
             mock_adapter = MagicMock()
             MockAdapter.return_value = mock_adapter
             
@@ -472,7 +472,7 @@ class TestGitHubTrackerPlugin:
             "repo": "test",
         })
         
-        with patch("md2jira.adapters.github.plugin.GitHubAdapter") as MockAdapter:
+        with patch("spectra.adapters.github.plugin.GitHubAdapter") as MockAdapter:
             mock_adapter = MagicMock()
             MockAdapter.return_value = mock_adapter
             
@@ -507,7 +507,7 @@ class TestGitHubAdapterIntegration:
     @pytest.fixture
     def live_adapter(self):
         """Create adapter with mocked client for workflow tests."""
-        with patch("md2jira.adapters.github.adapter.GitHubApiClient") as MockClient:
+        with patch("spectra.adapters.github.adapter.GitHubApiClient") as MockClient:
             client = MagicMock()
             client.list_labels.return_value = []
             client.is_connected = True

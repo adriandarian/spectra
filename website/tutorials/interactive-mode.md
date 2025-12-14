@@ -1,6 +1,6 @@
 # Interactive Mode
 
-Learn how to use md2jira's interactive mode for step-by-step guided syncing.
+Learn how to use spectra's interactive mode for step-by-step guided syncing.
 
 **Duration**: ~3 minutes
 
@@ -16,17 +16,17 @@ Interactive mode is perfect when you want to:
 - **Review each change** before applying
 - **Skip specific stories** that aren't ready
 - **Sync selectively** during development
-- **Learn** what md2jira does step-by-step
+- **Learn** what spectra does step-by-step
 
 ## Starting Interactive Mode
 
 <div class="terminal-session">
 
 ```bash
-$ md2jira --markdown EPIC.md --epic PROJ-123 --interactive
+$ spectra --markdown EPIC.md --epic PROJ-123 --interactive
 
 ╭──────────────────────────────────────────────────────────────╮
-│  md2jira v1.0.0 - Interactive Mode                           │
+│  spectra v1.0.0 - Interactive Mode                           │
 │  Syncing: EPIC.md → PROJ-123                                 │
 ╰──────────────────────────────────────────────────────────────╯
 
@@ -176,7 +176,7 @@ Interactive Session Complete
 ╰──────────────────────────────────────────────────────────────╯
 
 Skipped stories can be synced later with:
-  md2jira --markdown EPIC.md --epic PROJ-123 --story US-002
+  spectra --markdown EPIC.md --epic PROJ-123 --story US-002
 ```
 
 </div>
@@ -204,7 +204,7 @@ Skip stories that:
 ::: tip Resume Later
 Skipped stories can be synced individually:
 ```bash
-md2jira -m EPIC.md -e PROJ-123 --story US-002 -x
+spectra -m EPIC.md -e PROJ-123 --story US-002 -x
 ```
 :::
 

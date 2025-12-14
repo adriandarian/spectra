@@ -1,2 +1,2 @@
-"""Integration tests for md2jira."""
+"""Integration tests for spectra."""
 

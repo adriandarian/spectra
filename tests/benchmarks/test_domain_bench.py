@@ -9,7 +9,7 @@ Tests performance of domain operations including:
 """
 
 import pytest
-from md2jira.core.domain import (
+from spectra.core.domain import (
     Epic,
     UserStory,
     Subtask,
@@ -211,7 +211,7 @@ class TestContainerOperations:
     
     def test_container_register(self, benchmark):
         """Benchmark container registration."""
-        from md2jira.core.container import Container
+        from spectra.core.container import Container
         
         container = Container()
         
@@ -228,7 +228,7 @@ class TestContainerOperations:
     
     def test_container_get_singleton(self, benchmark):
         """Benchmark container singleton resolution."""
-        from md2jira.core.container import Container
+        from spectra.core.container import Container
         
         container = Container()
         
@@ -246,7 +246,7 @@ class TestContainerOperations:
     
     def test_container_get_transient(self, benchmark):
         """Benchmark container transient resolution."""
-        from md2jira.core.container import Container, Lifecycle
+        from spectra.core.container import Container, Lifecycle
         
         container = Container()
         

@@ -1,5 +1,5 @@
 /**
- * Decoration provider for md2jira stories
+ * Decoration provider for spectra stories
  * 
  * Highlights story IDs and shows inline status.
  */
@@ -15,13 +15,13 @@ export class StoryDecorationProvider implements vscode.Disposable {
     constructor() {
         // Story ID decoration
         this.storyDecorationType = vscode.window.createTextEditorDecorationType({
-            color: new vscode.ThemeColor('md2jira.storyIdColor'),
+            color: new vscode.ThemeColor('spectra.storyIdColor'),
             fontWeight: 'bold',
         });
 
         // Epic ID decoration
         this.epicDecorationType = vscode.window.createTextEditorDecorationType({
-            color: new vscode.ThemeColor('md2jira.epicIdColor'),
+            color: new vscode.ThemeColor('spectra.epicIdColor'),
             fontWeight: 'bold',
         });
 

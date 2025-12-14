@@ -7,7 +7,7 @@ Tests telemetry configuration, tracing, and metrics collection.
 import pytest
 from unittest.mock import Mock, patch, MagicMock
 
-from md2jira.cli.telemetry import (
+from spectra.cli.telemetry import (
     TelemetryConfig,
     TelemetryProvider,
     OTEL_AVAILABLE,
@@ -33,7 +33,7 @@ class TestTelemetryConfig:
         config = TelemetryConfig()
         
         assert config.enabled is False
-        assert config.service_name == "md2jira"
+        assert config.service_name == "spectra"
         assert config.service_version == "2.0.0"
         assert config.otlp_endpoint is None
         assert config.otlp_insecure is True
@@ -61,7 +61,7 @@ class TestTelemetryConfig:
             config = TelemetryConfig.from_env()
         
         assert config.enabled is False
-        assert config.service_name == "md2jira"
+        assert config.service_name == "spectra"
     
     def test_from_env_enabled(self):
         """Test TelemetryConfig.from_env with OTEL_ENABLED."""
@@ -373,7 +373,7 @@ class TestCLIIntegration:
             "--epic", "TEST-123",
         ])
         
-        assert args.otel_service_name == "md2jira"
+        assert args.otel_service_name == "spectra"
     
     def test_otel_disabled_by_default(self, cli_parser):
         """Test otel is disabled by default."""

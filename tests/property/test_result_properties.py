@@ -11,7 +11,7 @@ import pytest
 from hypothesis import given, assume, settings, example
 from hypothesis import strategies as st
 
-from md2jira.core.result import Result, Ok, Err, ResultError
+from spectra.core.result import Result, Ok, Err, ResultError
 
 
 # =============================================================================

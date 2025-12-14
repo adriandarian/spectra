@@ -3,7 +3,7 @@
 import pytest
 from abc import ABC, abstractmethod
 
-from md2jira.core.container import (
+from spectra.core.container import (
     Container,
     Lifecycle,
     ServiceNotFoundError,

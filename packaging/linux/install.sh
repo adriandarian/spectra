@@ -1,10 +1,10 @@
 #!/usr/bin/env bash
 # ==============================================================================
-# md2jira Universal Linux Installer
+# spectra Universal Linux Installer
 # ==============================================================================
 # 
 # Usage:
-#   curl -fsSL https://raw.githubusercontent.com/adriandarian/md2jira/main/packaging/linux/install.sh | bash
+#   curl -fsSL https://raw.githubusercontent.com/adriandarian/spectra/main/packaging/linux/install.sh | bash
 #
 # Or with a specific version:
 #   curl -fsSL ... | bash -s -- --version 2.0.0
@@ -40,7 +40,7 @@ while [[ $# -gt 0 ]]; do
             shift 2
             ;;
         --help|-h)
-            echo "md2jira Installer"
+            echo "spectra Installer"
             echo ""
             echo "Usage: $0 [OPTIONS]"
             echo ""
@@ -90,20 +90,20 @@ check_python() {
 
 # Install via pip
 install_pip() {
-    log_info "Installing md2jira via pip..."
+    log_info "Installing spectra via pip..."
     
     if [[ "$VERSION" == "latest" ]]; then
-        $PYTHON_CMD -m pip install --upgrade md2jira
+        $PYTHON_CMD -m pip install --upgrade spectra
     else
-        $PYTHON_CMD -m pip install --upgrade "md2jira==$VERSION"
+        $PYTHON_CMD -m pip install --upgrade "spectra==$VERSION"
     fi
     
-    log_success "md2jira installed successfully!"
+    log_success "spectra installed successfully!"
 }
 
 # Install via pipx (isolated environment)
 install_pipx() {
-    log_info "Installing md2jira via pipx..."
+    log_info "Installing spectra via pipx..."
     
     # Check if pipx is installed
     if ! command -v pipx &> /dev/null; then
@@ -113,23 +113,23 @@ install_pipx() {
     fi
     
     if [[ "$VERSION" == "latest" ]]; then
-        pipx install md2jira --force
+        pipx install spectra --force
     else
-        pipx install "md2jira==$VERSION" --force
+        pipx install "spectra==$VERSION" --force
     fi
     
-    log_success "md2jira installed successfully via pipx!"
+    log_success "spectra installed successfully via pipx!"
 }
 
 # Verify installation
 verify_install() {
     log_info "Verifying installation..."
     
-    if command -v md2jira &> /dev/null; then
-        INSTALLED_VERSION=$(md2jira --version 2>/dev/null | head -1)
-        log_success "md2jira is installed: $INSTALLED_VERSION"
+    if command -v spectra &> /dev/null; then
+        INSTALLED_VERSION=$(spectra --version 2>/dev/null | head -1)
+        log_success "spectra is installed: $INSTALLED_VERSION"
     else
-        log_warning "md2jira installed but not in PATH"
+        log_warning "spectra installed but not in PATH"
         log_info "You may need to restart your terminal or add ~/.local/bin to PATH"
         log_info "  export PATH=\"\$HOME/.local/bin:\$PATH\""
     fi
@@ -149,12 +149,12 @@ show_next_steps() {
     echo "   export JIRA_EMAIL=\"your.email@company.com\""
     echo "   export JIRA_API_TOKEN=\"your-api-token\""
     echo ""
-    echo "2. Run md2jira:"
-    echo "   md2jira --markdown EPIC.md --epic PROJ-123"
+    echo "2. Run spectra:"
+    echo "   spectra --markdown EPIC.md --epic PROJ-123"
     echo ""
     echo "3. For more info:"
-    echo "   md2jira --help"
-    echo "   https://github.com/adriandarian/md2jira"
+    echo "   spectra --help"
+    echo "   https://github.com/adriandarian/spectra"
     echo ""
 }
 
@@ -162,7 +162,7 @@ show_next_steps() {
 main() {
     echo ""
     echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
-    echo "           md2jira Installer"
+    echo "           spectra Installer"
     echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
     echo ""
     

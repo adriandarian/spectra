@@ -1,4 +1,4 @@
-// Copyright (c) md2jira
+// Copyright (c) spectra
 // SPDX-License-Identifier: MIT
 
 package client

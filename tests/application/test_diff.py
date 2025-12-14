@@ -3,7 +3,7 @@
 import pytest
 from unittest.mock import MagicMock
 
-from md2jira.application.sync.diff import (
+from spectra.application.sync.diff import (
     FieldDiff,
     IssueDiff,
     DiffResult,
@@ -11,8 +11,8 @@ from md2jira.application.sync.diff import (
     DiffFormatter,
     compare_backup_to_current,
 )
-from md2jira.application.sync.backup import Backup, IssueSnapshot
-from md2jira.core.ports.issue_tracker import IssueData
+from spectra.application.sync.backup import Backup, IssueSnapshot
+from spectra.core.ports.issue_tracker import IssueData
 
 
 class TestFieldDiff:

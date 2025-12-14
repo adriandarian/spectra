@@ -1,4 +1,4 @@
-// Copyright (c) md2jira
+// Copyright (c) spectra
 // SPDX-License-Identifier: MIT
 
 package main
@@ -9,7 +9,7 @@ import (
 	"log"
 
 	"github.com/hashicorp/terraform-plugin-framework/providerserver"
-	"github.com/md2jira/terraform-provider-jira/internal/provider"
+	"github.com/spectra/terraform-provider-jira/internal/provider"
 )
 
 // version is set during build via -ldflags
@@ -22,7 +22,7 @@ func main() {
 	flag.Parse()
 
 	opts := providerserver.ServeOpts{
-		Address: "registry.terraform.io/md2jira/jira",
+		Address: "registry.terraform.io/spectra/jira",
 		Debug:   debug,
 	}
 

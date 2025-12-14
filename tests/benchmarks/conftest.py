@@ -9,7 +9,7 @@ from dataclasses import dataclass, field
 from typing import Any
 from uuid import uuid4
 
-from md2jira.core.domain import (
+from spectra.core.domain import (
     Epic,
     UserStory,
     Subtask,
@@ -18,8 +18,8 @@ from md2jira.core.domain import (
     Priority,
     AcceptanceCriteria,
 )
-from md2jira.core.result import Ok, Err, Result
-from md2jira.core.specification import StatusSpec, PredicateSpec
+from spectra.core.result import Ok, Err, Result
+from spectra.core.specification import StatusSpec, PredicateSpec
 
 
 # =============================================================================

@@ -1,6 +1,6 @@
 # Quick Start
 
-Get up and running with md2jira in 5 minutes.
+Get up and running with spectra in 5 minutes.
 
 ## Step 1: Set Up Credentials
 
@@ -94,17 +94,17 @@ Create `EPIC.md` with your user stories:
 
 ## Step 3: Preview Changes
 
-Run md2jira in dry-run mode (default) to see what would change:
+Run spectra in dry-run mode (default) to see what would change:
 
 ```bash
-md2jira --markdown EPIC.md --epic PROJ-123
+spectra --markdown EPIC.md --epic PROJ-123
 ```
 
 You'll see a detailed preview:
 
 ```
 ╭──────────────────────────────────────────────╮
-│  md2jira - Jira Sync Preview                 │
+│  spectra - Jira Sync Preview                 │
 ╰──────────────────────────────────────────────╯
 
 Epic: PROJ-123
@@ -135,7 +135,7 @@ Summary: 2 stories, 6 subtasks to create
 When you're happy with the preview, execute the sync:
 
 ```bash
-md2jira --markdown EPIC.md --epic PROJ-123 --execute
+spectra --markdown EPIC.md --epic PROJ-123 --execute
 ```
 
 You'll be asked for confirmation:
@@ -158,37 +158,37 @@ Check your Jira epic to see the synced issues:
 
 ```bash
 # Sync descriptions only
-md2jira -m EPIC.md -e PROJ-123 -x --phase descriptions
+spectra -m EPIC.md -e PROJ-123 -x --phase descriptions
 
 # Sync subtasks only
-md2jira -m EPIC.md -e PROJ-123 -x --phase subtasks
+spectra -m EPIC.md -e PROJ-123 -x --phase subtasks
 
 # Sync specific story
-md2jira -m EPIC.md -e PROJ-123 -x --story US-001
+spectra -m EPIC.md -e PROJ-123 -x --story US-001
 
 # Skip confirmation prompts (for CI/CD)
-md2jira -m EPIC.md -e PROJ-123 -x --no-confirm
+spectra -m EPIC.md -e PROJ-123 -x --no-confirm
 
 # Verbose output
-md2jira -m EPIC.md -e PROJ-123 -v
+spectra -m EPIC.md -e PROJ-123 -v
 
 # Export results to JSON
-md2jira -m EPIC.md -e PROJ-123 -x --export results.json
+spectra -m EPIC.md -e PROJ-123 -x --export results.json
 ```
 
 ## Backup & Rollback
 
-md2jira automatically creates backups before sync:
+spectra automatically creates backups before sync:
 
 ```bash
 # List backups
-md2jira --list-backups
+spectra --list-backups
 
 # View diff from backup
-md2jira --diff-latest --epic PROJ-123
+spectra --diff-latest --epic PROJ-123
 
 # Rollback to previous state
-md2jira --rollback --epic PROJ-123 --execute
+spectra --rollback --epic PROJ-123 --execute
 ```
 
 ## Next Steps

@@ -1,4 +1,4 @@
-# AI Prompt for Generating md2jira-Compatible Markdown
+# AI Prompt for Generating spectra-Compatible Markdown
 
 Use this prompt with AI assistants (Claude, ChatGPT, etc.) to generate properly formatted epic documentation.
 
@@ -159,7 +159,7 @@ Now generate a complete epic document with 6 user stories covering the features 
 
 ### Output from AI:
 
-The AI will generate a complete, parseable markdown document ready for md2jira.
+The AI will generate a complete, parseable markdown document ready for spectra.
 
 ---
 
@@ -206,7 +206,7 @@ Focus on risk mitigation and validation criteria.
 1. **Be Specific**: The more detail you provide about features, the better the output
 2. **Set Scope**: Specify number of stories to keep output manageable
 3. **Iterate**: Generate, review, and ask for refinements
-4. **Validate**: Run through md2jira with `--analyze-only` first
+4. **Validate**: Run through spectra with `--analyze-only` first
 
 ---
 

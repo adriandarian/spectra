@@ -1,2 +1,2 @@
-"""CLI tests for md2jira."""
+"""CLI tests for spectra."""
 

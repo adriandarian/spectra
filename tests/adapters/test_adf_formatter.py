@@ -1,6 +1,6 @@
 """Tests for ADF formatter adapter."""
 
-from md2jira.core.domain import CommitRef
+from spectra.core.domain import CommitRef
 
 
 class TestADFFormatter:

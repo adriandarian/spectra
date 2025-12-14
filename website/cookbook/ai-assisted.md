@@ -4,7 +4,7 @@ Use AI assistants to generate, refine, and maintain epic documentation.
 
 ## Overview
 
-Combine AI capabilities with md2jira for powerful project planning:
+Combine AI capabilities with spectra for powerful project planning:
 
 ```
 ┌─────────────────┐     ┌─────────────────┐     ┌─────────────────┐
@@ -14,7 +14,7 @@ Combine AI capabilities with md2jira for powerful project planning:
                                                         │
                                                         ▼
                                                 ┌─────────────────┐
-                                                │    md2jira      │ ──▶ Jira
+                                                │    spectra      │ ──▶ Jira
                                                 └─────────────────┘
 ```
 
@@ -36,7 +36,7 @@ Requirements:
 - Customer satisfaction surveys
 
 Target: 6 user stories
-Format: Use md2jira schema with US-XXX IDs, status emojis, subtasks
+Format: Use spectra schema with US-XXX IDs, status emojis, subtasks
 ```
 
 **AI generates complete markdown ready for sync.**
@@ -100,7 +100,7 @@ Users should be able to switch languages from their profile.
 All UI text, emails, and error messages should be translated.
 We need a translation management system for our content team.
 
-Generate 4-6 user stories following md2jira format.
+Generate 4-6 user stories following spectra format.
 ```
 
 ## AI Prompts Library
@@ -109,7 +109,7 @@ Generate 4-6 user stories following md2jira format.
 
 ````markdown
 You are a technical product manager. Generate a complete epic document 
-for syncing with Jira via md2jira.
+for syncing with Jira via spectra.
 
 ## Project Context
 **Name**: [PROJECT NAME]
@@ -164,7 +164,7 @@ Improve by:
 4. Adjusting story points if needed
 5. Identifying any missing edge cases
 
-Output the improved story in the same md2jira format.
+Output the improved story in the same spectra format.
 ```
 
 ### Story Splitting Prompt
@@ -179,7 +179,7 @@ Guidelines:
 - Each story should be 3-5 points
 - Stories should be independently deployable
 - Maintain clear dependencies if any
-- Keep the same format (md2jira compatible)
+- Keep the same format (spectra compatible)
 
 Output the split stories.
 ```
@@ -222,13 +222,13 @@ Use your editor's AI assistant:
 cat requirements.txt | claude "Generate epic markdown..." > docs/epics/new-feature.md
 
 # Validate the output
-md2jira -m docs/epics/new-feature.md -e PROJ-100 --validate
+spectra -m docs/epics/new-feature.md -e PROJ-100 --validate
 
 # Preview sync
-md2jira -m docs/epics/new-feature.md -e PROJ-100
+spectra -m docs/epics/new-feature.md -e PROJ-100
 
 # If good, execute
-md2jira -m docs/epics/new-feature.md -e PROJ-100 -x
+spectra -m docs/epics/new-feature.md -e PROJ-100 -x
 ```
 
 ### Automation Script
@@ -245,15 +245,15 @@ OUTPUT="docs/epics/${EPIC_KEY}.md"
 cat "$REQUIREMENTS" | ai-cli generate --template epic > "$OUTPUT"
 
 # Validate
-if md2jira -m "$OUTPUT" -e "$EPIC_KEY" --validate; then
+if spectra -m "$OUTPUT" -e "$EPIC_KEY" --validate; then
   echo "✓ Validation passed"
   
   # Preview
-  md2jira -m "$OUTPUT" -e "$EPIC_KEY"
+  spectra -m "$OUTPUT" -e "$EPIC_KEY"
   
   read -p "Sync to Jira? (y/n) " confirm
   if [ "$confirm" = "y" ]; then
-    md2jira -m "$OUTPUT" -e "$EPIC_KEY" -x
+    spectra -m "$OUTPUT" -e "$EPIC_KEY" -x
     echo "✓ Synced to Jira"
   fi
 else

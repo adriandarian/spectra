@@ -1,11 +1,11 @@
 # CLI Reference
 
-Complete reference for all md2jira command-line options.
+Complete reference for all spectra command-line options.
 
 ## Synopsis
 
 ```bash
-md2jira [OPTIONS]
+spectra [OPTIONS]
 ```
 
 ## Required Options
@@ -88,121 +88,121 @@ md2jira [OPTIONS]
 
 ```bash
 # Preview changes (dry-run)
-md2jira --markdown EPIC.md --epic PROJ-123
+spectra --markdown EPIC.md --epic PROJ-123
 
 # Execute sync
-md2jira --markdown EPIC.md --epic PROJ-123 --execute
+spectra --markdown EPIC.md --epic PROJ-123 --execute
 
 # Short form
-md2jira -m EPIC.md -e PROJ-123 -x
+spectra -m EPIC.md -e PROJ-123 -x
 ```
 
 ### Sync Specific Phases
 
 ```bash
 # Sync descriptions only
-md2jira -m EPIC.md -e PROJ-123 -x --phase descriptions
+spectra -m EPIC.md -e PROJ-123 -x --phase descriptions
 
 # Sync subtasks only
-md2jira -m EPIC.md -e PROJ-123 -x --phase subtasks
+spectra -m EPIC.md -e PROJ-123 -x --phase subtasks
 
 # Sync comments only
-md2jira -m EPIC.md -e PROJ-123 -x --phase comments
+spectra -m EPIC.md -e PROJ-123 -x --phase comments
 
 # Sync status transitions only
-md2jira -m EPIC.md -e PROJ-123 -x --phase statuses
+spectra -m EPIC.md -e PROJ-123 -x --phase statuses
 ```
 
 ### Filter by Story
 
 ```bash
 # Sync specific story
-md2jira -m EPIC.md -e PROJ-123 -x --story US-001
+spectra -m EPIC.md -e PROJ-123 -x --story US-001
 
 # Multiple stories (run multiple times)
-md2jira -m EPIC.md -e PROJ-123 -x --story US-001
-md2jira -m EPIC.md -e PROJ-123 -x --story US-002
+spectra -m EPIC.md -e PROJ-123 -x --story US-001
+spectra -m EPIC.md -e PROJ-123 -x --story US-002
 ```
 
 ### CI/CD Usage
 
 ```bash
 # No prompts, JSON output
-md2jira -m EPIC.md -e PROJ-123 -x --no-confirm --output json
+spectra -m EPIC.md -e PROJ-123 -x --no-confirm --output json
 
 # Export results for processing
-md2jira -m EPIC.md -e PROJ-123 -x --no-confirm --export results.json
+spectra -m EPIC.md -e PROJ-123 -x --no-confirm --export results.json
 
 # Quiet mode (errors only)
-md2jira -m EPIC.md -e PROJ-123 -x --no-confirm -q
+spectra -m EPIC.md -e PROJ-123 -x --no-confirm -q
 ```
 
 ### Logging & Debugging
 
 ```bash
 # Verbose output
-md2jira -m EPIC.md -e PROJ-123 -v
+spectra -m EPIC.md -e PROJ-123 -v
 
 # Write logs to file
-md2jira -m EPIC.md -e PROJ-123 -x --log-file sync.log
+spectra -m EPIC.md -e PROJ-123 -x --log-file sync.log
 
 # JSON logs (for log aggregation)
-md2jira -m EPIC.md -e PROJ-123 -x --log-format json
+spectra -m EPIC.md -e PROJ-123 -x --log-format json
 
 # Full audit trail
-md2jira -m EPIC.md -e PROJ-123 -x --audit-trail audit.json
+spectra -m EPIC.md -e PROJ-123 -x --audit-trail audit.json
 ```
 
 ### Backup & Recovery
 
 ```bash
 # List backups
-md2jira --list-backups
+spectra --list-backups
 
 # View diff from latest backup
-md2jira --diff-latest --epic PROJ-123
+spectra --diff-latest --epic PROJ-123
 
 # View diff from specific backup
-md2jira --diff-backup backup_20250113_120000 --epic PROJ-123
+spectra --diff-backup backup_20250113_120000 --epic PROJ-123
 
 # Restore from backup (dry-run)
-md2jira --restore-backup backup_20250113_120000 --epic PROJ-123
+spectra --restore-backup backup_20250113_120000 --epic PROJ-123
 
 # Restore from backup (execute)
-md2jira --restore-backup backup_20250113_120000 --epic PROJ-123 --execute
+spectra --restore-backup backup_20250113_120000 --epic PROJ-123 --execute
 
 # Rollback last sync
-md2jira --rollback --epic PROJ-123 --execute
+spectra --rollback --epic PROJ-123 --execute
 ```
 
 ### Interactive Mode
 
 ```bash
 # Guided sync with previews
-md2jira -m EPIC.md -e PROJ-123 --interactive
+spectra -m EPIC.md -e PROJ-123 --interactive
 
 # Resume interrupted sync
-md2jira -m EPIC.md -e PROJ-123 --resume
+spectra -m EPIC.md -e PROJ-123 --resume
 ```
 
 ### Validation
 
 ```bash
 # Validate markdown format only
-md2jira -m EPIC.md -e PROJ-123 --validate
+spectra -m EPIC.md -e PROJ-123 --validate
 ```
 
 ### Configuration
 
 ```bash
 # Use specific config file
-md2jira -m EPIC.md -e PROJ-123 --config ~/.md2jira-prod.yaml
+spectra -m EPIC.md -e PROJ-123 --config ~/.spectra-prod.yaml
 
 # Override Jira URL
-md2jira -m EPIC.md -e PROJ-123 --jira-url https://other.atlassian.net
+spectra -m EPIC.md -e PROJ-123 --jira-url https://other.atlassian.net
 
 # Override project
-md2jira -m EPIC.md -e PROJ-123 --project OTHER
+spectra -m EPIC.md -e PROJ-123 --project OTHER
 ```
 
 ## Exit Codes

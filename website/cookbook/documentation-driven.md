@@ -16,7 +16,7 @@ Use markdown documentation as your single source of truth, with Jira as the exec
 │                                                                 │
 └──────────────────────────┬──────────────────────────────────────┘
                            │
-                           ▼  md2jira sync
+                           ▼  spectra sync
 ┌─────────────────────────────────────────────────────────────────┐
 │                    JIRA (Execution Layer)                       │
 │                                                                 │
@@ -274,13 +274,13 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - run: pip install md2jira
+      - run: pip install spectra
       - name: Sync all epics
         run: |
           for file in docs/epics/*.md; do
             epic=$(head -1 "$file" | grep -oP '→ \K\w+-\d+' || echo "")
             if [ -n "$epic" ]; then
-              md2jira -m "$file" -e "$epic" -x --no-confirm
+              spectra -m "$file" -e "$epic" -x --no-confirm
             fi
           done
 ```

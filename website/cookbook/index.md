@@ -1,6 +1,6 @@
 # Cookbook
 
-Practical recipes and patterns for common md2jira use cases.
+Practical recipes and patterns for common spectra use cases.
 
 ## Quick Links
 
@@ -74,11 +74,11 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - run: pip install md2jira
+      - run: pip install spectra
       - run: |
           for file in docs/*.md; do
             epic=$(basename "$file" .md)
-            md2jira -m "$file" -e "$epic" -x --no-confirm
+            spectra -m "$file" -e "$epic" -x --no-confirm
           done
 ```
 
@@ -96,8 +96,8 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - run: pip install md2jira
-      - run: md2jira -m docs/EPIC.md -e PROJ-123 --validate
+      - run: pip install spectra
+      - run: spectra -m docs/EPIC.md -e PROJ-123 --validate
 ```
 
 ### Weekly Sync Report
@@ -108,7 +108,7 @@ Get a summary of what changed:
 #!/bin/bash
 # weekly-sync.sh
 
-md2jira -m EPIC.md -e PROJ-123 -x --no-confirm --export weekly-report.json
+spectra -m EPIC.md -e PROJ-123 -x --no-confirm --export weekly-report.json
 
 # Parse and send to Slack
 jq '.results | "Stories: \(.stories_processed), Subtasks: \(.subtasks_created)"' \

@@ -8,7 +8,7 @@ import pytest
 import tempfile
 from pathlib import Path
 
-from md2jira.application.sync.incremental import (
+from spectra.application.sync.incremental import (
     StoryFingerprint,
     ChangeDetectionResult,
     ChangeTracker,
@@ -16,9 +16,9 @@ from md2jira.application.sync.incremental import (
     compute_story_hash,
     stories_differ,
 )
-from md2jira.core.domain.entities import UserStory, Subtask
-from md2jira.core.domain.value_objects import StoryId, Description
-from md2jira.core.domain.enums import Status, Priority
+from spectra.core.domain.entities import UserStory, Subtask
+from spectra.core.domain.value_objects import StoryId, Description
+from spectra.core.domain.enums import Status, Priority
 
 
 # =============================================================================

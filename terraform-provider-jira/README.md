@@ -29,10 +29,10 @@ go build -o terraform-provider-jira
 
 ```bash
 # Create plugin directory
-mkdir -p ~/.terraform.d/plugins/registry.terraform.io/md2jira/jira/1.0.0/$(go env GOOS)_$(go env GOARCH)
+mkdir -p ~/.terraform.d/plugins/registry.terraform.io/spectra/jira/1.0.0/$(go env GOOS)_$(go env GOARCH)
 
 # Copy the binary
-cp terraform-provider-jira ~/.terraform.d/plugins/registry.terraform.io/md2jira/jira/1.0.0/$(go env GOOS)_$(go env GOARCH)/
+cp terraform-provider-jira ~/.terraform.d/plugins/registry.terraform.io/spectra/jira/1.0.0/$(go env GOOS)_$(go env GOARCH)/
 ```
 
 ## Authentication
@@ -70,7 +70,7 @@ provider "jira" {
 terraform {
   required_providers {
     jira = {
-      source  = "md2jira/jira"
+      source  = "spectra/jira"
       version = "~> 1.0"
     }
   }
@@ -219,13 +219,13 @@ export TF_ACC=1
 go test ./... -v
 ```
 
-## Integration with md2jira
+## Integration with spectra
 
-This provider is part of the [md2jira](https://github.com/md2jira/md2jira) project, which provides tools for managing Jira from markdown documentation.
+This provider is part of the [spectra](https://github.com/spectra/spectra) project, which provides tools for managing Jira from markdown documentation.
 
-You can use this Terraform provider alongside md2jira for different use cases:
+You can use this Terraform provider alongside spectra for different use cases:
 
-- **md2jira**: Sync existing markdown documentation to Jira
+- **spectra**: Sync existing markdown documentation to Jira
 - **Terraform provider**: Manage Jira as infrastructure-as-code
 
 ## License

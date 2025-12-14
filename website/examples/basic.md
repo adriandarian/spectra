@@ -1,6 +1,6 @@
 # Basic Usage Examples
 
-Common usage patterns for md2jira.
+Common usage patterns for spectra.
 
 ## Your First Sync
 
@@ -21,7 +21,7 @@ Create `EPIC.md`:
 ```markdown
 # 🚀 My First Epic
 
-> **Epic: Getting started with md2jira**
+> **Epic: Getting started with spectra**
 
 ---
 
@@ -57,13 +57,13 @@ Create `EPIC.md`:
 ### 3. Preview Changes
 
 ```bash
-md2jira --markdown EPIC.md --epic PROJ-123
+spectra --markdown EPIC.md --epic PROJ-123
 ```
 
 ### 4. Execute Sync
 
 ```bash
-md2jira --markdown EPIC.md --epic PROJ-123 --execute
+spectra --markdown EPIC.md --epic PROJ-123 --execute
 ```
 
 ## Common Scenarios
@@ -73,7 +73,7 @@ md2jira --markdown EPIC.md --epic PROJ-123 --execute
 When you only want to update story descriptions:
 
 ```bash
-md2jira -m EPIC.md -e PROJ-123 -x --phase descriptions
+spectra -m EPIC.md -e PROJ-123 -x --phase descriptions
 ```
 
 ### Sync Only Subtasks
@@ -81,7 +81,7 @@ md2jira -m EPIC.md -e PROJ-123 -x --phase descriptions
 When you only want to create/update subtasks:
 
 ```bash
-md2jira -m EPIC.md -e PROJ-123 -x --phase subtasks
+spectra -m EPIC.md -e PROJ-123 -x --phase subtasks
 ```
 
 ### Sync Specific Story
@@ -89,7 +89,7 @@ md2jira -m EPIC.md -e PROJ-123 -x --phase subtasks
 Focus on a single story:
 
 ```bash
-md2jira -m EPIC.md -e PROJ-123 -x --story US-001
+spectra -m EPIC.md -e PROJ-123 -x --story US-001
 ```
 
 ### Verbose Output
@@ -97,7 +97,7 @@ md2jira -m EPIC.md -e PROJ-123 -x --story US-001
 See detailed information about each operation:
 
 ```bash
-md2jira -m EPIC.md -e PROJ-123 -v
+spectra -m EPIC.md -e PROJ-123 -v
 ```
 
 ### Export Results
@@ -105,7 +105,7 @@ md2jira -m EPIC.md -e PROJ-123 -v
 Save sync results to JSON:
 
 ```bash
-md2jira -m EPIC.md -e PROJ-123 -x --export results.json
+spectra -m EPIC.md -e PROJ-123 -x --export results.json
 ```
 
 Output:
@@ -133,7 +133,7 @@ Output:
 Check your markdown format without syncing:
 
 ```bash
-md2jira -m EPIC.md -e PROJ-123 --validate
+spectra -m EPIC.md -e PROJ-123 --validate
 ```
 
 Output for valid file:
@@ -161,7 +161,7 @@ Errors:
 ### List Backups
 
 ```bash
-md2jira --list-backups
+spectra --list-backups
 ```
 
 Output:
@@ -176,7 +176,7 @@ Available backups:
 ### View Changes Since Last Backup
 
 ```bash
-md2jira --diff-latest --epic PROJ-123
+spectra --diff-latest --epic PROJ-123
 ```
 
 Output:
@@ -200,13 +200,13 @@ Story: PROJ-124 (US-001: Setup Development Environment)
 Preview rollback:
 
 ```bash
-md2jira --rollback --epic PROJ-123
+spectra --rollback --epic PROJ-123
 ```
 
 Execute rollback:
 
 ```bash
-md2jira --rollback --epic PROJ-123 --execute
+spectra --rollback --epic PROJ-123 --execute
 ```
 
 ## Interactive Mode
@@ -214,14 +214,14 @@ md2jira --rollback --epic PROJ-123 --execute
 For step-by-step guided sync:
 
 ```bash
-md2jira -m EPIC.md -e PROJ-123 --interactive
+spectra -m EPIC.md -e PROJ-123 --interactive
 ```
 
 Interactive session:
 
 ```
 ╭──────────────────────────────────────────────╮
-│  md2jira Interactive Mode                    │
+│  spectra Interactive Mode                    │
 ╰──────────────────────────────────────────────╯
 
 Found 5 stories to sync with PROJ-123
@@ -250,7 +250,7 @@ Story 2/5: US-002 - User Authentication
 ### With YAML Config
 
 ```yaml
-# .md2jira.yaml
+# .spectra.yaml
 jira:
   url: https://company.atlassian.net
   project: PROJ
@@ -268,27 +268,27 @@ epic: PROJ-123
 Run with defaults from config:
 
 ```bash
-md2jira
+spectra
 ```
 
 Or override specific values:
 
 ```bash
-md2jira --epic PROJ-456
+spectra --epic PROJ-456
 ```
 
 ### With pyproject.toml
 
 ```toml
 # pyproject.toml
-[tool.md2jira]
+[tool.spectra]
 epic = "PROJ-123"
 
-[tool.md2jira.jira]
+[tool.spectra.jira]
 url = "https://company.atlassian.net"
 project = "PROJ"
 
-[tool.md2jira.sync]
+[tool.spectra.sync]
 verbose = true
 ```
 

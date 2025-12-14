@@ -12,7 +12,7 @@ from hypothesis import given, assume, settings
 from hypothesis import strategies as st
 from typing import Any
 
-from md2jira.core.specification import (
+from spectra.core.specification import (
     Specification,
     PredicateSpec,
     AlwaysTrue,

@@ -11,7 +11,7 @@ import pytest
 from hypothesis import given, assume, settings, example
 from hypothesis import strategies as st
 
-from md2jira.core.domain import (
+from spectra.core.domain import (
     StoryId,
     IssueKey,
     UserStory,

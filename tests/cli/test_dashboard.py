@@ -8,7 +8,7 @@ import pytest
 from datetime import datetime
 from pathlib import Path
 
-from md2jira.cli.dashboard import (
+from spectra.cli.dashboard import (
     StoryStatus,
     DashboardData,
     Dashboard,
@@ -16,8 +16,8 @@ from md2jira.cli.dashboard import (
     load_dashboard_data,
     run_dashboard,
 )
-from md2jira.cli.output import Console
-from md2jira.cli.exit_codes import ExitCode
+from spectra.cli.output import Console
+from spectra.cli.exit_codes import ExitCode
 
 
 # =============================================================================
@@ -171,7 +171,7 @@ class TestDashboard:
         """Test static render produces output."""
         output = dashboard.render_static(sample_data)
         
-        assert "md2jira Dashboard" in output
+        assert "spectra Dashboard" in output
         assert "PROJ-100" in output
         assert "Sample Epic" in output
         assert "Stories" in output
@@ -181,14 +181,14 @@ class TestDashboard:
         data = DashboardData()
         output = dashboard.render_static(data)
         
-        assert "md2jira Dashboard" in output
+        assert "spectra Dashboard" in output
         assert "No stories loaded" in output
     
     def test_build_header(self, dashboard, sample_data):
         """Test header building."""
         lines = dashboard._build_header(sample_data)
         
-        assert any("md2jira Dashboard" in line for line in lines)
+        assert any("spectra Dashboard" in line for line in lines)
         assert any("PROJ-100" in line for line in lines)
         assert any("epic.md" in line for line in lines)
     
@@ -324,7 +324,7 @@ class TestRunDashboard:
         assert result == ExitCode.SUCCESS
         
         captured = capsys.readouterr()
-        assert "md2jira Dashboard" in captured.out
+        assert "spectra Dashboard" in captured.out
     
     def test_run_dashboard_with_markdown(self, tmp_path, capsys):
         """Test running dashboard with markdown file."""

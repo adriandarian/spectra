@@ -2,7 +2,7 @@
 
 import pytest
 
-from md2jira.core.result import (
+from spectra.core.result import (
     Result,
     Ok,
     Err,

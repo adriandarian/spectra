@@ -6,13 +6,13 @@ import pytest
 from datetime import datetime
 from unittest.mock import Mock
 
-from md2jira.application.sync.multi_epic import (
+from spectra.application.sync.multi_epic import (
     MultiEpicSyncOrchestrator,
     MultiEpicSyncResult,
     EpicSyncResult,
 )
-from md2jira.adapters.parsers.markdown import MarkdownParser
-from md2jira.core.ports.config_provider import SyncConfig
+from spectra.adapters.parsers.markdown import MarkdownParser
+from spectra.core.ports.config_provider import SyncConfig
 
 
 # Sample multi-epic markdown content

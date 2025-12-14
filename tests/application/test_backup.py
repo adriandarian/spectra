@@ -3,7 +3,7 @@
 import pytest
 from unittest.mock import MagicMock
 
-from md2jira.application.sync.backup import (
+from spectra.application.sync.backup import (
     Backup,
     BackupManager,
     IssueSnapshot,
@@ -12,7 +12,7 @@ from md2jira.application.sync.backup import (
     create_pre_sync_backup,
     restore_from_backup,
 )
-from md2jira.core.ports.issue_tracker import IssueData
+from spectra.core.ports.issue_tracker import IssueData
 
 
 class TestIssueSnapshot:

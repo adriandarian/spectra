@@ -2,39 +2,39 @@
 layout: home
 
 hero:
-  name: md2jira
-  text: Markdown to Jira, Simplified
-  tagline: A production-grade CLI tool for synchronizing markdown documentation with Jira. Write your epic docs in markdown, sync to Jira automatically.
+  name: spectra
+  text: Specs to Trackers, Simplified
+  tagline: A production-grade CLI tool for syncing markdown specs to issue trackers. Supports Jira, GitHub Issues, Azure DevOps, Linear, and more.
   image:
     src: /hero-illustration.svg
-    alt: md2jira
+    alt: spectra
   actions:
     - theme: brand
       text: Get Started →
       link: /guide/getting-started
     - theme: alt
       text: View on GitHub
-      link: https://github.com/adriandarian/md2jira
+      link: https://github.com/adriandarian/spectra
 
 features:
   - icon: 🚀
-    title: Full Epic Sync
-    details: Sync user stories, subtasks, descriptions, and comments from markdown to Jira in one command. Your documentation stays in sync.
+    title: Multi-Platform Sync
+    details: Sync to Jira, GitHub Issues, Azure DevOps, Linear, and Confluence. One tool for all your issue trackers.
   - icon: 📝
-    title: Markdown-Native
-    details: Write your epic documentation in familiar markdown format. No need to learn new syntax or use clunky web interfaces.
+    title: Markdown & YAML Native
+    details: Write specs in familiar markdown or YAML format. No need to learn new syntax or use clunky web interfaces.
   - icon: 🔄
     title: Smart Matching
-    details: Fuzzy title matching between markdown stories and Jira issues. Works with your existing issues without manual linking.
+    details: Fuzzy title matching between specs and existing issues. Works with your existing issues without manual linking.
   - icon: 🛡️
     title: Safe by Default
     details: Dry-run mode, confirmations, and detailed previews before any changes. Backup and rollback capabilities built-in.
   - icon: ⚡
-    title: Command Pattern
-    details: Undo-capable operations with full audit trail. Every change is tracked and can be reversed if needed.
+    title: Bi-directional Sync
+    details: Push specs to trackers or pull changes back. Undo-capable operations with full audit trail.
   - icon: 🔌
     title: Plugin System
-    details: Extensible architecture for custom parsers, trackers, and formatters. Build adapters for GitHub Issues, Linear, and more.
+    details: Extensible architecture for custom parsers, trackers, and formatters. Easy to add new platform adapters.
   - icon: 📊
     title: Rich CLI Output
     details: Beautiful terminal UI with progress bars, colored output, and detailed reports. JSON output mode for CI/CD integration.
@@ -59,19 +59,19 @@ features:
 ::: code-group
 
 ```bash [pip]
-pip install md2jira
+pip install spectra
 ```
 
 ```bash [pipx]
-pipx install md2jira
+pipx install spectra
 ```
 
 ```bash [Homebrew]
-brew install adriandarian/md2jira/md2jira
+brew install adriandarian/spectra/spectra
 ```
 
 ```bash [Docker]
-docker pull adriandarian/md2jira:latest
+docker pull adriandarian/spectra:latest
 ```
 
 :::
@@ -80,18 +80,18 @@ docker pull adriandarian/md2jira:latest
 
 ```bash
 # Preview changes (dry-run)
-md2jira --markdown EPIC.md --epic PROJ-123
+spectra --markdown EPIC.md --epic PROJ-123
 
 # Execute sync
-md2jira --markdown EPIC.md --epic PROJ-123 --execute
+spectra --markdown EPIC.md --epic PROJ-123 --execute
 
 # Sync with interactive mode
-md2jira --markdown EPIC.md --epic PROJ-123 --execute --interactive
+spectra --markdown EPIC.md --epic PROJ-123 --execute --interactive
 ```
 
 ## What People Are Saying
 
-> "md2jira transformed our sprint planning. We write everything in markdown and sync to Jira in seconds."
+> "spectra transformed our sprint planning. We write everything in markdown and sync to Jira in seconds."
 
 > "Finally, a tool that understands developers prefer markdown over clicking through Jira forms."
 

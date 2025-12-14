@@ -8,7 +8,7 @@ Tests performance of specification operations including:
 """
 
 import pytest
-from md2jira.core.specification import (
+from spectra.core.specification import (
     Specification,
     PredicateSpec,
     AlwaysTrue,
@@ -22,7 +22,7 @@ from md2jira.core.specification import (
     any_of,
     none_of,
 )
-from md2jira.core.domain import UserStory, Status
+from spectra.core.domain import UserStory, Status
 
 
 # =============================================================================

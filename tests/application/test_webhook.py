@@ -8,7 +8,7 @@ import time
 from unittest.mock import Mock
 from http.client import HTTPConnection
 
-from md2jira.application.webhook import (
+from spectra.application.webhook import (
     WebhookServer,
     WebhookParser,
     WebhookEvent,

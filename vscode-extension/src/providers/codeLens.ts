@@ -1,5 +1,5 @@
 /**
- * CodeLens provider for md2jira stories
+ * CodeLens provider for spectra stories
  * 
  * Shows action buttons above each story header.
  */
@@ -39,14 +39,14 @@ export class StoryCodeLensProvider implements vscode.CodeLensProvider {
                 // Copy ID lens
                 codeLenses.push(new vscode.CodeLens(range, {
                     title: '$(copy) Copy ID',
-                    command: 'md2jira.copyStoryId',
+                    command: 'spectra.copyStoryId',
                     tooltip: `Copy ${storyId} to clipboard`
                 }));
 
                 // Open in Jira lens
                 codeLenses.push(new vscode.CodeLens(range, {
                     title: '$(link-external) Open in Jira',
-                    command: 'md2jira.openInJira',
+                    command: 'spectra.openInJira',
                     tooltip: `Open ${storyId} in Jira`
                 }));
 
@@ -61,21 +61,21 @@ export class StoryCodeLensProvider implements vscode.CodeLensProvider {
                 // Sync lens
                 codeLenses.push(new vscode.CodeLens(range, {
                     title: '$(sync) Sync',
-                    command: 'md2jira.sync',
+                    command: 'spectra.sync',
                     tooltip: 'Sync to Jira (dry-run)'
                 }));
 
                 // Validate lens
                 codeLenses.push(new vscode.CodeLens(range, {
                     title: '$(check) Validate',
-                    command: 'md2jira.validate',
+                    command: 'spectra.validate',
                     tooltip: 'Validate markdown'
                 }));
 
                 // Open in Jira lens
                 codeLenses.push(new vscode.CodeLens(range, {
                     title: '$(link-external) Open Epic',
-                    command: 'md2jira.openInJira',
+                    command: 'spectra.openInJira',
                     tooltip: `Open ${epicId} in Jira`
                 }));
             }

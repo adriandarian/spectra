@@ -1,6 +1,6 @@
 # CI/CD Integration
 
-Integrate md2jira into your continuous integration and deployment pipelines.
+Integrate spectra into your continuous integration and deployment pipelines.
 
 ## GitHub Actions
 
@@ -29,8 +29,8 @@ jobs:
         with:
           python-version: '3.12'
       
-      - name: Install md2jira
-        run: pip install md2jira
+      - name: Install spectra
+        run: pip install spectra
       
       - name: Sync to Jira
         env:
@@ -38,7 +38,7 @@ jobs:
           JIRA_EMAIL: ${{ secrets.JIRA_EMAIL }}
           JIRA_API_TOKEN: ${{ secrets.JIRA_API_TOKEN }}
         run: |
-          md2jira \
+          spectra \
             --markdown docs/EPIC.md \
             --epic ${{ vars.EPIC_KEY }} \
             --execute \
@@ -75,8 +75,8 @@ jobs:
         with:
           python-version: '3.12'
       
-      - name: Install md2jira
-        run: pip install md2jira
+      - name: Install spectra
+        run: pip install spectra
       
       - name: Preview changes
         id: preview
@@ -85,7 +85,7 @@ jobs:
           JIRA_EMAIL: ${{ secrets.JIRA_EMAIL }}
           JIRA_API_TOKEN: ${{ secrets.JIRA_API_TOKEN }}
         run: |
-          md2jira \
+          spectra \
             --markdown docs/EPIC.md \
             --epic ${{ vars.EPIC_KEY }} \
             --output json \
@@ -142,7 +142,7 @@ jobs:
         with:
           python-version: '3.12'
       
-      - run: pip install md2jira
+      - run: pip install spectra
       
       - name: Sync ${{ matrix.epic }}
         env:
@@ -150,7 +150,7 @@ jobs:
           JIRA_EMAIL: ${{ secrets.JIRA_EMAIL }}
           JIRA_API_TOKEN: ${{ secrets.JIRA_API_TOKEN }}
         run: |
-          md2jira \
+          spectra \
             --markdown docs/${{ matrix.epic }}.md \
             --epic ${{ matrix.epic }} \
             --execute \
@@ -174,8 +174,8 @@ validate-markdown:
   stage: validate
   image: python:3.12
   script:
-    - pip install md2jira
-    - md2jira --markdown docs/EPIC.md --epic $EPIC_KEY --validate
+    - pip install spectra
+    - spectra --markdown docs/EPIC.md --epic $EPIC_KEY --validate
   rules:
     - changes:
         - docs/EPIC.md
@@ -188,8 +188,8 @@ sync-to-jira:
     JIRA_EMAIL: $JIRA_EMAIL
     JIRA_API_TOKEN: $JIRA_API_TOKEN
   script:
-    - pip install md2jira
-    - md2jira --markdown docs/EPIC.md --epic $EPIC_KEY --execute --no-confirm
+    - pip install spectra
+    - spectra --markdown docs/EPIC.md --epic $EPIC_KEY --execute --no-confirm
   rules:
     - if: $CI_COMMIT_BRANCH == "main"
       changes:
@@ -204,14 +204,14 @@ sync-to-jira:
 ```yaml
 # .gitlab-ci.yml
 sync-jira:
-  image: adriandarian/md2jira:latest
+  image: adriandarian/spectra:latest
   stage: deploy
   variables:
     JIRA_URL: $JIRA_URL
     JIRA_EMAIL: $JIRA_EMAIL
     JIRA_API_TOKEN: $JIRA_API_TOKEN
   script:
-    - md2jira --markdown docs/EPIC.md --epic $EPIC_KEY --execute --no-confirm
+    - spectra --markdown docs/EPIC.md --epic $EPIC_KEY --execute --no-confirm
   only:
     refs:
       - main
@@ -242,13 +242,13 @@ pipeline {
     stages {
         stage('Install') {
             steps {
-                sh 'pip install md2jira'
+                sh 'pip install spectra'
             }
         }
         
         stage('Validate') {
             steps {
-                sh "md2jira --markdown docs/EPIC.md --epic ${EPIC_KEY} --validate"
+                sh "spectra --markdown docs/EPIC.md --epic ${EPIC_KEY} --validate"
             }
         }
         
@@ -257,7 +257,7 @@ pipeline {
                 not { branch 'main' }
             }
             steps {
-                sh "md2jira --markdown docs/EPIC.md --epic ${EPIC_KEY}"
+                sh "spectra --markdown docs/EPIC.md --epic ${EPIC_KEY}"
             }
         }
         
@@ -266,7 +266,7 @@ pipeline {
                 branch 'main'
             }
             steps {
-                sh "md2jira --markdown docs/EPIC.md --epic ${EPIC_KEY} --execute --no-confirm"
+                sh "spectra --markdown docs/EPIC.md --epic ${EPIC_KEY} --execute --no-confirm"
             }
         }
     }
@@ -297,12 +297,12 @@ jobs:
     steps:
       - checkout
       - run:
-          name: Install md2jira
-          command: pip install md2jira
+          name: Install spectra
+          command: pip install spectra
       - run:
           name: Sync to Jira
           command: |
-            md2jira \
+            spectra \
               --markdown docs/EPIC.md \
               --epic $EPIC_KEY \
               --execute \
@@ -330,7 +330,7 @@ workflows:
   id: sync
   continue-on-error: true
   run: |
-    md2jira --markdown docs/EPIC.md --epic $EPIC_KEY --execute --no-confirm
+    spectra --markdown docs/EPIC.md --epic $EPIC_KEY --execute --no-confirm
     echo "exit_code=$?" >> $GITHUB_OUTPUT
 
 - name: Check result
@@ -354,7 +354,7 @@ workflows:
     max_attempts: 3
     retry_on: error
     command: |
-      md2jira --markdown docs/EPIC.md --epic $EPIC_KEY --execute --no-confirm
+      spectra --markdown docs/EPIC.md --epic $EPIC_KEY --execute --no-confirm
 ```
 
 ## Secrets Management

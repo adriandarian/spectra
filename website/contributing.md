@@ -1,10 +1,10 @@
 # Contributing
 
-Thank you for your interest in contributing to md2jira! This guide will help you get started.
+Thank you for your interest in contributing to spectra! This guide will help you get started.
 
 ## Code of Conduct
 
-Please read and follow our [Code of Conduct](https://github.com/adriandarian/md2jira/blob/main/CODE_OF_CONDUCT.md).
+Please read and follow our [Code of Conduct](https://github.com/adriandarian/spectra/blob/main/CODE_OF_CONDUCT.md).
 
 ## Getting Started
 
@@ -17,8 +17,8 @@ Please read and follow our [Code of Conduct](https://github.com/adriandarian/md2
 
 ```bash
 # Clone the repository
-git clone https://github.com/adriandarian/md2jira.git
-cd md2jira
+git clone https://github.com/adriandarian/spectra.git
+cd spectra
 
 # Create virtual environment
 python -m venv venv
@@ -38,7 +38,7 @@ pre-commit install
 pytest
 
 # Run with coverage
-pytest --cov=src/md2jira
+pytest --cov=src/spectra
 
 # Run specific test file
 pytest tests/cli/test_cli.py
@@ -101,8 +101,8 @@ chore: update dependencies
 ## Project Structure
 
 ```
-md2jira/
-├── src/md2jira/        # Source code
+spectra/
+├── src/spectra/        # Source code
 │   ├── core/           # Domain logic and ports
 │   ├── adapters/       # Infrastructure implementations
 │   ├── application/    # Use cases and orchestration
@@ -118,11 +118,11 @@ md2jira/
 
 ### Good First Issues
 
-Look for issues labeled [`good first issue`](https://github.com/adriandarian/md2jira/labels/good%20first%20issue).
+Look for issues labeled [`good first issue`](https://github.com/adriandarian/spectra/labels/good%20first%20issue).
 
 ### Feature Requests
 
-Check the [IMPROVEMENTS.md](https://github.com/adriandarian/md2jira/blob/main/IMPROVEMENTS.md) for planned features.
+Check the [IMPROVEMENTS.md](https://github.com/adriandarian/spectra/blob/main/IMPROVEMENTS.md) for planned features.
 
 ### Documentation
 
@@ -145,21 +145,21 @@ Want to add support for a new issue tracker? See the [Plugin Guide](/guide/plugi
 ### Running Locally
 
 ```bash
-# Run md2jira from source
-python -m md2jira --help
+# Run spectra from source
+python -m spectra --help
 
 # Or use the installed command
-md2jira --help
+spectra --help
 ```
 
 ### Debugging
 
 ```bash
 # Enable debug logging
-md2jira --markdown EPIC.md --epic TEST-1 -v
+spectra --markdown EPIC.md --epic TEST-1 -v
 
 # Use Python debugger
-python -m pdb -m md2jira --markdown EPIC.md --epic TEST-1
+python -m pdb -m spectra --markdown EPIC.md --epic TEST-1
 ```
 
 ### Testing Against Jira
@@ -182,9 +182,9 @@ Releases are handled by maintainers:
 
 ## Questions?
 
-- **Bug reports**: [GitHub Issues](https://github.com/adriandarian/md2jira/issues)
-- **Feature requests**: [GitHub Discussions](https://github.com/adriandarian/md2jira/discussions)
-- **Security issues**: See [SECURITY.md](https://github.com/adriandarian/md2jira/blob/main/SECURITY.md)
+- **Bug reports**: [GitHub Issues](https://github.com/adriandarian/spectra/issues)
+- **Feature requests**: [GitHub Discussions](https://github.com/adriandarian/spectra/discussions)
+- **Security issues**: See [SECURITY.md](https://github.com/adriandarian/spectra/blob/main/SECURITY.md)
 
 ## License
 

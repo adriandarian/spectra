@@ -1,7 +1,7 @@
 {
-  "name": "md2jira-docs",
+  "name": "spectra-docs",
   "version": "1.0.0",
-  "description": "Documentation site for md2jira",
+  "description": "Documentation site for spectra",
   "type": "module",
   "scripts": {
     "dev": "vitepress dev",

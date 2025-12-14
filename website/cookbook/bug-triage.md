@@ -1,6 +1,6 @@
 # Bug Triage
 
-Efficiently manage bug backlogs using md2jira for structured bug tracking.
+Efficiently manage bug backlogs using spectra for structured bug tracking.
 
 ## Bug Tracking Epic
 
@@ -243,7 +243,7 @@ gateway response time exceeds timeout.
 
 ```bash
 # Before meeting: Get current state
-md2jira -m bugs/q1-2025.md -e BUG-100 --output json | jq '
+spectra -m bugs/q1-2025.md -e BUG-100 --output json | jq '
   .stories | group_by(.severity) | 
   map({severity: .[0].severity, count: length, open: map(select(.status != "done")) | length})
 '
@@ -260,7 +260,7 @@ Update the markdown file with:
 ### 3. Sync After Meeting
 
 ```bash
-md2jira -m bugs/q1-2025.md -e BUG-100 -x
+spectra -m bugs/q1-2025.md -e BUG-100 -x
 ```
 
 ## Bug Report Template

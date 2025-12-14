@@ -1,7 +1,7 @@
 /**
- * md2jira VS Code Extension
+ * spectra VS Code Extension
  * 
- * Provides integration with md2jira CLI for syncing markdown with Jira.
+ * Provides integration with spectra CLI for syncing markdown with Jira.
  */
 
 import * as vscode from 'vscode';
@@ -44,17 +44,17 @@ let diagnosticsProvider: DiagnosticsProvider;
  * Extension activation
  */
 export function activate(context: vscode.ExtensionContext) {
-    console.log('md2jira extension activated');
+    console.log('spectra extension activated');
 
     // Create output channel
-    outputChannel = vscode.window.createOutputChannel('md2jira');
+    outputChannel = vscode.window.createOutputChannel('spectra');
 
     // Create status bar item
     statusBarItem = vscode.window.createStatusBarItem(
         vscode.StatusBarAlignment.Right,
         100
     );
-    statusBarItem.command = 'md2jira.gotoStory';
+    statusBarItem.command = 'spectra.gotoStory';
     context.subscriptions.push(statusBarItem);
 
     // Create diagnostics provider
@@ -78,7 +78,7 @@ export function activate(context: vscode.ExtensionContext) {
  * Extension deactivation
  */
 export function deactivate() {
-    console.log('md2jira extension deactivated');
+    console.log('spectra extension deactivated');
 }
 
 /**
@@ -87,7 +87,7 @@ export function deactivate() {
 function registerCommands(context: vscode.ExtensionContext) {
     // Validate command
     context.subscriptions.push(
-        vscode.commands.registerCommand('md2jira.validate', async () => {
+        vscode.commands.registerCommand('spectra.validate', async () => {
             const editor = vscode.window.activeTextEditor;
             if (!editor || editor.document.languageId !== 'markdown') {
                 vscode.window.showWarningMessage('Open a markdown file to validate');
@@ -100,7 +100,7 @@ function registerCommands(context: vscode.ExtensionContext) {
 
     // Sync (dry-run) command
     context.subscriptions.push(
-        vscode.commands.registerCommand('md2jira.sync', async () => {
+        vscode.commands.registerCommand('spectra.sync', async () => {
             const editor = vscode.window.activeTextEditor;
             if (!editor || editor.document.languageId !== 'markdown') {
                 vscode.window.showWarningMessage('Open a markdown file to sync');
@@ -116,7 +116,7 @@ function registerCommands(context: vscode.ExtensionContext) {
 
     // Sync (execute) command
     context.subscriptions.push(
-        vscode.commands.registerCommand('md2jira.syncExecute', async () => {
+        vscode.commands.registerCommand('spectra.syncExecute', async () => {
             const editor = vscode.window.activeTextEditor;
             if (!editor || editor.document.languageId !== 'markdown') {
                 vscode.window.showWarningMessage('Open a markdown file to sync');
@@ -140,7 +140,7 @@ function registerCommands(context: vscode.ExtensionContext) {
 
     // Dashboard command
     context.subscriptions.push(
-        vscode.commands.registerCommand('md2jira.dashboard', async () => {
+        vscode.commands.registerCommand('spectra.dashboard', async () => {
             const editor = vscode.window.activeTextEditor;
             const args = ['--dashboard'];
 
@@ -153,14 +153,14 @@ function registerCommands(context: vscode.ExtensionContext) {
             }
 
             const result = await runMd2Jira(args);
-            showResultPanel('md2jira Dashboard', result.stdout);
+            showResultPanel('spectra Dashboard', result.stdout);
         })
     );
 
     // Init command
     context.subscriptions.push(
-        vscode.commands.registerCommand('md2jira.init', async () => {
-            const terminal = vscode.window.createTerminal('md2jira init');
+        vscode.commands.registerCommand('spectra.init', async () => {
+            const terminal = vscode.window.createTerminal('spectra init');
             terminal.show();
             terminal.sendText(getExecutable() + ' --init');
         })
@@ -168,7 +168,7 @@ function registerCommands(context: vscode.ExtensionContext) {
 
     // Generate command
     context.subscriptions.push(
-        vscode.commands.registerCommand('md2jira.generate', async () => {
+        vscode.commands.registerCommand('spectra.generate', async () => {
             const epicKey = await vscode.window.showInputBox({
                 prompt: 'Enter Jira Epic Key',
                 placeHolder: 'PROJ-123'
@@ -189,7 +189,7 @@ function registerCommands(context: vscode.ExtensionContext) {
 
     // Go to story command
     context.subscriptions.push(
-        vscode.commands.registerCommand('md2jira.gotoStory', async () => {
+        vscode.commands.registerCommand('spectra.gotoStory', async () => {
             const editor = vscode.window.activeTextEditor;
             if (!editor || editor.document.languageId !== 'markdown') {
                 return;
@@ -225,7 +225,7 @@ function registerCommands(context: vscode.ExtensionContext) {
 
     // Copy story ID command
     context.subscriptions.push(
-        vscode.commands.registerCommand('md2jira.copyStoryId', async () => {
+        vscode.commands.registerCommand('spectra.copyStoryId', async () => {
             const editor = vscode.window.activeTextEditor;
             if (!editor) return;
 
@@ -239,11 +239,11 @@ function registerCommands(context: vscode.ExtensionContext) {
 
     // Open in Jira command
     context.subscriptions.push(
-        vscode.commands.registerCommand('md2jira.openInJira', async () => {
+        vscode.commands.registerCommand('spectra.openInJira', async () => {
             const editor = vscode.window.activeTextEditor;
             if (!editor) return;
 
-            const config = vscode.workspace.getConfiguration('md2jira');
+            const config = vscode.workspace.getConfiguration('spectra');
             const jiraUrl = config.get<string>('jiraUrl');
 
             if (!jiraUrl) {
@@ -270,7 +270,7 @@ function registerCommands(context: vscode.ExtensionContext) {
  * Register providers
  */
 function registerProviders(context: vscode.ExtensionContext) {
-    const config = vscode.workspace.getConfiguration('md2jira');
+    const config = vscode.workspace.getConfiguration('spectra');
 
     // CodeLens provider
     if (config.get<boolean>('showCodeLens')) {
@@ -285,7 +285,7 @@ function registerProviders(context: vscode.ExtensionContext) {
     // Tree view provider
     const treeDataProvider = new StoryTreeDataProvider();
     context.subscriptions.push(
-        vscode.window.registerTreeDataProvider('md2jiraStories', treeDataProvider)
+        vscode.window.registerTreeDataProvider('spectraStories', treeDataProvider)
     );
 
     // Decoration provider
@@ -299,7 +299,7 @@ function registerProviders(context: vscode.ExtensionContext) {
  * Register event handlers
  */
 function registerEventHandlers(context: vscode.ExtensionContext) {
-    const config = vscode.workspace.getConfiguration('md2jira');
+    const config = vscode.workspace.getConfiguration('spectra');
 
     // Update status bar on editor change
     context.subscriptions.push(
@@ -330,7 +330,7 @@ function registerEventHandlers(context: vscode.ExtensionContext) {
 }
 
 /**
- * Run md2jira validate
+ * Run spectra validate
  */
 async function runValidate(document: vscode.TextDocument, silent: boolean = false): Promise<void> {
     const args = ['--validate', '--markdown', document.uri.fsPath];
@@ -358,7 +358,7 @@ async function runValidate(document: vscode.TextDocument, silent: boolean = fals
 }
 
 /**
- * Run md2jira sync
+ * Run spectra sync
  */
 async function runSync(document: vscode.TextDocument, epicKey: string, execute: boolean): Promise<void> {
     const args = ['--markdown', document.uri.fsPath, '--epic', epicKey];
@@ -455,7 +455,7 @@ function getStoryAtLine(document: vscode.TextDocument, line: number): Story | un
  * Update status bar
  */
 function updateStatusBar(): void {
-    const config = vscode.workspace.getConfiguration('md2jira');
+    const config = vscode.workspace.getConfiguration('spectra');
     if (!config.get<boolean>('showStatusBar')) {
         statusBarItem.hide();
         return;
@@ -483,7 +483,7 @@ function updateStatusBar(): void {
 }
 
 /**
- * Run md2jira CLI command
+ * Run spectra CLI command
  */
 function runMd2Jira(args: string[]): Promise<Md2JiraResult> {
     return new Promise((resolve) => {
@@ -508,11 +508,11 @@ function runMd2Jira(args: string[]): Promise<Md2JiraResult> {
 }
 
 /**
- * Get md2jira executable path
+ * Get spectra executable path
  */
 function getExecutable(): string {
-    const config = vscode.workspace.getConfiguration('md2jira');
-    return config.get<string>('executable') || 'md2jira';
+    const config = vscode.workspace.getConfiguration('spectra');
+    return config.get<string>('executable') || 'spectra';
 }
 
 /**
@@ -520,7 +520,7 @@ function getExecutable(): string {
  */
 function showResultPanel(title: string, content: string): void {
     const panel = vscode.window.createWebviewPanel(
-        'md2jiraResult',
+        'spectraResult',
         title,
         vscode.ViewColumn.Beside,
         {}

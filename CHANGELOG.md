@@ -68,7 +68,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [1.0.0] - 2024-12-10
 
 ### Added
-- Initial release of md2jira
+- Initial release of spectra
 - **Markdown Parser**: Parse structured markdown documents into Jira issues
   - Epic, Story, and Task hierarchy support
   - Story points extraction
@@ -91,8 +91,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - `JIRA_PROJECT_KEY` - Target project key
 - **MIT License**: Open source under MIT license
 
-[Unreleased]: https://github.com/adriandarian/md2jira/compare/v2.0.0...HEAD
-[2.0.0]: https://github.com/adriandarian/md2jira/compare/v1.0.0...v2.0.0
-[1.0.0]: https://github.com/adriandarian/md2jira/releases/tag/v1.0.0
+[Unreleased]: https://github.com/adriandarian/spectra/compare/v2.0.0...HEAD
+[2.0.0]: https://github.com/adriandarian/spectra/compare/v1.0.0...v2.0.0
+[1.0.0]: https://github.com/adriandarian/spectra/releases/tag/v1.0.0
 
 

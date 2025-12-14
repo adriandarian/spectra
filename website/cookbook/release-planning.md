@@ -1,6 +1,6 @@
 # Release Planning
 
-Plan and track software releases with md2jira.
+Plan and track software releases with spectra.
 
 ## Release Epic Structure
 
@@ -284,17 +284,17 @@ Plan and track software releases with md2jira.
 git checkout -b release/2.0.0
 
 # Initial sync
-md2jira -m releases/v2.0.0.md -e REL-200 -x
+spectra -m releases/v2.0.0.md -e REL-200 -x
 ```
 
 ### 2. Weekly Progress Sync
 
 ```bash
 # Update progress
-md2jira -m releases/v2.0.0.md -e REL-200 -x
+spectra -m releases/v2.0.0.md -e REL-200 -x
 
 # Generate status report
-md2jira -m releases/v2.0.0.md -e REL-200 --export status.json
+spectra -m releases/v2.0.0.md -e REL-200 --export status.json
 ```
 
 ### 3. Feature Freeze
@@ -302,14 +302,14 @@ md2jira -m releases/v2.0.0.md -e REL-200 --export status.json
 ```bash
 # Update status to reflect freeze
 # Edit markdown: change remaining features to "Deferred"
-md2jira -m releases/v2.0.0.md -e REL-200 -x
+spectra -m releases/v2.0.0.md -e REL-200 -x
 ```
 
 ### 4. Release Day
 
 ```bash
 # Final sync
-md2jira -m releases/v2.0.0.md -e REL-200 -x
+spectra -m releases/v2.0.0.md -e REL-200 -x
 
 # Mark all done
 # Move markdown to archive
@@ -322,7 +322,7 @@ mv releases/v2.0.0.md releases/archive/
 #!/bin/bash
 # release-metrics.sh
 
-md2jira -m releases/v2.0.0.md -e REL-200 --output json | jq '
+spectra -m releases/v2.0.0.md -e REL-200 --output json | jq '
 {
   release: .epic_key,
   features: {

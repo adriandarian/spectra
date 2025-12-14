@@ -45,7 +45,7 @@ class TestMarkdownParser:
     
     def test_parse_priority(self, markdown_parser, sample_markdown):
         """Test priority extraction."""
-        from md2jira.core.domain import Priority
+        from spectra.core.domain import Priority
         
         stories = markdown_parser.parse_stories(sample_markdown)
         assert stories[0].priority == Priority.HIGH
@@ -53,7 +53,7 @@ class TestMarkdownParser:
     
     def test_parse_status(self, markdown_parser, sample_markdown):
         """Test status extraction."""
-        from md2jira.core.domain import Status
+        from spectra.core.domain import Status
         
         stories = markdown_parser.parse_stories(sample_markdown)
         assert stories[0].status == Status.DONE

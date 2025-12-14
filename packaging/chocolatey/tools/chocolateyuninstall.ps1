@@ -1,16 +1,16 @@
 # ==============================================================================
-# md2jira Chocolatey Uninstall Script
+# spectra Chocolatey Uninstall Script
 # ==============================================================================
 
 $ErrorActionPreference = 'Stop'
 
-$packageName = 'md2jira'
+$packageName = 'spectra'
 
 # Uninstall via pip
 $pipArgs = @(
     'uninstall'
     '--yes'
-    'md2jira'
+    'spectra'
 )
 
 # Try pip3 first, fall back to pip

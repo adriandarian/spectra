@@ -1,6 +1,6 @@
 # Installation
 
-md2jira can be installed using several methods. Choose the one that best fits your workflow.
+spectra can be installed using several methods. Choose the one that best fits your workflow.
 
 ## Prerequisites
 
@@ -12,7 +12,7 @@ md2jira can be installed using several methods. Choose the one that best fits yo
 ### pip (Recommended)
 
 ```bash
-pip install md2jira
+pip install spectra
 ```
 
 ### pipx (Isolated Environment)
@@ -20,25 +20,25 @@ pip install md2jira
 [pipx](https://pipx.pypa.io/) installs Python CLI tools in isolated environments:
 
 ```bash
-pipx install md2jira
+pipx install spectra
 ```
 
 ### Homebrew (macOS/Linux)
 
 ```bash
-brew install adriandarian/md2jira/md2jira
+brew install adriandarian/spectra/spectra
 ```
 
 ### Chocolatey (Windows)
 
 ```bash
-choco install md2jira
+choco install spectra
 ```
 
 ### Universal Linux Installer
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/adriandarian/md2jira/main/packaging/linux/install.sh | bash
+curl -fsSL https://raw.githubusercontent.com/adriandarian/spectra/main/packaging/linux/install.sh | bash
 ```
 
 ## Docker
@@ -46,7 +46,7 @@ curl -fsSL https://raw.githubusercontent.com/adriandarian/md2jira/main/packaging
 ### Pull from Docker Hub
 
 ```bash
-docker pull adriandarian/md2jira:latest
+docker pull adriandarian/spectra:latest
 ```
 
 ### Run with Docker
@@ -57,7 +57,7 @@ docker run --rm \
   -e JIRA_EMAIL=your.email@company.com \
   -e JIRA_API_TOKEN=your-api-token \
   -v $(pwd):/workspace \
-  md2jira:latest \
+  spectra:latest \
   --markdown EPIC.md --epic PROJ-123
 ```
 
@@ -68,8 +68,8 @@ For easier usage with persistent configuration:
 ```yaml
 # docker-compose.yml
 services:
-  md2jira:
-    image: adriandarian/md2jira:latest
+  spectra:
+    image: adriandarian/spectra:latest
     env_file:
       - .env
     volumes:
@@ -79,7 +79,7 @@ services:
 
 ```bash
 # Run with Docker Compose
-docker compose run --rm md2jira --markdown EPIC.md --epic PROJ-123
+docker compose run --rm spectra --markdown EPIC.md --epic PROJ-123
 ```
 
 ## From Source
@@ -87,24 +87,24 @@ docker compose run --rm md2jira --markdown EPIC.md --epic PROJ-123
 Clone the repository and install in development mode:
 
 ```bash
-git clone https://github.com/adriandarian/md2jira.git
-cd md2jira
+git clone https://github.com/adriandarian/spectra.git
+cd spectra
 pip install -e ".[dev]"
 ```
 
-This installs md2jira in editable mode with development dependencies (pytest, mypy, ruff, etc.).
+This installs spectra in editable mode with development dependencies (pytest, mypy, ruff, etc.).
 
 ## Verify Installation
 
-Check that md2jira is installed correctly:
+Check that spectra is installed correctly:
 
 ```bash
-md2jira --version
+spectra --version
 ```
 
 Expected output:
 ```
-md2jira version 1.0.0
+spectra version 1.0.0
 ```
 
 ## Shell Completions
@@ -114,15 +114,15 @@ Enable tab completion for your shell:
 ::: code-group
 
 ```bash [Bash]
-eval "$(md2jira --completions bash)"
+eval "$(spectra --completions bash)"
 ```
 
 ```bash [Zsh]
-eval "$(md2jira --completions zsh)"
+eval "$(spectra --completions zsh)"
 ```
 
 ```fish [Fish]
-md2jira --completions fish | source
+spectra --completions fish | source
 ```
 
 :::

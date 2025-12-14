@@ -4,7 +4,7 @@ Tests for sync state persistence.
 
 import pytest
 
-from md2jira.application.sync.state import (
+from spectra.application.sync.state import (
     SyncPhase,
     OperationRecord,
     SyncState,

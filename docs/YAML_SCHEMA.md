@@ -1,4 +1,4 @@
-# YAML Schema for md2jira
+# YAML Schema for spectra
 
 This document defines the YAML schema for defining epics and user stories as an alternative to markdown input.
 
@@ -303,7 +303,7 @@ The YAML parser validates:
 Run validation with:
 
 ```bash
-md2jira validate --input stories.yaml
+spectra validate --input stories.yaml
 ```
 
 Example error output:
@@ -320,19 +320,19 @@ stories[2].subtasks: must be a list
 
 ```bash
 # Sync from YAML file
-md2jira sync --input stories.yaml --epic PROJ-123
+spectra sync --input stories.yaml --epic PROJ-123
 
 # Validate YAML file
-md2jira validate --input stories.yaml
+spectra validate --input stories.yaml
 
 # Dry run
-md2jira sync --input stories.yaml --epic PROJ-123 --dry-run
+spectra sync --input stories.yaml --epic PROJ-123 --dry-run
 ```
 
 ### Programmatic
 
 ```python
-from md2jira.adapters.parsers import YamlParser
+from spectra.adapters.parsers import YamlParser
 
 parser = YamlParser()
 
@@ -354,7 +354,7 @@ if errors:
 If you have existing markdown files, you can convert them to YAML:
 
 ```python
-from md2jira.adapters.parsers import MarkdownParser, YamlParser
+from spectra.adapters.parsers import MarkdownParser, YamlParser
 import yaml
 
 # Parse from markdown

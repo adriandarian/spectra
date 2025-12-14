@@ -4,7 +4,7 @@ import pytest
 from dataclasses import dataclass
 from typing import Optional
 
-from md2jira.core.specification import (
+from spectra.core.specification import (
     Specification,
     PredicateSpec,
     AlwaysTrue,

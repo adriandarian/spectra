@@ -1,13 +1,13 @@
 # Sprint Planning
 
-Use md2jira to manage sprint backlogs with markdown as your source of truth.
+Use spectra to manage sprint backlogs with markdown as your source of truth.
 
 ## The Workflow
 
 ```
 ┌─────────────────┐     ┌─────────────────┐     ┌─────────────────┐
 │  Sprint         │     │                 │     │  Jira Sprint    │
-│  Planning Doc   │ ──▶ │    md2jira      │ ──▶ │  Board          │
+│  Planning Doc   │ ──▶ │    spectra      │ ──▶ │  Board          │
 │  (Markdown)     │     │                 │     │                 │
 └─────────────────┘     └─────────────────┘     └─────────────────┘
         │                                               │
@@ -167,16 +167,16 @@ and password reset functionality.
 
 ```bash
 # Preview sprint changes
-md2jira -m sprints/2025-W03.md -e PROJ-100
+spectra -m sprints/2025-W03.md -e PROJ-100
 
 # Sync at sprint start
-md2jira -m sprints/2025-W03.md -e PROJ-100 -x
+spectra -m sprints/2025-W03.md -e PROJ-100 -x
 
 # Update during daily standup
-md2jira -m sprints/2025-W03.md -e PROJ-100 -x --phase statuses
+spectra -m sprints/2025-W03.md -e PROJ-100 -x --phase statuses
 
 # End of sprint - sync final status
-md2jira -m sprints/2025-W03.md -e PROJ-100 -x
+spectra -m sprints/2025-W03.md -e PROJ-100 -x
 ```
 
 ## Daily Standup Workflow
@@ -194,7 +194,7 @@ git pull
 # Update status emojis: 📋 → 🔄 → ✅
 
 # 3. Sync to Jira
-md2jira -m sprints/$(date +%Y-W%V).md -e $SPRINT_EPIC -x --no-confirm
+spectra -m sprints/$(date +%Y-W%V).md -e $SPRINT_EPIC -x --no-confirm
 
 # 4. Commit changes
 git add sprints/
@@ -208,7 +208,7 @@ At sprint end, archive the completed sprint:
 
 ```bash
 # Final sync
-md2jira -m sprints/2025-W03.md -e PROJ-100 -x
+spectra -m sprints/2025-W03.md -e PROJ-100 -x
 
 # Archive
 mv sprints/2025-W03.md sprints/archive/

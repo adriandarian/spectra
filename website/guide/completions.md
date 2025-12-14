@@ -1,6 +1,6 @@
 # Shell Completions
 
-md2jira provides shell completion scripts for Bash, Zsh, and Fish shells. These enable tab-completion for commands, options, and file paths.
+spectra provides shell completion scripts for Bash, Zsh, and Fish shells. These enable tab-completion for commands, options, and file paths.
 
 ## Quick Setup
 
@@ -10,17 +10,17 @@ The easiest way to enable completions is to evaluate them dynamically.
 
 ```bash [Bash]
 # Add to ~/.bashrc
-eval "$(md2jira --completions bash)"
+eval "$(spectra --completions bash)"
 ```
 
 ```bash [Zsh]
 # Add to ~/.zshrc
-eval "$(md2jira --completions zsh)"
+eval "$(spectra --completions zsh)"
 ```
 
 ```fish [Fish]
 # Add to ~/.config/fish/config.fish
-md2jira --completions fish | source
+spectra --completions fish | source
 ```
 
 :::
@@ -35,20 +35,20 @@ Then restart your shell or source the config file.
 
 ```bash
 mkdir -p ~/.local/share/bash-completion/completions
-md2jira --completions bash > ~/.local/share/bash-completion/completions/md2jira
+spectra --completions bash > ~/.local/share/bash-completion/completions/spectra
 ```
 
 **Option 2: System-wide installation (requires sudo)**
 
 ```bash
-sudo md2jira --completions bash > /etc/bash_completion.d/md2jira
+sudo spectra --completions bash > /etc/bash_completion.d/spectra
 ```
 
 **Option 3: Copy from package**
 
 ```bash
-cp /path/to/md2jira/completions/md2jira.bash \
-   ~/.local/share/bash-completion/completions/md2jira
+cp /path/to/spectra/completions/spectra.bash \
+   ~/.local/share/bash-completion/completions/spectra
 ```
 
 ### Zsh
@@ -57,7 +57,7 @@ cp /path/to/md2jira/completions/md2jira.bash \
 
 ```bash
 mkdir -p ~/.zsh/completions
-md2jira --completions zsh > ~/.zsh/completions/_md2jira
+spectra --completions zsh > ~/.zsh/completions/_spectra
 
 # Add to ~/.zshrc (before compinit):
 fpath=(~/.zsh/completions $fpath)
@@ -67,7 +67,7 @@ autoload -Uz compinit && compinit
 **Option 2: Oh My Zsh**
 
 ```bash
-md2jira --completions zsh > ~/.oh-my-zsh/completions/_md2jira
+spectra --completions zsh > ~/.oh-my-zsh/completions/_spectra
 ```
 
 ### Fish
@@ -75,13 +75,13 @@ md2jira --completions zsh > ~/.oh-my-zsh/completions/_md2jira
 **Option 1: User-level installation**
 
 ```bash
-md2jira --completions fish > ~/.config/fish/completions/md2jira.fish
+spectra --completions fish > ~/.config/fish/completions/spectra.fish
 ```
 
 **Option 2: Symlink from package**
 
 ```bash
-ln -s /path/to/md2jira/completions/md2jira.fish \
+ln -s /path/to/spectra/completions/spectra.fish \
    ~/.config/fish/completions/
 ```
 
@@ -92,7 +92,7 @@ The completion scripts provide intelligent completions for:
 ### Options
 
 ```bash
-md2jira --<TAB>
+spectra --<TAB>
 --config      --epic        --execute     --export      --help
 --interactive --jira-url    --markdown    --no-color    --no-confirm
 --phase       --project     --story       --validate    --verbose
@@ -103,29 +103,29 @@ md2jira --<TAB>
 
 ```bash
 # Markdown files for --markdown
-md2jira --markdown <TAB>
+spectra --markdown <TAB>
 EPIC.md  README.md  docs/
 
 # Config files for --config
-md2jira --config <TAB>
-.md2jira.yaml  config.toml
+spectra --config <TAB>
+.spectra.yaml  config.toml
 
 # JSON files for --export
-md2jira --export <TAB>
+spectra --export <TAB>
 results.json  output.json
 ```
 
 ### Phase Choices
 
 ```bash
-md2jira --phase <TAB>
+spectra --phase <TAB>
 all  descriptions  subtasks  comments  statuses
 ```
 
 ### Shell Types
 
 ```bash
-md2jira --completions <TAB>
+spectra --completions <TAB>
 bash  zsh  fish
 ```
 
@@ -174,30 +174,30 @@ compinit
 1. Check the file is in the correct location:
 
 ```bash
-ls ~/.config/fish/completions/md2jira.fish
+ls ~/.config/fish/completions/spectra.fish
 ```
 
 2. Reload completions:
 
 ```fish
-complete -c md2jira -e  # Clear existing
-source ~/.config/fish/completions/md2jira.fish
+complete -c spectra -e  # Clear existing
+source ~/.config/fish/completions/spectra.fish
 ```
 
 ## Updating Completions
 
-When you update md2jira, regenerate completions to get new options:
+When you update spectra, regenerate completions to get new options:
 
 ```bash
 # Bash
-md2jira --completions bash > ~/.local/share/bash-completion/completions/md2jira
+spectra --completions bash > ~/.local/share/bash-completion/completions/spectra
 
 # Zsh
-md2jira --completions zsh > ~/.zsh/completions/_md2jira
+spectra --completions zsh > ~/.zsh/completions/_spectra
 rm ~/.zcompdump*  # Clear cache
 
 # Fish
-md2jira --completions fish > ~/.config/fish/completions/md2jira.fish
+spectra --completions fish > ~/.config/fish/completions/spectra.fish
 ```
 
 ## Programmatic Access
@@ -205,7 +205,7 @@ md2jira --completions fish > ~/.config/fish/completions/md2jira.fish
 You can also access completion scripts programmatically:
 
 ```python
-from md2jira.cli import get_completion_script, SUPPORTED_SHELLS
+from spectra.cli import get_completion_script, SUPPORTED_SHELLS
 
 # Get list of supported shells
 print(SUPPORTED_SHELLS)  # ['bash', 'zsh', 'fish']

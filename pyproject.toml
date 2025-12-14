@@ -3,9 +3,9 @@ requires = ["setuptools>=61.0", "wheel"]
 build-backend = "setuptools.build_meta"
 
 [project]
-name = "md2jira"
-version = "2.0.0"
-description = "A production-grade CLI tool for synchronizing markdown documentation with Jira"
+name = "spectra"
+version = "1.0.0"
+description = "A production-grade CLI tool for synchronizing markdown specifications with issue trackers"
 readme = "README.md"
 license = {text = "MIT"}
 requires-python = ">=3.10"
@@ -14,9 +14,12 @@ authors = [
 ]
 keywords = [
     "jira",
+    "github",
+    "azure-devops",
+    "linear",
     "markdown",
     "sync",
-    "documentation",
+    "issue-tracker",
     "agile",
     "project-management",
     "cli",
@@ -84,25 +87,25 @@ docs = [
 ]
 
 [project.scripts]
-md2jira = "md2jira.cli:run"
+spectra = "spectra.cli:run"
 
-[project.entry-points."md2jira.plugins"]
+[project.entry-points."spectra.plugins"]
 # Built-in plugins (example entry points for future plugins)
-# github = "md2jira.plugins.github:GithubTrackerPlugin"
-# linear = "md2jira.plugins.linear:LinearTrackerPlugin"
+# github = "spectra.plugins.github:GithubTrackerPlugin"
+# linear = "spectra.plugins.linear:LinearTrackerPlugin"
 
 [project.urls]
-Homepage = "https://github.com/adriandarian/md2jira"
-Documentation = "https://github.com/adriandarian/md2jira#readme"
-Repository = "https://github.com/adriandarian/md2jira.git"
-Issues = "https://github.com/adriandarian/md2jira/issues"
-Changelog = "https://github.com/adriandarian/md2jira/blob/main/CHANGELOG.md"
+Homepage = "https://github.com/adriandarian/spectra"
+Documentation = "https://github.com/adriandarian/spectra#readme"
+Repository = "https://github.com/adriandarian/spectra.git"
+Issues = "https://github.com/adriandarian/spectra/issues"
+Changelog = "https://github.com/adriandarian/spectra/blob/main/CHANGELOG.md"
 
 [tool.setuptools.packages.find]
 where = ["src"]
 
 [tool.setuptools.package-data]
-md2jira = ["py.typed"]
+spectra = ["py.typed"]
 
 # ============================================================================
 # Testing
@@ -126,7 +129,7 @@ markers = [
 # Benchmarks disabled by default; run with: pytest tests/benchmarks/ --benchmark-only
 
 [tool.coverage.run]
-source = ["src/md2jira"]
+source = ["src/spectra"]
 branch = true
 omit = ["*/tests/*", "*/__main__.py"]
 
@@ -212,7 +215,7 @@ ignore = [
 "tests/*" = ["ARG001", "PLR2004"]
 
 [tool.ruff.lint.isort]
-known-first-party = ["md2jira"]
+known-first-party = ["spectra"]
 force-single-line = false
 lines-after-imports = 2
 

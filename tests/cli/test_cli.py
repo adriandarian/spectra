@@ -5,10 +5,10 @@ Tests for CLI argument parsing and output formatting.
 import pytest
 from unittest.mock import Mock, patch
 
-from md2jira.cli.app import main, validate_markdown, run_sync
-from md2jira.cli.output import Console, Colors, Symbols
-from md2jira.cli.exit_codes import ExitCode
-from md2jira.application.sync import SyncResult
+from spectra.cli.app import main, validate_markdown, run_sync
+from spectra.cli.output import Console, Colors, Symbols
+from spectra.cli.exit_codes import ExitCode
+from spectra.application.sync import SyncResult
 
 
 # =============================================================================
@@ -203,9 +203,9 @@ class TestArgumentParser:
         args = cli_parser.parse_args([
             "--markdown", "epic.md",
             "--epic", "PROJ-123",
-            "--log-file", "/var/log/md2jira.log"
+            "--log-file", "/var/log/spectra.log"
         ])
-        assert args.log_file == "/var/log/md2jira.log"
+        assert args.log_file == "/var/log/spectra.log"
 
     def test_export_path(self, cli_parser):
         """Test --export argument."""
@@ -587,7 +587,7 @@ class TestMainFunction:
 
     def test_main_missing_args_returns_error(self):
         """Test main returns error code when args missing."""
-        with patch("sys.argv", ["md2jira"]):
+        with patch("sys.argv", ["spectra"]):
             with pytest.raises(SystemExit) as exc_info:
                 main()
             assert exc_info.value.code == 2
@@ -595,12 +595,12 @@ class TestMainFunction:
     def test_main_validate_mode(self):
         """Test main in validate mode."""
         with patch("sys.argv", [
-            "md2jira",
+            "spectra",
             "--markdown", "test.md",
             "--epic", "PROJ-123",
             "--validate"
         ]):
-            with patch("md2jira.cli.app.validate_markdown") as mock_validate:
+            with patch("spectra.cli.app.validate_markdown") as mock_validate:
                 mock_validate.return_value = True
                 result = main()
                 assert result == ExitCode.SUCCESS
@@ -609,12 +609,12 @@ class TestMainFunction:
     def test_main_keyboard_interrupt(self):
         """Test main handles KeyboardInterrupt gracefully."""
         with patch("sys.argv", [
-            "md2jira",
+            "spectra",
             "--markdown", "test.md",
             "--epic", "PROJ-123",
             "--validate"
         ]):
-            with patch("md2jira.cli.app.validate_markdown") as mock_validate:
+            with patch("spectra.cli.app.validate_markdown") as mock_validate:
                 mock_validate.side_effect = KeyboardInterrupt()
                 result = main()
                 assert result == ExitCode.SIGINT
@@ -622,12 +622,12 @@ class TestMainFunction:
     def test_main_unexpected_error(self):
         """Test main handles unexpected errors gracefully."""
         with patch("sys.argv", [
-            "md2jira",
+            "spectra",
             "--markdown", "test.md",
             "--epic", "PROJ-123",
             "--validate"
         ]):
-            with patch("md2jira.cli.app.validate_markdown") as mock_validate:
+            with patch("spectra.cli.app.validate_markdown") as mock_validate:
                 mock_validate.side_effect = RuntimeError("Unexpected")
                 result = main()
                 assert result == ExitCode.ERROR
@@ -642,7 +642,7 @@ class TestValidateMarkdown:
 
     def test_validate_markdown_success(self, console, capsys):
         """Test validation with valid markdown."""
-        with patch("md2jira.cli.app.MarkdownParser") as MockParser:
+        with patch("spectra.cli.app.MarkdownParser") as MockParser:
             mock_parser = MockParser.return_value
             mock_parser.validate.return_value = []
             mock_parser.parse_stories.return_value = []
@@ -655,7 +655,7 @@ class TestValidateMarkdown:
 
     def test_validate_markdown_with_errors(self, console, capsys):
         """Test validation with invalid markdown."""
-        with patch("md2jira.cli.app.MarkdownParser") as MockParser:
+        with patch("spectra.cli.app.MarkdownParser") as MockParser:
             mock_parser = MockParser.return_value
             mock_parser.validate.return_value = ["Error 1", "Error 2"]
 
@@ -668,7 +668,7 @@ class TestValidateMarkdown:
 
     def test_validate_markdown_shows_story_count(self, console, capsys):
         """Test validation shows story count on success."""
-        with patch("md2jira.cli.app.MarkdownParser") as MockParser:
+        with patch("spectra.cli.app.MarkdownParser") as MockParser:
             mock_parser = MockParser.return_value
             mock_parser.validate.return_value = []
 
@@ -695,7 +695,7 @@ class TestRunSync:
 
     def test_run_sync_config_errors(self, console, base_cli_args, capsys):
         """Test run_sync returns error on config validation failure."""
-        with patch("md2jira.cli.app.EnvironmentConfigProvider") as MockProvider:
+        with patch("spectra.cli.app.EnvironmentConfigProvider") as MockProvider:
             mock_provider = MockProvider.return_value
             mock_provider.validate.return_value = ["Missing JIRA_URL"]
 
@@ -709,7 +709,7 @@ class TestRunSync:
         """Test run_sync returns error when markdown file not found."""
         base_cli_args.markdown = "/nonexistent/path/epic.md"
 
-        with patch("md2jira.cli.app.EnvironmentConfigProvider") as MockProvider:
+        with patch("spectra.cli.app.EnvironmentConfigProvider") as MockProvider:
             mock_provider = MockProvider.return_value
             mock_provider.validate.return_value = []
             mock_provider.config_file_path = None
@@ -731,8 +731,8 @@ class TestRunSync:
         md_file.write_text("# Test Epic")
         base_cli_args.markdown = str(md_file)
 
-        with patch("md2jira.cli.app.EnvironmentConfigProvider") as MockProvider, \
-             patch("md2jira.cli.app.JiraAdapter") as MockAdapter:
+        with patch("spectra.cli.app.EnvironmentConfigProvider") as MockProvider, \
+             patch("spectra.cli.app.JiraAdapter") as MockAdapter:
 
             mock_provider = MockProvider.return_value
             mock_provider.validate.return_value = []
@@ -759,9 +759,9 @@ class TestRunSync:
         base_cli_args.execute = True
         base_cli_args.no_confirm = False
 
-        with patch("md2jira.cli.app.EnvironmentConfigProvider") as MockProvider, \
-             patch("md2jira.cli.app.JiraAdapter") as MockAdapter, \
-             patch("md2jira.application.sync.StateStore") as MockStateStore:
+        with patch("spectra.cli.app.EnvironmentConfigProvider") as MockProvider, \
+             patch("spectra.cli.app.JiraAdapter") as MockAdapter, \
+             patch("spectra.application.sync.StateStore") as MockStateStore:
 
             mock_provider = MockProvider.return_value
             mock_provider.validate.return_value = []
@@ -791,10 +791,10 @@ class TestRunSync:
         md_file.write_text("# Test Epic")
         base_cli_args.markdown = str(md_file)
 
-        with patch("md2jira.cli.app.EnvironmentConfigProvider") as MockProvider, \
-             patch("md2jira.cli.app.JiraAdapter") as MockAdapter, \
-             patch("md2jira.cli.app.SyncOrchestrator") as MockOrchestrator, \
-             patch("md2jira.application.sync.StateStore") as MockStateStore:
+        with patch("spectra.cli.app.EnvironmentConfigProvider") as MockProvider, \
+             patch("spectra.cli.app.JiraAdapter") as MockAdapter, \
+             patch("spectra.cli.app.SyncOrchestrator") as MockOrchestrator, \
+             patch("spectra.application.sync.StateStore") as MockStateStore:
 
             mock_provider = MockProvider.return_value
             mock_provider.validate.return_value = []
@@ -830,10 +830,10 @@ class TestRunSync:
         export_file = tmp_path / "results.json"
         base_cli_args.export = str(export_file)
 
-        with patch("md2jira.cli.app.EnvironmentConfigProvider") as MockProvider, \
-             patch("md2jira.cli.app.JiraAdapter") as MockAdapter, \
-             patch("md2jira.cli.app.SyncOrchestrator") as MockOrchestrator, \
-             patch("md2jira.application.sync.StateStore") as MockStateStore:
+        with patch("spectra.cli.app.EnvironmentConfigProvider") as MockProvider, \
+             patch("spectra.cli.app.JiraAdapter") as MockAdapter, \
+             patch("spectra.cli.app.SyncOrchestrator") as MockOrchestrator, \
+             patch("spectra.application.sync.StateStore") as MockStateStore:
 
             mock_provider = MockProvider.return_value
             mock_provider.validate.return_value = []

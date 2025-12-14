@@ -1,4 +1,4 @@
-// Copyright (c) md2jira
+// Copyright (c) spectra
 // SPDX-License-Identifier: MIT
 
 package provider
@@ -11,7 +11,7 @@ import (
 	"github.com/hashicorp/terraform-plugin-framework/datasource/schema"
 	"github.com/hashicorp/terraform-plugin-framework/types"
 	"github.com/hashicorp/terraform-plugin-log/tflog"
-	"github.com/md2jira/terraform-provider-jira/internal/client"
+	"github.com/spectra/terraform-provider-jira/internal/client"
 )
 
 // Ensure provider defined types fully satisfy framework interfaces.

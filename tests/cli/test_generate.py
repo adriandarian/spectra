@@ -8,13 +8,13 @@ import pytest
 from pathlib import Path
 from unittest.mock import Mock, patch, MagicMock
 
-from md2jira.cli.generate import (
+from spectra.cli.generate import (
     GenerateResult,
     TemplateGenerator,
     run_generate,
 )
-from md2jira.cli.output import Console
-from md2jira.cli.exit_codes import ExitCode
+from spectra.cli.output import Console
+from spectra.cli.exit_codes import ExitCode
 
 
 # =============================================================================
@@ -461,7 +461,7 @@ class TestMarkdownContent:
         content = generator.preview("TEST-1")
         
         assert "Generated from Jira epic" in content
-        assert "md2jira --markdown" in content
+        assert "spectra --markdown" in content
 
 
 # =============================================================================
@@ -525,7 +525,7 @@ class TestCLIIntegration:
 class TestRunGenerate:
     """Tests for run_generate function."""
     
-    @patch('md2jira.adapters.config.environment.EnvironmentConfigProvider.validate')
+    @patch('spectra.adapters.config.environment.EnvironmentConfigProvider.validate')
     def test_run_generate_config_error(self, mock_validate):
         """Test run_generate with config error."""
         mock_validate.return_value = ["Missing JIRA_URL"]

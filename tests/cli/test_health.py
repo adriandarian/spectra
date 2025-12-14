@@ -12,7 +12,7 @@ from unittest.mock import Mock, patch
 from urllib.request import urlopen
 from urllib.error import URLError
 
-from md2jira.cli.health import (
+from spectra.cli.health import (
     HealthStatus,
     HealthConfig,
     HealthServer,
@@ -37,7 +37,7 @@ class TestHealthStatus:
         assert status.ready is True
         assert status.components == {}
         assert status.version == "2.0.0"
-        assert status.service_name == "md2jira"
+        assert status.service_name == "spectra"
         assert status.uptime_seconds == 0.0
         assert status.syncs_total == 0
     
@@ -293,7 +293,7 @@ class TestHealthServerHTTP:
         response = urlopen(f"http://127.0.0.1:{port}/")
         data = json.loads(response.read())
         
-        assert data["service"] == "md2jira"
+        assert data["service"] == "spectra"
         assert "/health" in data["endpoints"]
         assert "/live" in data["endpoints"]
         assert "/ready" in data["endpoints"]

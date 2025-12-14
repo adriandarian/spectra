@@ -1,8 +1,8 @@
 # Getting Started
 
-md2jira is a production-grade CLI tool for synchronizing markdown documentation with Jira. Write your epic docs in markdown, sync to Jira automatically.
+spectra is a production-grade CLI tool for synchronizing markdown documentation with Jira. Write your epic docs in markdown, sync to Jira automatically.
 
-## Why md2jira?
+## Why spectra?
 
 Managing Jira issues through the web interface is slow and tedious. Developers prefer working with markdown files that can be:
 
@@ -11,7 +11,7 @@ Managing Jira issues through the web interface is slow and tedious. Developers p
 - ✅ Edited with your favorite editor
 - ✅ Generated with AI assistants
 
-md2jira bridges the gap between markdown-first documentation and Jira project management.
+spectra bridges the gap between markdown-first documentation and Jira project management.
 
 ## Key Features
 
@@ -27,7 +27,7 @@ md2jira bridges the gap between markdown-first documentation and Jira project ma
 
 ```mermaid
 graph LR
-    A[📝 Markdown File] --> B[md2jira CLI]
+    A[📝 Markdown File] --> B[spectra CLI]
     B --> C{Dry Run?}
     C -->|Yes| D[📊 Preview Changes]
     C -->|No| E[☁️ Jira API]
@@ -70,10 +70,10 @@ Sync to Jira:
 
 ```bash
 # Preview changes (default)
-md2jira --markdown EPIC.md --epic PROJ-123
+spectra --markdown EPIC.md --epic PROJ-123
 
 # Execute sync
-md2jira --markdown EPIC.md --epic PROJ-123 --execute
+spectra --markdown EPIC.md --epic PROJ-123 --execute
 ```
 
 ## Next Steps

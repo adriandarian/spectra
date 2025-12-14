@@ -1,5 +1,5 @@
 #!/bin/bash
-# md2jira - Quick runner script
+# spectra - Quick runner script
 # 
 # Usage:
 #   ./run.sh EPIC.md PROJ-123           # Dry-run
@@ -16,10 +16,10 @@ if [ -d ".venv" ]; then
 fi
 
 # Check if installed
-if ! python -c "import md2jira" 2>/dev/null; then
-    echo "Installing md2jira..."
+if ! python -c "import spectra" 2>/dev/null; then
+    echo "Installing spectra..."
     pip install -e . -q
 fi
 
 # Run with arguments
-python -m md2jira.cli.app "$@"
+python -m spectra.cli.app "$@"

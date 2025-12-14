@@ -1,5 +1,5 @@
 """
-Shared pytest fixtures for md2jira test suite.
+Shared pytest fixtures for spectra test suite.
 
 This module provides common fixtures used across test modules to reduce
 code duplication and ensure consistent test data.
@@ -22,9 +22,9 @@ from typing import TYPE_CHECKING
 from unittest.mock import Mock
 
 if TYPE_CHECKING:
-    from md2jira.adapters.formatters import ADFFormatter
-    from md2jira.adapters.parsers import MarkdownParser
-    from md2jira.cli.output import Console
+    from spectra.adapters.formatters import ADFFormatter
+    from spectra.adapters.parsers import MarkdownParser
+    from spectra.cli.output import Console
 
 
 # =============================================================================
@@ -35,14 +35,14 @@ if TYPE_CHECKING:
 @pytest.fixture
 def adf_formatter() -> "ADFFormatter":
     """Create an ADFFormatter instance."""
-    from md2jira.adapters.formatters import ADFFormatter
+    from spectra.adapters.formatters import ADFFormatter
     return ADFFormatter()
 
 
 @pytest.fixture
 def markdown_parser() -> "MarkdownParser":
     """Create a MarkdownParser instance."""
-    from md2jira.adapters.parsers import MarkdownParser
+    from spectra.adapters.parsers import MarkdownParser
     return MarkdownParser()
 
 
@@ -148,21 +148,21 @@ def sample_markdown_file(tmp_path: Path, sample_markdown: str) -> Path:
 @pytest.fixture
 def sample_story_id():
     """Create a sample StoryId."""
-    from md2jira.core.domain import StoryId
+    from spectra.core.domain import StoryId
     return StoryId("US-001")
 
 
 @pytest.fixture
 def sample_issue_key():
     """Create a sample IssueKey."""
-    from md2jira.core.domain import IssueKey
+    from spectra.core.domain import IssueKey
     return IssueKey("TEST-123")
 
 
 @pytest.fixture
 def sample_description():
     """Create a sample Description."""
-    from md2jira.core.domain import Description
+    from spectra.core.domain import Description
     return Description(
         role="developer",
         want="to test the application",
@@ -173,7 +173,7 @@ def sample_description():
 @pytest.fixture
 def sample_subtask():
     """Create a sample Subtask."""
-    from md2jira.core.domain import Subtask, Status
+    from spectra.core.domain import Subtask, Status
     return Subtask(
         name="Create component",
         description="Build the component",
@@ -185,14 +185,14 @@ def sample_subtask():
 @pytest.fixture
 def sample_commit():
     """Create a sample CommitRef."""
-    from md2jira.core.domain import CommitRef
+    from spectra.core.domain import CommitRef
     return CommitRef(hash="abc1234567890", message="Initial implementation")
 
 
 @pytest.fixture
 def sample_user_story(sample_story_id, sample_description, sample_subtask, sample_commit):
     """Create a fully populated sample UserStory."""
-    from md2jira.core.domain import (
+    from spectra.core.domain import (
         UserStory, AcceptanceCriteria, Priority, Status
     )
     return UserStory(
@@ -214,7 +214,7 @@ def sample_user_story(sample_story_id, sample_description, sample_subtask, sampl
 @pytest.fixture
 def sample_user_story_minimal():
     """Create a minimal UserStory (required fields only)."""
-    from md2jira.core.domain import UserStory, StoryId
+    from spectra.core.domain import UserStory, StoryId
     return UserStory(
         id=StoryId("US-001"),
         title="Minimal Story",
@@ -224,7 +224,7 @@ def sample_user_story_minimal():
 @pytest.fixture
 def sample_epic(sample_issue_key, sample_user_story):
     """Create a sample Epic with stories."""
-    from md2jira.core.domain import Epic, UserStory, StoryId, Status
+    from spectra.core.domain import Epic, UserStory, StoryId, Status
     return Epic(
         key=sample_issue_key,
         title="Test Epic",
@@ -247,7 +247,7 @@ def sample_epic(sample_issue_key, sample_user_story):
 @pytest.fixture
 def tracker_config():
     """Create a test TrackerConfig."""
-    from md2jira.core.ports.config_provider import TrackerConfig
+    from spectra.core.ports.config_provider import TrackerConfig
     return TrackerConfig(
         url="https://test.atlassian.net",
         email="test@example.com",
@@ -259,7 +259,7 @@ def tracker_config():
 @pytest.fixture
 def sync_config():
     """Create a test SyncConfig with all sync options enabled."""
-    from md2jira.core.ports.config_provider import SyncConfig
+    from spectra.core.ports.config_provider import SyncConfig
     return SyncConfig(
         dry_run=False,
         sync_descriptions=True,
@@ -272,7 +272,7 @@ def sync_config():
 @pytest.fixture
 def sync_config_dry_run():
     """Create a test SyncConfig in dry-run mode."""
-    from md2jira.core.ports.config_provider import SyncConfig
+    from spectra.core.ports.config_provider import SyncConfig
     return SyncConfig(
         dry_run=True,
         sync_descriptions=True,
@@ -290,21 +290,21 @@ def sync_config_dry_run():
 @pytest.fixture
 def cli_parser():
     """Create a CLI argument parser."""
-    from md2jira.cli.app import create_parser
+    from spectra.cli.app import create_parser
     return create_parser()
 
 
 @pytest.fixture
 def console() -> "Console":
     """Create a Console with colors disabled for testing."""
-    from md2jira.cli.output import Console
+    from spectra.cli.output import Console
     return Console(color=False, verbose=False)
 
 
 @pytest.fixture
 def verbose_console() -> "Console":
     """Create a Console in verbose mode."""
-    from md2jira.cli.output import Console
+    from spectra.cli.output import Console
     return Console(color=False, verbose=True)
 
 
@@ -320,7 +320,7 @@ def mock_tracker():
     
     Returns a Mock with common tracker methods configured.
     """
-    from md2jira.core.ports.issue_tracker import IssueData
+    from spectra.core.ports.issue_tracker import IssueData
     
     tracker = Mock()
     tracker.name = "MockTracker"
@@ -355,7 +355,7 @@ def mock_tracker_with_children():
     
     Returns a tracker with two child issues under the epic.
     """
-    from md2jira.core.ports.issue_tracker import IssueData
+    from spectra.core.ports.issue_tracker import IssueData
     
     tracker = Mock()
     tracker.name = "MockTracker"
@@ -567,9 +567,9 @@ def mock_parser():
     
     Returns two stories: US-001 (Story Alpha) and US-002 (Story Beta).
     """
-    from md2jira.core.domain.entities import UserStory, Subtask
-    from md2jira.core.domain.enums import Status
-    from md2jira.core.domain.value_objects import StoryId, Description
+    from spectra.core.domain.entities import UserStory, Subtask
+    from spectra.core.domain.enums import Status
+    from spectra.core.domain.value_objects import StoryId, Description
     
     parser = Mock()
     parser.validate.return_value = []
@@ -624,7 +624,7 @@ def mock_formatter():
 @pytest.fixture
 def hook_manager():
     """Create a fresh HookManager instance."""
-    from md2jira.plugins import HookManager
+    from spectra.plugins import HookManager
     return HookManager()
 
 

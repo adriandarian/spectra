@@ -8,14 +8,14 @@ import pytest
 from pathlib import Path
 from unittest.mock import Mock, patch, MagicMock
 
-from md2jira.cli.init import (
+from spectra.cli.init import (
     InitWizard,
     InitConfig,
     ConfigFormat,
     run_init,
 )
-from md2jira.cli.output import Console
-from md2jira.cli.exit_codes import ExitCode
+from spectra.cli.output import Console
+from spectra.cli.exit_codes import ExitCode
 
 
 # =============================================================================
@@ -90,11 +90,11 @@ class TestInitWizard:
         assert wizard._check_existing_config() is True
     
     def test_check_existing_config_yaml_file(self, wizard, tmp_path, monkeypatch):
-        """Test detection of existing .md2jira.yaml file."""
+        """Test detection of existing .spectra.yaml file."""
         monkeypatch.chdir(tmp_path)
         
         # Create yaml config
-        (tmp_path / ".md2jira.yaml").write_text("jira:\n  url: https://example.com")
+        (tmp_path / ".spectra.yaml").write_text("jira:\n  url: https://example.com")
         assert wizard._check_existing_config() is True
     
     def test_check_existing_config_env_vars(self, wizard, tmp_path, monkeypatch):
@@ -191,13 +191,13 @@ class TestConfigFileCreation:
         assert "JIRA_PROJECT=PROJ" in content
     
     def test_create_yaml_file(self, wizard, tmp_path, monkeypatch):
-        """Test .md2jira.yaml file creation."""
+        """Test .spectra.yaml file creation."""
         monkeypatch.chdir(tmp_path)
         wizard.config.config_format = ConfigFormat.YAML
         
         wizard._create_yaml_file()
         
-        yaml_file = tmp_path / ".md2jira.yaml"
+        yaml_file = tmp_path / ".spectra.yaml"
         assert yaml_file.exists()
         
         content = yaml_file.read_text()
@@ -207,13 +207,13 @@ class TestConfigFileCreation:
         assert "project: PROJ" in content
     
     def test_create_toml_file(self, wizard, tmp_path, monkeypatch):
-        """Test .md2jira.toml file creation."""
+        """Test .spectra.toml file creation."""
         monkeypatch.chdir(tmp_path)
         wizard.config.config_format = ConfigFormat.TOML
         
         wizard._create_toml_file()
         
-        toml_file = tmp_path / ".md2jira.toml"
+        toml_file = tmp_path / ".spectra.toml"
         assert toml_file.exists()
         
         content = toml_file.read_text()
@@ -234,7 +234,7 @@ class TestConfigFileCreation:
         
         content = gitignore.read_text()
         assert ".env" in content
-        assert "md2jira configuration" in content
+        assert "spectra configuration" in content
     
     def test_add_to_gitignore_already_exists(self, wizard, tmp_path, monkeypatch):
         """Test not duplicating entry in .gitignore."""

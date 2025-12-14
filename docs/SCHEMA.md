@@ -1,6 +1,6 @@
-# md2jira Markdown Schema
+# spectra Markdown Schema
 
-This document defines the exact schema that md2jira parses. Follow this structure for successful Jira synchronization.
+This document defines the exact schema that spectra parses. Follow this structure for successful Jira synchronization.
 
 ## Quick Reference
 
@@ -291,7 +291,7 @@ Modernize the legacy PHP application to a modern TypeScript/React stack.
 
 ## Validation Checklist
 
-Before running md2jira, verify:
+Before running spectra, verify:
 
 - [ ] Each story has `### [emoji] US-XXX: Title` format
 - [ ] Each story has the metadata table with Story Points, Priority, Status

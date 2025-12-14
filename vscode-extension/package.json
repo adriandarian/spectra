@@ -1,12 +1,12 @@
 {
-  "name": "md2jira",
-  "displayName": "md2jira",
+  "name": "spectra",
+  "displayName": "spectra",
   "description": "Sync markdown documentation with Jira - validate, preview, and sync stories directly from VS Code",
   "version": "1.0.0",
-  "publisher": "md2jira",
+  "publisher": "spectra",
   "repository": {
     "type": "git",
-    "url": "https://github.com/your-org/md2jira"
+    "url": "https://github.com/your-org/spectra"
   },
   "engines": {
     "vscode": "^1.80.0"
@@ -32,128 +32,128 @@
   "contributes": {
     "commands": [
       {
-        "command": "md2jira.validate",
+        "command": "spectra.validate",
         "title": "Validate Markdown",
-        "category": "md2jira",
+        "category": "spectra",
         "icon": "$(check)"
       },
       {
-        "command": "md2jira.sync",
+        "command": "spectra.sync",
         "title": "Sync to Jira (Dry Run)",
-        "category": "md2jira",
+        "category": "spectra",
         "icon": "$(sync)"
       },
       {
-        "command": "md2jira.syncExecute",
+        "command": "spectra.syncExecute",
         "title": "Sync to Jira (Execute)",
-        "category": "md2jira",
+        "category": "spectra",
         "icon": "$(cloud-upload)"
       },
       {
-        "command": "md2jira.dashboard",
+        "command": "spectra.dashboard",
         "title": "Show Dashboard",
-        "category": "md2jira",
+        "category": "spectra",
         "icon": "$(dashboard)"
       },
       {
-        "command": "md2jira.init",
+        "command": "spectra.init",
         "title": "Setup Wizard",
-        "category": "md2jira",
+        "category": "spectra",
         "icon": "$(gear)"
       },
       {
-        "command": "md2jira.generate",
+        "command": "spectra.generate",
         "title": "Generate Template from Jira",
-        "category": "md2jira",
+        "category": "spectra",
         "icon": "$(file-add)"
       },
       {
-        "command": "md2jira.gotoStory",
+        "command": "spectra.gotoStory",
         "title": "Go to Story",
-        "category": "md2jira",
+        "category": "spectra",
         "icon": "$(symbol-class)"
       },
       {
-        "command": "md2jira.copyStoryId",
+        "command": "spectra.copyStoryId",
         "title": "Copy Story ID",
-        "category": "md2jira"
+        "category": "spectra"
       },
       {
-        "command": "md2jira.openInJira",
+        "command": "spectra.openInJira",
         "title": "Open in Jira",
-        "category": "md2jira",
+        "category": "spectra",
         "icon": "$(link-external)"
       }
     ],
     "menus": {
       "editor/title": [
         {
-          "command": "md2jira.validate",
+          "command": "spectra.validate",
           "when": "resourceLangId == markdown",
           "group": "navigation@1"
         },
         {
-          "command": "md2jira.sync",
+          "command": "spectra.sync",
           "when": "resourceLangId == markdown",
           "group": "navigation@2"
         }
       ],
       "editor/context": [
         {
-          "command": "md2jira.copyStoryId",
+          "command": "spectra.copyStoryId",
           "when": "resourceLangId == markdown",
-          "group": "md2jira@1"
+          "group": "spectra@1"
         },
         {
-          "command": "md2jira.openInJira",
+          "command": "spectra.openInJira",
           "when": "resourceLangId == markdown",
-          "group": "md2jira@2"
+          "group": "spectra@2"
         }
       ],
       "commandPalette": [
         {
-          "command": "md2jira.validate",
+          "command": "spectra.validate",
           "when": "resourceLangId == markdown"
         },
         {
-          "command": "md2jira.sync",
+          "command": "spectra.sync",
           "when": "resourceLangId == markdown"
         },
         {
-          "command": "md2jira.syncExecute",
+          "command": "spectra.syncExecute",
           "when": "resourceLangId == markdown"
         }
       ]
     },
     "configuration": {
-      "title": "md2jira",
+      "title": "spectra",
       "properties": {
-        "md2jira.executable": {
+        "spectra.executable": {
           "type": "string",
-          "default": "md2jira",
-          "description": "Path to md2jira executable"
+          "default": "spectra",
+          "description": "Path to spectra executable"
         },
-        "md2jira.jiraUrl": {
+        "spectra.jiraUrl": {
           "type": "string",
           "default": "",
           "description": "Jira instance URL (e.g., https://your-org.atlassian.net)"
         },
-        "md2jira.autoValidate": {
+        "spectra.autoValidate": {
           "type": "boolean",
           "default": true,
           "description": "Automatically validate markdown on save"
         },
-        "md2jira.showStoryDecorations": {
+        "spectra.showStoryDecorations": {
           "type": "boolean",
           "default": true,
           "description": "Show inline decorations for stories"
         },
-        "md2jira.showCodeLens": {
+        "spectra.showCodeLens": {
           "type": "boolean",
           "default": true,
           "description": "Show CodeLens above stories"
         },
-        "md2jira.showStatusBar": {
+        "spectra.showStatusBar": {
           "type": "boolean",
           "default": true,
           "description": "Show story count in status bar"
@@ -162,7 +162,7 @@
     },
     "colors": [
       {
-        "id": "md2jira.storyIdColor",
+        "id": "spectra.storyIdColor",
         "description": "Color for story IDs",
         "defaults": {
           "dark": "#4EC9B0",
@@ -171,7 +171,7 @@
         }
       },
       {
-        "id": "md2jira.epicIdColor",
+        "id": "spectra.epicIdColor",
         "description": "Color for epic IDs",
         "defaults": {
           "dark": "#DCDCAA",
@@ -182,19 +182,19 @@
     ],
     "keybindings": [
       {
-        "command": "md2jira.validate",
+        "command": "spectra.validate",
         "key": "ctrl+shift+v",
         "mac": "cmd+shift+v",
         "when": "resourceLangId == markdown"
       },
       {
-        "command": "md2jira.sync",
+        "command": "spectra.sync",
         "key": "ctrl+shift+s",
         "mac": "cmd+shift+s",
         "when": "resourceLangId == markdown"
       },
       {
-        "command": "md2jira.gotoStory",
+        "command": "spectra.gotoStory",
         "key": "ctrl+shift+g",
         "mac": "cmd+shift+g",
         "when": "resourceLangId == markdown"
@@ -203,8 +203,8 @@
     "views": {
       "explorer": [
         {
-          "id": "md2jiraStories",
-          "name": "md2jira Stories",
+          "id": "spectraStories",
+          "name": "spectra Stories",
           "when": "resourceLangId == markdown",
           "icon": "$(list-unordered)"
         }

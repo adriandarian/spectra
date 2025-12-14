@@ -8,7 +8,7 @@ import time
 from pathlib import Path
 from unittest.mock import Mock
 
-from md2jira.application.watch import (
+from spectra.application.watch import (
     FileWatcher,
     WatchOrchestrator,
     WatchDisplay,

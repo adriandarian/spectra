@@ -1,6 +1,6 @@
 """Tests for plugin hook system."""
 
-from md2jira.plugins import (
+from spectra.plugins import (
     Hook,
     HookPoint,
     HookContext,

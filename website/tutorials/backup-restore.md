@@ -1,6 +1,6 @@
 # Backup & Restore
 
-Learn how md2jira protects your Jira data with automatic backups and easy rollback.
+Learn how spectra protects your Jira data with automatic backups and easy rollback.
 
 **Duration**: ~4 minutes
 
@@ -11,15 +11,15 @@ Learn how md2jira protects your Jira data with automatic backups and easy rollba
 
 ## Automatic Backups
 
-Every time you run md2jira with `--execute`, it automatically creates a backup of the current Jira state.
+Every time you run spectra with `--execute`, it automatically creates a backup of the current Jira state.
 
 <div class="terminal-session">
 
 ```bash
-$ md2jira --markdown EPIC.md --epic PROJ-123 --execute
+$ spectra --markdown EPIC.md --epic PROJ-123 --execute
 
 ╭──────────────────────────────────────────────────────────────╮
-│  md2jira v1.0.0                                              │
+│  spectra v1.0.0                                              │
 │  Syncing: EPIC.md → PROJ-123                                 │
 │  Mode: EXECUTE                                               │
 ╰──────────────────────────────────────────────────────────────╯
@@ -36,7 +36,7 @@ Syncing stories ━━━━━━━━━━━━━━━━━━━━━�
 </div>
 
 ::: tip Backup Location
-Backups are stored in `~/.md2jira/backups/` by default. Each backup contains the full state of all synced issues.
+Backups are stored in `~/.spectra/backups/` by default. Each backup contains the full state of all synced issues.
 :::
 
 ## Listing Backups
@@ -44,7 +44,7 @@ Backups are stored in `~/.md2jira/backups/` by default. Each backup contains the
 <div class="terminal-session">
 
 ```bash
-$ md2jira --list-backups
+$ spectra --list-backups
 
 ╭──────────────────────────────────────────────────────────────╮
 │  Available Backups                                           │
@@ -59,8 +59,8 @@ $ md2jira --list-backups
 │ 4 │ backup_20250110_090000 │ PROJ-456 │ 5       │ 3 days  │
 └────────────────────────────────────────────────────────────┘
 
-To view changes: md2jira --diff-backup <backup_id> --epic <epic>
-To restore:      md2jira --restore-backup <backup_id> --epic <epic>
+To view changes: spectra --diff-backup <backup_id> --epic <epic>
+To restore:      spectra --restore-backup <backup_id> --epic <epic>
 ```
 
 </div>
@@ -72,7 +72,7 @@ See what changed since a backup was created:
 <div class="terminal-session">
 
 ```bash
-$ md2jira --diff-latest --epic PROJ-123
+$ spectra --diff-latest --epic PROJ-123
 
 ╭──────────────────────────────────────────────────────────────╮
 │  Diff: backup_20250113_150000 → Current                      │
@@ -131,7 +131,7 @@ Summary:
 <div class="terminal-session">
 
 ```bash
-$ md2jira --diff-backup backup_20250112_160000 --epic PROJ-123
+$ spectra --diff-backup backup_20250112_160000 --epic PROJ-123
 
 # Shows diff from that specific backup to current state
 ```
@@ -147,7 +147,7 @@ Made a mistake? Roll back to the previous state:
 <div class="terminal-session">
 
 ```bash
-$ md2jira --rollback --epic PROJ-123
+$ spectra --rollback --epic PROJ-123
 
 ╭──────────────────────────────────────────────────────────────╮
 │  Rollback Preview                                            │
@@ -181,7 +181,7 @@ To execute rollback, add --execute flag.
 <div class="terminal-session">
 
 ```bash
-$ md2jira --rollback --epic PROJ-123 --execute
+$ spectra --rollback --epic PROJ-123 --execute
 
 ╭──────────────────────────────────────────────────────────────╮
 │  Rollback                                                    │
@@ -211,7 +211,7 @@ Rolling back ━━━━━━━━━━━━━━━━━━━━━━�
 │  Pre-rollback backup: backup_20250113_151500                 │
 │                                                              │
 │  You can undo this rollback with:                            │
-│  md2jira --restore-backup backup_20250113_151500 --epic ...  │
+│  spectra --restore-backup backup_20250113_151500 --epic ...  │
 ╰──────────────────────────────────────────────────────────────╯
 ```
 
@@ -224,7 +224,7 @@ Restore from any previous backup:
 <div class="terminal-session">
 
 ```bash
-$ md2jira --restore-backup backup_20250110_090000 --epic PROJ-123
+$ spectra --restore-backup backup_20250110_090000 --epic PROJ-123
 
 # Preview what would be restored
 ╭──────────────────────────────────────────────────────────────╮
@@ -252,7 +252,7 @@ For CI/CD where you don't need backups:
 <div class="terminal-session">
 
 ```bash
-$ md2jira -m EPIC.md -e PROJ-123 -x --no-backup --no-confirm
+$ spectra -m EPIC.md -e PROJ-123 -x --no-backup --no-confirm
 
 # Syncs without creating a backup
 # Use with caution!
@@ -265,13 +265,13 @@ $ md2jira -m EPIC.md -e PROJ-123 -x --no-backup --no-confirm
 ::: tip Regular Backups
 - Backups are created automatically on every sync
 - Keep at least a week's worth of backups
-- Old backups can be cleaned up with `md2jira --cleanup-backups --keep 10`
+- Old backups can be cleaned up with `spectra --cleanup-backups --keep 10`
 :::
 
 ::: warning Before Major Changes
 For significant changes, manually create a named backup:
 ```bash
-md2jira --backup "before-sprint-5" --epic PROJ-123
+spectra --backup "before-sprint-5" --epic PROJ-123
 ```
 :::
 

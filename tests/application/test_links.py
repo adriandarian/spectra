@@ -5,15 +5,15 @@ Tests for cross-project linking - link stories across Jira projects.
 import pytest
 from unittest.mock import Mock
 
-from md2jira.application.sync.links import (
+from spectra.application.sync.links import (
     LinkSyncOrchestrator,
     LinkSyncResult,
     LinkChange,
 )
-from md2jira.core.ports.issue_tracker import IssueLink, LinkType
-from md2jira.core.domain.entities import UserStory
-from md2jira.core.domain.value_objects import StoryId, IssueKey
-from md2jira.adapters.parsers.markdown import MarkdownParser
+from spectra.core.ports.issue_tracker import IssueLink, LinkType
+from spectra.core.domain.entities import UserStory
+from spectra.core.domain.value_objects import StoryId, IssueKey
+from spectra.adapters.parsers.markdown import MarkdownParser
 
 
 class TestLinkType:

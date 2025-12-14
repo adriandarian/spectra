@@ -9,7 +9,7 @@ from io import StringIO
 from unittest.mock import patch
 
 
-from md2jira.cli.logging import (
+from spectra.cli.logging import (
     JSONFormatter,
     TextFormatter,
     ContextLogger,
@@ -114,7 +114,7 @@ class TestJSONFormatter:
     def test_json_format_with_static_fields(self):
         """Test JSON format includes static fields."""
         formatter = JSONFormatter(
-            static_fields={"service": "md2jira", "version": "2.0.0"}
+            static_fields={"service": "spectra", "version": "2.0.0"}
         )
         record = logging.LogRecord(
             name="TestLogger",
@@ -129,7 +129,7 @@ class TestJSONFormatter:
         output = formatter.format(record)
         parsed = json.loads(output)
         
-        assert parsed["service"] == "md2jira"
+        assert parsed["service"] == "spectra"
         assert parsed["version"] == "2.0.0"
     
     def test_json_format_with_location(self):

@@ -1,4 +1,4 @@
-module github.com/md2jira/terraform-provider-jira
+module github.com/spectra/terraform-provider-jira
 
 go 1.21
 

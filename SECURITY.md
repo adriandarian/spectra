@@ -18,7 +18,7 @@ We take security vulnerabilities seriously. If you discover a security issue, pl
 Instead, please report security issues via one of the following methods:
 
 1. **Email**: Send details to the maintainer at [adrian.the.hactus@gmail.com](mailto:adrian.the.hactus@gmail.com)
-2. **GitHub Security Advisories**: Use [GitHub's private vulnerability reporting](https://github.com/adriandarian/md2jira/security/advisories/new)
+2. **GitHub Security Advisories**: Use [GitHub's private vulnerability reporting](https://github.com/adriandarian/spectra/security/advisories/new)
 
 ### What to Include
 
@@ -42,7 +42,7 @@ We will keep you informed of progress and may reach out for additional informati
 
 ### Credential Management
 
-md2jira requires Jira API credentials to function. Please follow these best practices:
+spectra requires Jira API credentials to function. Please follow these best practices:
 
 #### ✅ Do
 
@@ -85,7 +85,7 @@ When creating a Jira API token, the token inherits the permissions of your Jira 
 
 ### Dry-Run Mode
 
-By default, md2jira operates in **dry-run mode**, which:
+By default, spectra operates in **dry-run mode**, which:
 
 - Shows what changes would be made without executing them
 - Prevents accidental modifications to Jira issues
@@ -104,7 +104,7 @@ We use the following tools to monitor dependencies:
 
 ### Minimal Dependencies
 
-md2jira maintains a minimal dependency footprint:
+spectra maintains a minimal dependency footprint:
 
 - `requests` - HTTP client for Jira API communication
 
@@ -144,7 +144,7 @@ pip list --format=freeze
 
 ### Token Storage
 
-md2jira does not provide encrypted credential storage. Users are responsible for:
+spectra does not provide encrypted credential storage. Users are responsible for:
 
 - Securing their `.env` files
 - Using system keychain or secret managers in CI/CD environments
@@ -152,7 +152,7 @@ md2jira does not provide encrypted credential storage. Users are responsible for
 
 ### Audit Logging
 
-While md2jira provides command-level logging and dry-run previews:
+While spectra provides command-level logging and dry-run previews:
 
 - Detailed audit logs are not persisted by default
 - Use `--export` flag to save operation results for audit purposes
@@ -160,7 +160,7 @@ While md2jira provides command-level logging and dry-run previews:
 
 ## Security Checklist for Users
 
-Before using md2jira in production:
+Before using spectra in production:
 
 - [ ] API token stored securely (not in version control)
 - [ ] `.env` added to `.gitignore`

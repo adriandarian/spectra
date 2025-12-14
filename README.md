@@ -1,4 +1,4 @@
-# md2jira
+# spectra
 
 <div align="center">
 
@@ -6,7 +6,9 @@
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 [![Code style: black](https://img.shields.io/badge/code%20style-black-000000.svg)](https://github.com/psf/black)
 
-**A production-grade CLI tool for synchronizing markdown documentation with Jira**
+**A production-grade CLI tool for synchronizing markdown specifications with issue trackers**
+
+*Supports Jira, GitHub Issues, Azure DevOps, Linear, and more*
 
 [Features](#features) •
 [Installation](#installation) •
@@ -20,11 +22,11 @@
 
 ## Features
 
-🚀 **Full Epic Sync** - Sync user stories, subtasks, descriptions, and comments from markdown to Jira
+🚀 **Multi-Platform Sync** - Sync to Jira, GitHub Issues, Azure DevOps, Linear, and Confluence
 
-📝 **Markdown-Native** - Write your epic documentation in markdown, sync to Jira automatically
+📝 **Markdown & YAML Native** - Write specs in markdown or YAML, sync to any issue tracker
 
-🔄 **Smart Matching** - Fuzzy title matching between markdown stories and Jira issues
+🔄 **Smart Matching** - Fuzzy title matching between specs and existing issues
 
 🛡️ **Safe by Default** - Dry-run mode, confirmations, and detailed previews before any changes
 
@@ -34,32 +36,34 @@
 
 📊 **Rich Output** - Beautiful CLI with progress bars, colored output, and detailed reports
 
+🔗 **Bi-directional Sync** - Pull changes back from trackers to update local specs
+
 ## Installation
 
 ### Quick Install
 
 ```bash
 # pip (all platforms)
-pip install md2jira
+pip install spectra
 
 # pipx (isolated environment)
-pipx install md2jira
+pipx install spectra
 
 # Homebrew (macOS/Linux)
-brew install adriandarian/md2jira/md2jira
+brew install adriandarian/spectra/spectra
 
 # Chocolatey (Windows)
-choco install md2jira
+choco install spectra
 
 # Universal Linux installer
-curl -fsSL https://raw.githubusercontent.com/adriandarian/md2jira/main/packaging/linux/install.sh | bash
+curl -fsSL https://raw.githubusercontent.com/adriandarian/spectra/main/packaging/linux/install.sh | bash
 ```
 
 ### From Source
 
 ```bash
-git clone https://github.com/adriandarian/md2jira.git
-cd md2jira
+git clone https://github.com/adriandarian/spectra.git
+cd spectra
 pip install -e ".[dev]"
 ```
 
@@ -67,10 +71,10 @@ pip install -e ".[dev]"
 
 ```bash
 # Pull the image (when available on Docker Hub)
-docker pull adriandarian/md2jira:latest
+docker pull adriandarian/spectra:latest
 
 # Or build locally
-docker build -t md2jira:latest .
+docker build -t spectra:latest .
 
 # Run with your markdown file and Jira credentials
 docker run --rm \
@@ -78,7 +82,7 @@ docker run --rm \
   -e JIRA_EMAIL=your.email@company.com \
   -e JIRA_API_TOKEN=your-api-token \
   -v $(pwd):/workspace \
-  md2jira:latest \
+  spectra:latest \
   --markdown EPIC.md --epic PROJ-123
 
 # Execute sync (not just dry-run)
@@ -87,7 +91,7 @@ docker run --rm \
   -e JIRA_EMAIL=your.email@company.com \
   -e JIRA_API_TOKEN=your-api-token \
   -v $(pwd):/workspace \
-  md2jira:latest \
+  spectra:latest \
   --markdown EPIC.md --epic PROJ-123 --execute
 ```
 
@@ -105,10 +109,10 @@ cp .env.example .env
 #    JIRA_API_TOKEN=your-api-token
 
 # 3. Run a dry-run preview
-docker compose run --rm md2jira --markdown EPIC.md --epic PROJ-123
+docker compose run --rm spectra --markdown EPIC.md --epic PROJ-123
 
 # 4. Execute the sync
-docker compose run --rm md2jira --markdown EPIC.md --epic PROJ-123 --execute
+docker compose run --rm spectra --markdown EPIC.md --epic PROJ-123 --execute
 ```
 
 ## Quick Start
@@ -152,21 +156,21 @@ JIRA_API_TOKEN=your-api-token
 
 ```bash
 # Preview changes (dry-run)
-md2jira --markdown EPIC.md --epic PROJ-123
+spectra --markdown EPIC.md --epic PROJ-123
 
 # Execute sync
-md2jira --markdown EPIC.md --epic PROJ-123 --execute
+spectra --markdown EPIC.md --epic PROJ-123 --execute
 
 # Sync specific phase only
-md2jira --markdown EPIC.md --epic PROJ-123 --execute --phase descriptions
+spectra --markdown EPIC.md --epic PROJ-123 --execute --phase descriptions
 ```
 
 ## Architecture
 
-md2jira follows a **Clean Architecture** / **Hexagonal Architecture** pattern for maximum flexibility and testability.
+spectra follows a **Clean Architecture** / **Hexagonal Architecture** pattern for maximum flexibility and testability.
 
 ```
-src/md2jira/
+src/spectra/
 ├── core/                     # Pure domain logic (no external deps)
 │   ├── domain/               # Entities, value objects, enums
 │   │   ├── entities.py       # Epic, UserStory, Subtask, Comment
@@ -212,7 +216,7 @@ src/md2jira/
 ### Adding a New Tracker (e.g., GitHub Issues)
 
 ```python
-from md2jira.core.ports import IssueTrackerPort
+from spectra.core.ports import IssueTrackerPort
 
 class GitHubAdapter(IssueTrackerPort):
     @property
@@ -227,7 +231,7 @@ class GitHubAdapter(IssueTrackerPort):
 ### Using Hooks
 
 ```python
-from md2jira.plugins import HookPoint, get_registry
+from spectra.plugins import HookPoint, get_registry
 
 hook_manager = get_registry().hook_manager
 
@@ -243,7 +247,7 @@ def handle_errors(ctx):
 ## CLI Reference
 
 ```bash
-md2jira --help
+spectra --help
 ```
 
 ### Common Options
@@ -264,19 +268,19 @@ md2jira --help
 
 ```bash
 # Validate markdown format
-md2jira -m EPIC.md -e PROJ-123 --validate
+spectra -m EPIC.md -e PROJ-123 --validate
 
 # Preview all changes
-md2jira -m EPIC.md -e PROJ-123 -v
+spectra -m EPIC.md -e PROJ-123 -v
 
 # Sync descriptions only
-md2jira -m EPIC.md -e PROJ-123 -x --phase descriptions
+spectra -m EPIC.md -e PROJ-123 -x --phase descriptions
 
 # Full sync without prompts
-md2jira -m EPIC.md -e PROJ-123 -x --no-confirm
+spectra -m EPIC.md -e PROJ-123 -x --no-confirm
 
 # Export results
-md2jira -m EPIC.md -e PROJ-123 -x --export sync-results.json
+spectra -m EPIC.md -e PROJ-123 -x --export sync-results.json
 ```
 
 ## Documentation
@@ -295,15 +299,15 @@ md2jira -m EPIC.md -e PROJ-123 -x --export sync-results.json
 
 ```bash
 # Clone and install
-git clone https://github.com/adriandarian/md2jira.git
-cd md2jira
+git clone https://github.com/adriandarian/spectra.git
+cd spectra
 pip install -e ".[dev]"
 
 # Run tests
 pytest
 
 # Run with coverage
-pytest --cov=src/md2jira
+pytest --cov=src/spectra
 
 # Type checking
 mypy src/
@@ -318,8 +322,8 @@ black src/ tests/
 ### Project Structure
 
 ```
-md2jira/
-├── src/md2jira/      # Source code
+spectra/
+├── src/spectra/      # Source code
 ├── tests/            # Test suite
 ├── docs/             # Documentation
 ├── pyproject.toml    # Project config

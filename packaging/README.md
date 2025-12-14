@@ -1,15 +1,15 @@
-# md2jira Package Distribution
+# spectra Package Distribution
 
-This directory contains packaging configurations for distributing md2jira across multiple platforms.
+This directory contains packaging configurations for distributing spectra across multiple platforms.
 
 ## Supported Package Managers
 
 | Platform | Package Manager | Status | Installation |
 |----------|-----------------|--------|--------------|
-| macOS | Homebrew | ✅ Ready | `brew install adriandarian/md2jira/md2jira` |
+| macOS | Homebrew | ✅ Ready | `brew install adriandarian/spectra/spectra` |
 | macOS/Linux | Homebrew (linuxbrew) | ✅ Ready | Same as above |
-| Windows | Chocolatey | ✅ Ready | `choco install md2jira` |
-| Linux | pip/pipx | ✅ Ready | `pip install md2jira` |
+| Windows | Chocolatey | ✅ Ready | `choco install spectra` |
+| Linux | pip/pipx | ✅ Ready | `pip install spectra` |
 | Linux | RPM (Fedora/RHEL) | ✅ Spec Ready | Build from spec file |
 | Linux | DEB (Ubuntu/Debian) | ✅ Control Ready | Build with debhelper |
 
@@ -18,32 +18,32 @@ This directory contains packaging configurations for distributing md2jira across
 ### Universal (All Platforms)
 
 ```bash
-pip install md2jira
+pip install spectra
 # or
-pipx install md2jira
+pipx install spectra
 ```
 
 ### macOS (Homebrew)
 
 ```bash
 # Add the tap
-brew tap adriandarian/md2jira
+brew tap adriandarian/spectra
 
 # Install
-brew install md2jira
+brew install spectra
 ```
 
 ### Windows (Chocolatey)
 
 ```powershell
 # Requires Python 3.10+
-choco install md2jira
+choco install spectra
 ```
 
 ### Linux (Universal Script)
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/adriandarian/md2jira/main/packaging/linux/install.sh | bash
+curl -fsSL https://raw.githubusercontent.com/adriandarian/spectra/main/packaging/linux/install.sh | bash
 ```
 
 ## Building Packages
@@ -54,14 +54,14 @@ curl -fsSL https://raw.githubusercontent.com/adriandarian/md2jira/main/packaging
 
 ```bash
 # Get SHA256 of release tarball
-curl -sL https://github.com/adriandarian/md2jira/archive/refs/tags/v2.0.0.tar.gz | shasum -a 256
+curl -sL https://github.com/adriandarian/spectra/archive/refs/tags/v2.0.0.tar.gz | shasum -a 256
 ```
 
 2. Create a tap repository and add the formula:
 
 ```bash
-# Create tap repo: homebrew-md2jira
-# Add packaging/homebrew/md2jira.rb to the repo
+# Create tap repo: homebrew-spectra
+# Add packaging/homebrew/spectra.rb to the repo
 ```
 
 ### Chocolatey
@@ -73,10 +73,10 @@ cd packaging/chocolatey
 choco pack
 
 # Test locally
-choco install md2jira -s . -y
+choco install spectra -s . -y
 
 # Push to Chocolatey (requires API key)
-choco push md2jira.2.0.0.nupkg --source https://push.chocolatey.org/
+choco push spectra.2.0.0.nupkg --source https://push.chocolatey.org/
 ```
 
 ### RPM (Fedora/RHEL/CentOS)
@@ -89,13 +89,13 @@ sudo dnf install rpm-build python3-devel
 mkdir -p ~/rpmbuild/{BUILD,RPMS,SOURCES,SPECS,SRPMS}
 
 # Copy spec file
-cp packaging/linux/md2jira.spec ~/rpmbuild/SPECS/
+cp packaging/linux/spectra.spec ~/rpmbuild/SPECS/
 
 # Download source
-spectool -g -R ~/rpmbuild/SPECS/md2jira.spec
+spectool -g -R ~/rpmbuild/SPECS/spectra.spec
 
 # Build
-rpmbuild -ba ~/rpmbuild/SPECS/md2jira.spec
+rpmbuild -ba ~/rpmbuild/SPECS/spectra.spec
 ```
 
 ### DEB (Ubuntu/Debian)
@@ -125,15 +125,15 @@ For automated package building and publishing, see `.github/workflows/release.ym
 packaging/
 ├── README.md           # This file
 ├── homebrew/
-│   └── md2jira.rb      # Homebrew formula
+│   └── spectra.rb      # Homebrew formula
 ├── chocolatey/
-│   ├── md2jira.nuspec  # Chocolatey package spec
+│   ├── spectra.nuspec  # Chocolatey package spec
 │   └── tools/
 │       ├── chocolateyinstall.ps1
 │       └── chocolateyuninstall.ps1
 └── linux/
     ├── install.sh      # Universal installer script
-    ├── md2jira.spec    # RPM spec file
+    ├── spectra.spec    # RPM spec file
     └── debian/
         └── control     # Debian package control file
 ```
@@ -143,8 +143,8 @@ packaging/
 When releasing a new version:
 
 1. Update `pyproject.toml` version
-2. Update `packaging/homebrew/md2jira.rb` version and SHA256
-3. Update `packaging/chocolatey/md2jira.nuspec` version
-4. Update `packaging/linux/md2jira.spec` version
+2. Update `packaging/homebrew/spectra.rb` version and SHA256
+3. Update `packaging/chocolatey/spectra.nuspec` version
+4. Update `packaging/linux/spectra.spec` version
 5. Tag release: `git tag v2.0.0 && git push --tags`
 

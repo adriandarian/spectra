@@ -1,11 +1,11 @@
-# Makefile for md2jira development
+# Makefile for spectra development
 # Run 'make help' to see available targets
 
 .PHONY: help install test lint format typecheck mutation clean
 
 # Default target
 help:
-	@echo "md2jira Development Commands"
+	@echo "spectra Development Commands"
 	@echo "============================"
 	@echo ""
 	@echo "Setup:"
@@ -44,7 +44,7 @@ test-fast:
 	pytest tests/ -v --ignore=tests/integration --ignore=tests/property -x
 
 test-cov:
-	pytest tests/ --cov=src/md2jira --cov-report=html --cov-report=term-missing
+	pytest tests/ --cov=src/spectra --cov-report=html --cov-report=term-missing
 
 # Benchmarking
 bench:
@@ -97,7 +97,7 @@ format:
 	ruff format src/ tests/
 
 typecheck:
-	mypy src/md2jira/
+	mypy src/spectra/
 
 check: lint typecheck test
 

@@ -1,6 +1,6 @@
-# md2jira.nvim
+# spectra.nvim
 
-Neovim plugin for [md2jira](https://github.com/your-org/md2jira) - sync markdown documentation with Jira.
+Neovim plugin for [spectra](https://github.com/your-org/spectra) - sync markdown documentation with Jira.
 
 ## ✨ Features
 
@@ -17,13 +17,13 @@ Neovim plugin for [md2jira](https://github.com/your-org/md2jira) - sync markdown
 
 ```lua
 {
-  "md2jira/nvim-plugin",
+  "spectra/nvim-plugin",
   dependencies = {
     "nvim-telescope/telescope.nvim",  -- optional, for fuzzy finding
   },
   ft = "markdown",
   config = function()
-    require("md2jira").setup({})
+    require("spectra").setup({})
   end,
 }
 ```
@@ -32,10 +32,10 @@ Neovim plugin for [md2jira](https://github.com/your-org/md2jira) - sync markdown
 
 ```lua
 use {
-  "md2jira/nvim-plugin",
+  "spectra/nvim-plugin",
   requires = { "nvim-telescope/telescope.nvim" },
   config = function()
-    require("md2jira").setup({})
+    require("spectra").setup({})
   end,
 }
 ```
@@ -43,8 +43,8 @@ use {
 ## ⚙️ Configuration
 
 ```lua
-require("md2jira").setup({
-  -- Path to md2jira executable (nil = use PATH)
+require("spectra").setup({
+  -- Path to spectra executable (nil = use PATH)
   executable = nil,
 
   -- Default arguments passed to all commands
@@ -103,9 +103,9 @@ require("md2jira").setup({
 Browse content with fuzzy finding:
 
 ```vim
-:Telescope md2jira stories    " Find stories
-:Telescope md2jira epics      " Find epics
-:Telescope md2jira commands   " All commands
+:Telescope spectra stories    " Find stories
+:Telescope spectra epics      " Find epics
+:Telescope spectra commands   " All commands
 ```
 
 ### Telescope Keymaps
@@ -119,26 +119,26 @@ Browse content with fuzzy finding:
 ## 🔌 Lua API
 
 ```lua
-local md2jira = require("md2jira")
+local spectra = require("spectra")
 
 -- Parse stories from current buffer
-local stories = md2jira.parse_stories()
+local stories = spectra.parse_stories()
 -- Returns: { { id = "US-001", title = "...", line = 10 }, ... }
 
 -- Jump to a story
-md2jira.goto_story("US-001")
+spectra.goto_story("US-001")
 
 -- Detect epic key from buffer
-local epic = md2jira.detect_epic()
+local epic = spectra.detect_epic()
 
 -- Run commands
-md2jira.validate()
-md2jira.sync()
-md2jira.sync_execute()
-md2jira.dashboard()
+spectra.validate()
+spectra.sync()
+spectra.sync_execute()
+spectra.dashboard()
 
 -- Run async with callback
-md2jira.run_async({ "--validate", "--markdown", "epic.md" }, {
+spectra.run_async({ "--validate", "--markdown", "epic.md" }, {
   on_complete = function(result)
     print("Exit code:", result.code)
     print("Output:", result.stdout)

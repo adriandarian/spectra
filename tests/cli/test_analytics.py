@@ -9,7 +9,7 @@ import pytest
 from pathlib import Path
 from unittest.mock import patch
 
-from md2jira.cli.analytics import (
+from spectra.cli.analytics import (
     UsageEvent,
     AnalyticsData,
     AnalyticsConfig,
@@ -155,11 +155,11 @@ class TestAnalyticsConfig:
         assert config.remote_enabled is False
     
     def test_storage_path_default(self):
-        """Test storage_path defaults to ~/.md2jira/analytics."""
+        """Test storage_path defaults to ~/.spectra/analytics."""
         config = AnalyticsConfig()
         
         path = config.storage_path
-        assert ".md2jira" in str(path)
+        assert ".spectra" in str(path)
         assert "analytics" in str(path)
     
     def test_storage_path_custom(self):

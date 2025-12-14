@@ -23,7 +23,7 @@ class TestAsyncRateLimiter:
     @pytest.fixture
     def rate_limiter(self):
         """Create a rate limiter with known parameters."""
-        from md2jira.adapters.async_base import AsyncRateLimiter
+        from spectra.adapters.async_base import AsyncRateLimiter
         return AsyncRateLimiter(requests_per_second=10.0, burst_size=5)
     
     @pytest.mark.asyncio
@@ -101,7 +101,7 @@ class TestParallelExecutionUtilities:
     @pytest.mark.asyncio
     async def test_gather_with_limit_basic(self):
         """Test basic gather_with_limit functionality."""
-        from md2jira.adapters.async_base import gather_with_limit
+        from spectra.adapters.async_base import gather_with_limit
         
         results = []
         
@@ -119,7 +119,7 @@ class TestParallelExecutionUtilities:
     @pytest.mark.asyncio
     async def test_gather_with_limit_respects_concurrency(self):
         """Test that gather_with_limit respects the concurrency limit."""
-        from md2jira.adapters.async_base import gather_with_limit
+        from spectra.adapters.async_base import gather_with_limit
         
         concurrent_count = 0
         max_concurrent = 0
@@ -141,7 +141,7 @@ class TestParallelExecutionUtilities:
     @pytest.mark.asyncio
     async def test_gather_with_limit_return_exceptions(self):
         """Test that exceptions are returned when return_exceptions=True."""
-        from md2jira.adapters.async_base import gather_with_limit
+        from spectra.adapters.async_base import gather_with_limit
         
         async def task(x: int) -> int:
             if x == 2:
@@ -161,7 +161,7 @@ class TestParallelExecutionUtilities:
     @pytest.mark.asyncio
     async def test_batch_execute_basic(self):
         """Test basic batch_execute functionality."""
-        from md2jira.adapters.async_base import batch_execute
+        from spectra.adapters.async_base import batch_execute
         
         async def operation(x: int) -> dict:
             return {"value": x * 2}
@@ -182,7 +182,7 @@ class TestParallelExecutionUtilities:
     @pytest.mark.asyncio
     async def test_batch_execute_with_errors(self):
         """Test batch_execute handles errors gracefully."""
-        from md2jira.adapters.async_base import batch_execute
+        from spectra.adapters.async_base import batch_execute
         
         async def operation(x: int) -> dict:
             if x % 3 == 0:
@@ -205,7 +205,7 @@ class TestParallelExecutionUtilities:
     @pytest.mark.asyncio
     async def test_batch_execute_with_progress_callback(self):
         """Test batch_execute calls progress callback."""
-        from md2jira.adapters.async_base import batch_execute
+        from spectra.adapters.async_base import batch_execute
         
         progress_calls = []
         
@@ -231,7 +231,7 @@ class TestParallelExecutionUtilities:
     @pytest.mark.asyncio
     async def test_run_parallel_basic(self):
         """Test run_parallel with named operations."""
-        from md2jira.adapters.async_base import run_parallel
+        from spectra.adapters.async_base import run_parallel
         
         async def get_user() -> dict:
             return {"name": "Alice"}
@@ -250,7 +250,7 @@ class TestParallelExecutionUtilities:
     @pytest.mark.asyncio
     async def test_parallel_result_properties(self):
         """Test ParallelResult computed properties."""
-        from md2jira.adapters.async_base import ParallelResult
+        from spectra.adapters.async_base import ParallelResult
         
         result = ParallelResult[int]()
         result.total = 10
@@ -269,7 +269,7 @@ class TestParallelExecutor:
     @pytest.mark.asyncio
     async def test_executor_map(self):
         """Test ParallelExecutor.map()."""
-        from md2jira.adapters.async_base import ParallelExecutor
+        from spectra.adapters.async_base import ParallelExecutor
         
         async def double(x: int) -> int:
             return x * 2
@@ -283,7 +283,7 @@ class TestParallelExecutor:
     @pytest.mark.asyncio
     async def test_executor_gather(self):
         """Test ParallelExecutor.gather()."""
-        from md2jira.adapters.async_base import ParallelExecutor
+        from spectra.adapters.async_base import ParallelExecutor
         
         async def task(x: int) -> int:
             return x
@@ -321,7 +321,7 @@ class TestAsyncJiraApiClient:
     @pytest.mark.asyncio
     async def test_client_initialization(self):
         """Test AsyncJiraApiClient can be initialized."""
-        from md2jira.adapters.jira.async_client import AsyncJiraApiClient
+        from spectra.adapters.jira.async_client import AsyncJiraApiClient
         
         client = AsyncJiraApiClient(
             base_url="https://test.atlassian.net",
@@ -335,7 +335,7 @@ class TestAsyncJiraApiClient:
     @pytest.mark.asyncio
     async def test_dry_run_prevents_writes(self):
         """Test that dry_run prevents write operations."""
-        from md2jira.adapters.jira.async_client import AsyncJiraApiClient
+        from spectra.adapters.jira.async_client import AsyncJiraApiClient
         
         client = AsyncJiraApiClient(
             base_url="https://test.atlassian.net",
@@ -355,7 +355,7 @@ class TestParallelSyncOperations:
     @pytest.fixture
     def parallel_ops(self):
         """Create ParallelSyncOperations instance."""
-        from md2jira.application.sync.parallel import ParallelSyncOperations
+        from spectra.application.sync.parallel import ParallelSyncOperations
         
         return ParallelSyncOperations(
             base_url="https://test.atlassian.net",
@@ -367,13 +367,13 @@ class TestParallelSyncOperations:
     
     def test_is_parallel_available(self):
         """Test is_parallel_available returns True when aiohttp is installed."""
-        from md2jira.application.sync.parallel import is_parallel_available
+        from spectra.application.sync.parallel import is_parallel_available
         
         assert is_parallel_available() is True
     
     def test_parallel_sync_result_properties(self):
         """Test ParallelSyncResult properties."""
-        from md2jira.application.sync.parallel import ParallelSyncResult
+        from spectra.application.sync.parallel import ParallelSyncResult
         
         result = ParallelSyncResult(
             operation="test",
@@ -393,7 +393,7 @@ class TestRateLimiterIntegration:
     @pytest.mark.asyncio
     async def test_rate_limiter_with_batch_execute(self):
         """Test that rate limiter is respected during batch execution."""
-        from md2jira.adapters.async_base import AsyncRateLimiter, batch_execute
+        from spectra.adapters.async_base import AsyncRateLimiter, batch_execute
         
         limiter = AsyncRateLimiter(requests_per_second=100.0, burst_size=5)
         request_times = []

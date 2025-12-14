@@ -7,13 +7,13 @@ Tests the JiraBatchClient for bulk create, update, transition, and comment opera
 import pytest
 from unittest.mock import MagicMock
 
-from md2jira.adapters.jira.batch import (
+from spectra.adapters.jira.batch import (
     JiraBatchClient,
     BatchResult,
     BatchOperation,
 )
-from md2jira.adapters.jira.client import JiraApiClient
-from md2jira.core.ports.issue_tracker import IssueTrackerError
+from spectra.adapters.jira.client import JiraApiClient
+from spectra.core.ports.issue_tracker import IssueTrackerError
 
 
 # =============================================================================

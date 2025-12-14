@@ -4,7 +4,7 @@ Tests for shell completion generation.
 
 from unittest.mock import patch
 
-from md2jira.cli.completions import (
+from spectra.cli.completions import (
     get_completion_script,
     get_installation_instructions,
     print_completion,
@@ -23,22 +23,22 @@ class TestGetCompletionScript:
         script = get_completion_script("bash")
         assert script is not None
         assert "#!/bin/bash" in script
-        assert "_md2jira_completions" in script
+        assert "_spectra_completions" in script
         assert "complete -F" in script
     
     def test_zsh_completion(self):
         """Test getting Zsh completion script."""
         script = get_completion_script("zsh")
         assert script is not None
-        assert "#compdef md2jira" in script
-        assert "_md2jira" in script
+        assert "#compdef spectra" in script
+        assert "_spectra" in script
         assert "_arguments" in script
     
     def test_fish_completion(self):
         """Test getting Fish completion script."""
         script = get_completion_script("fish")
         assert script is not None
-        assert "complete -c md2jira" in script
+        assert "complete -c spectra" in script
         # Fish uses -l for long options
         assert "-l markdown" in script
         assert "-l epic" in script
@@ -64,7 +64,7 @@ class TestGetInstallationInstructions:
         instructions = get_installation_instructions("bash")
         assert "bashrc" in instructions.lower()
         assert "eval" in instructions
-        assert "md2jira --completions bash" in instructions
+        assert "spectra --completions bash" in instructions
     
     def test_zsh_instructions(self):
         """Test Zsh installation instructions."""
@@ -94,7 +94,7 @@ class TestPrintCompletion:
         assert result is True
         
         captured = capsys.readouterr()
-        assert "_md2jira_completions" in captured.out
+        assert "_spectra_completions" in captured.out
     
     def test_print_zsh(self, capsys):
         """Test printing Zsh completion."""
@@ -102,7 +102,7 @@ class TestPrintCompletion:
         assert result is True
         
         captured = capsys.readouterr()
-        assert "#compdef md2jira" in captured.out
+        assert "#compdef spectra" in captured.out
     
     def test_print_fish(self, capsys):
         """Test printing Fish completion."""
@@ -110,7 +110,7 @@ class TestPrintCompletion:
         assert result is True
         
         captured = capsys.readouterr()
-        assert "complete -c md2jira" in captured.out
+        assert "complete -c spectra" in captured.out
     
     def test_print_unknown(self, capsys):
         """Test printing unknown shell returns error."""
@@ -206,43 +206,43 @@ class TestCLICompletionsFlag:
     
     def test_completions_flag_bash(self, capsys):
         """Test --completions bash via CLI."""
-        from md2jira.cli.app import main
+        from spectra.cli.app import main
         
-        with patch("sys.argv", ["md2jira", "--completions", "bash"]):
+        with patch("sys.argv", ["spectra", "--completions", "bash"]):
             result = main()
         
         assert result == 0
         captured = capsys.readouterr()
-        assert "_md2jira_completions" in captured.out
+        assert "_spectra_completions" in captured.out
     
     def test_completions_flag_zsh(self, capsys):
         """Test --completions zsh via CLI."""
-        from md2jira.cli.app import main
+        from spectra.cli.app import main
         
-        with patch("sys.argv", ["md2jira", "--completions", "zsh"]):
+        with patch("sys.argv", ["spectra", "--completions", "zsh"]):
             result = main()
         
         assert result == 0
         captured = capsys.readouterr()
-        assert "#compdef md2jira" in captured.out
+        assert "#compdef spectra" in captured.out
     
     def test_completions_flag_fish(self, capsys):
         """Test --completions fish via CLI."""
-        from md2jira.cli.app import main
+        from spectra.cli.app import main
         
-        with patch("sys.argv", ["md2jira", "--completions", "fish"]):
+        with patch("sys.argv", ["spectra", "--completions", "fish"]):
             result = main()
         
         assert result == 0
         captured = capsys.readouterr()
-        assert "complete -c md2jira" in captured.out
+        assert "complete -c spectra" in captured.out
     
     def test_completions_without_required_args(self, capsys):
         """Test that --completions works without --markdown and --epic."""
-        from md2jira.cli.app import main
+        from spectra.cli.app import main
         
         # Should not raise error about missing required args
-        with patch("sys.argv", ["md2jira", "--completions", "bash"]):
+        with patch("sys.argv", ["spectra", "--completions", "bash"]):
             result = main()
         
         assert result == 0

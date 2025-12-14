@@ -1,6 +1,6 @@
 # Plugin System
 
-md2jira features an extensible plugin system that allows you to customize behavior, add new adapters, and integrate with external services.
+spectra features an extensible plugin system that allows you to customize behavior, add new adapters, and integrate with external services.
 
 ## Overview
 
@@ -29,7 +29,7 @@ Hooks allow you to execute custom code at specific points during sync operations
 ### Registering Hooks
 
 ```python
-from md2jira.plugins import HookPoint, get_registry
+from spectra.plugins import HookPoint, get_registry
 
 hook_manager = get_registry().hook_manager
 
@@ -74,8 +74,8 @@ Add support for new issue trackers by implementing the `IssueTrackerPort` interf
 
 ```python
 from abc import ABC, abstractmethod
-from md2jira.core.ports import IssueTrackerPort
-from md2jira.core.domain import IssueData, SubtaskData, Status
+from spectra.core.ports import IssueTrackerPort
+from spectra.core.domain import IssueData, SubtaskData, Status
 
 class IssueTrackerPort(ABC):
     """Abstract interface for issue trackers."""
@@ -116,11 +116,11 @@ class IssueTrackerPort(ABC):
 
 ```python
 from github import Github
-from md2jira.core.ports import IssueTrackerPort
-from md2jira.core.domain import IssueData, Status
+from spectra.core.ports import IssueTrackerPort
+from spectra.core.domain import IssueData, Status
 
 class GitHubIssuesAdapter(IssueTrackerPort):
-    """GitHub Issues adapter for md2jira."""
+    """GitHub Issues adapter for spectra."""
     
     def __init__(self, token: str):
         self.client = Github(token)
@@ -158,13 +158,13 @@ class GitHubIssuesAdapter(IssueTrackerPort):
 ### Registering Adapters
 
 ```python
-from md2jira.plugins import get_registry
+from spectra.plugins import get_registry
 
 registry = get_registry()
 registry.register_adapter("github", GitHubIssuesAdapter)
 
 # Now usable via CLI or config
-# md2jira --tracker github --markdown EPIC.md --epic owner/repo#1
+# spectra --tracker github --markdown EPIC.md --epic owner/repo#1
 ```
 
 ## Custom Parsers
@@ -172,8 +172,8 @@ registry.register_adapter("github", GitHubIssuesAdapter)
 Add support for different input formats (YAML, Notion exports, etc.).
 
 ```python
-from md2jira.core.ports import DocumentParserPort
-from md2jira.core.domain import Epic, UserStory
+from spectra.core.ports import DocumentParserPort
+from spectra.core.domain import Epic, UserStory
 
 class YAMLParser(DocumentParserPort):
     """Parse YAML-formatted epic documents."""
@@ -203,25 +203,25 @@ registry.register_parser("yaml", YAMLParser)
 
 ## Plugin Discovery
 
-md2jira can auto-discover plugins from:
+spectra can auto-discover plugins from:
 
-1. **Entry points** - Installed packages with `md2jira.plugins` entry point
-2. **Plugin directory** - `~/.md2jira/plugins/`
-3. **Project plugins** - `.md2jira/plugins/` in project root
+1. **Entry points** - Installed packages with `spectra.plugins` entry point
+2. **Plugin directory** - `~/.spectra/plugins/`
+3. **Project plugins** - `.spectra/plugins/` in project root
 
 ### Entry Point Registration
 
 In your plugin's `pyproject.toml`:
 
 ```toml
-[project.entry-points."md2jira.plugins"]
+[project.entry-points."spectra.plugins"]
 my_plugin = "my_package.plugin:register"
 ```
 
 ```python
 # my_package/plugin.py
 def register(registry):
-    """Called by md2jira on startup."""
+    """Called by spectra on startup."""
     registry.register_adapter("my-tracker", MyTrackerAdapter)
     registry.register_hook(HookPoint.BEFORE_SYNC, my_hook)
 ```
@@ -232,7 +232,7 @@ def register(registry):
 
 ```python
 from slack_sdk import WebClient
-from md2jira.plugins import HookPoint, get_registry
+from spectra.plugins import HookPoint, get_registry
 
 slack = WebClient(token=os.environ["SLACK_TOKEN"])
 channel = "#jira-sync"
@@ -262,7 +262,7 @@ def notify_slack(ctx):
 
 ```python
 from sqlalchemy import create_engine
-from md2jira.plugins import HookPoint, get_registry
+from spectra.plugins import HookPoint, get_registry
 
 engine = create_engine(os.environ["DATABASE_URL"])
 

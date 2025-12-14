@@ -1,6 +1,6 @@
 # Your First Sync
 
-A complete walkthrough of setting up md2jira and syncing your first epic to Jira.
+A complete walkthrough of setting up spectra and syncing your first epic to Jira.
 
 **Duration**: ~5 minutes
 
@@ -9,27 +9,27 @@ A complete walkthrough of setting up md2jira and syncing your first epic to Jira
 <p style="color: white; font-size: 1.2rem; margin-top: 1rem;">Terminal Recording</p>
 </div>
 
-## Step 1: Install md2jira
+## Step 1: Install spectra
 
 <div class="step-demo">
 
 ```bash
 # Install with pip
-$ pip install md2jira
-Collecting md2jira
-  Downloading md2jira-1.0.0-py3-none-any.whl (45 kB)
-Installing collected packages: md2jira
-Successfully installed md2jira-1.0.0
+$ pip install spectra
+Collecting spectra
+  Downloading spectra-1.0.0-py3-none-any.whl (45 kB)
+Installing collected packages: spectra
+Successfully installed spectra-1.0.0
 
 # Verify installation
-$ md2jira --version
-md2jira version 1.0.0
+$ spectra --version
+spectra version 1.0.0
 ```
 
 </div>
 
 ::: tip Alternative Installation
-You can also use `pipx install md2jira` for an isolated environment, or `brew install adriandarian/md2jira/md2jira` on macOS.
+You can also use `pipx install spectra` for an isolated environment, or `brew install adriandarian/spectra/spectra` on macOS.
 :::
 
 ## Step 2: Configure Credentials
@@ -72,7 +72,7 @@ echo ".env" >> .gitignore
 
 <div style="flex: 1; min-width: 280px; background: var(--vp-c-bg-soft); padding: 1.5rem; border-radius: 8px;">
 <strong>2. Create API Token</strong>
-<p style="opacity: 0.8; margin-top: 0.5rem;">Click "Create API token" and give it a name like "md2jira"</p>
+<p style="opacity: 0.8; margin-top: 0.5rem;">Click "Create API token" and give it a name like "spectra"</p>
 </div>
 
 <div style="flex: 1; min-width: 280px; background: var(--vp-c-bg-soft); padding: 1.5rem; border-radius: 8px;">
@@ -90,7 +90,7 @@ echo ".env" >> .gitignore
 $ cat > EPIC.md << 'EOF'
 # 🚀 My First Epic
 
-> **Epic: Getting started with md2jira**
+> **Epic: Getting started with spectra**
 
 ---
 
@@ -137,10 +137,10 @@ EOF
 <div class="step-demo">
 
 ```bash
-$ md2jira --markdown EPIC.md --epic PROJ-123
+$ spectra --markdown EPIC.md --epic PROJ-123
 
 ╭──────────────────────────────────────────────────────────────╮
-│  md2jira v1.0.0                                              │
+│  spectra v1.0.0                                              │
 │  Syncing: EPIC.md → PROJ-123                                 │
 │  Mode: DRY RUN (use --execute to apply changes)              │
 ╰──────────────────────────────────────────────────────────────╯
@@ -175,10 +175,10 @@ To apply these changes, add --execute flag.
 <div class="step-demo">
 
 ```bash
-$ md2jira --markdown EPIC.md --epic PROJ-123 --execute
+$ spectra --markdown EPIC.md --epic PROJ-123 --execute
 
 ╭──────────────────────────────────────────────────────────────╮
-│  md2jira v1.0.0                                              │
+│  spectra v1.0.0                                              │
 │  Syncing: EPIC.md → PROJ-123                                 │
 │  Mode: EXECUTE                                               │
 ╰──────────────────────────────────────────────────────────────╯

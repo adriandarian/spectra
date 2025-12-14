@@ -1,10 +1,10 @@
 # Environment Variables
 
-md2jira uses environment variables for sensitive configuration like API credentials. This page covers all supported variables and best practices.
+spectra uses environment variables for sensitive configuration like API credentials. This page covers all supported variables and best practices.
 
 ## Required Variables
 
-These are required for md2jira to connect to Jira:
+These are required for spectra to connect to Jira:
 
 | Variable | Description | Example |
 |----------|-------------|---------|
@@ -62,7 +62,7 @@ JIRA_PROJECT=MYPROJ
 MD2JIRA_VERBOSE=true
 ```
 
-md2jira automatically loads `.env` files from:
+spectra automatically loads `.env` files from:
 1. Current working directory
 2. Home directory (`~/.env`)
 
@@ -81,11 +81,11 @@ Add to your `.gitignore`:
 
 1. Go to [Atlassian Account Settings](https://id.atlassian.com/manage-profile/security/api-tokens)
 2. Click **Create API token**
-3. Give it a descriptive name (e.g., "md2jira CLI")
+3. Give it a descriptive name (e.g., "spectra CLI")
 4. Copy the token immediately (you won't see it again)
 
 ::: tip Token Best Practices
-- Create a dedicated token for md2jira
+- Create a dedicated token for spectra
 - Use a descriptive name for auditing
 - Rotate tokens periodically (every 90 days)
 - Revoke tokens when no longer needed
@@ -108,8 +108,8 @@ jobs:
         with:
           python-version: '3.12'
       
-      - name: Install md2jira
-        run: pip install md2jira
+      - name: Install spectra
+        run: pip install spectra
       
       - name: Sync to Jira
         env:
@@ -117,7 +117,7 @@ jobs:
           JIRA_EMAIL: ${{ secrets.JIRA_EMAIL }}
           JIRA_API_TOKEN: ${{ secrets.JIRA_API_TOKEN }}
         run: |
-          md2jira --markdown EPIC.md --epic PROJ-123 --execute --no-confirm
+          spectra --markdown EPIC.md --epic PROJ-123 --execute --no-confirm
 ```
 
 ### GitLab CI
@@ -131,8 +131,8 @@ sync-jira:
     JIRA_EMAIL: $JIRA_EMAIL
     JIRA_API_TOKEN: $JIRA_API_TOKEN
   script:
-    - pip install md2jira
-    - md2jira --markdown EPIC.md --epic PROJ-123 --execute --no-confirm
+    - pip install spectra
+    - spectra --markdown EPIC.md --epic PROJ-123 --execute --no-confirm
 ```
 
 ### Docker
@@ -143,7 +143,7 @@ docker run --rm \
   -e JIRA_EMAIL=$JIRA_EMAIL \
   -e JIRA_API_TOKEN=$JIRA_API_TOKEN \
   -v $(pwd):/workspace \
-  adriandarian/md2jira:latest \
+  adriandarian/spectra:latest \
   --markdown EPIC.md --epic PROJ-123 --execute
 ```
 
@@ -172,6 +172,6 @@ If `.env` isn't being loaded:
 3. Try explicit loading:
 
 ```bash
-source .env && md2jira --markdown EPIC.md --epic PROJ-123
+source .env && spectra --markdown EPIC.md --epic PROJ-123
 ```
 

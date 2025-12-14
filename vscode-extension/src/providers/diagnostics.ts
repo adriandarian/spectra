@@ -1,5 +1,5 @@
 /**
- * Diagnostics provider for md2jira validation
+ * Diagnostics provider for spectra validation
  * 
  * Shows validation errors and warnings in the Problems panel.
  */
@@ -16,11 +16,11 @@ export class DiagnosticsProvider implements vscode.Disposable {
     private diagnosticCollection: vscode.DiagnosticCollection;
 
     constructor() {
-        this.diagnosticCollection = vscode.languages.createDiagnosticCollection('md2jira');
+        this.diagnosticCollection = vscode.languages.createDiagnosticCollection('spectra');
     }
 
     /**
-     * Update diagnostics based on md2jira output
+     * Update diagnostics based on spectra output
      */
     updateDiagnostics(document: vscode.TextDocument, result: Md2JiraResult): void {
         const diagnostics: vscode.Diagnostic[] = [];
@@ -55,10 +55,10 @@ export class DiagnosticsProvider implements vscode.Disposable {
             if (diagnostics.length === 0 && result.code !== 0) {
                 const diagnostic = new vscode.Diagnostic(
                     new vscode.Range(0, 0, 0, 0),
-                    'Validation failed. Run md2jira --validate for details.',
+                    'Validation failed. Run spectra --validate for details.',
                     vscode.DiagnosticSeverity.Error
                 );
-                diagnostic.source = 'md2jira';
+                diagnostic.source = 'spectra';
                 diagnostics.push(diagnostic);
             }
         }
@@ -106,7 +106,7 @@ export class DiagnosticsProvider implements vscode.Disposable {
         const range = new vscode.Range(line, 0, line, lineText.length);
 
         const diagnostic = new vscode.Diagnostic(range, message, severity);
-        diagnostic.source = 'md2jira';
+        diagnostic.source = 'spectra';
 
         if (code) {
             diagnostic.code = code;

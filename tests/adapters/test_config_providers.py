@@ -7,7 +7,7 @@ from textwrap import dedent
 
 import pytest
 
-from md2jira.adapters.config import (
+from spectra.adapters.config import (
     EnvironmentConfigProvider,
     FileConfigProvider,
 )
@@ -18,7 +18,7 @@ class TestFileConfigProvider:
 
     def test_load_yaml_config(self, tmp_path: Path) -> None:
         """Test loading YAML config file."""
-        config_file = tmp_path / ".md2jira.yaml"
+        config_file = tmp_path / ".spectra.yaml"
         config_file.write_text(
             dedent("""
             jira:
@@ -52,7 +52,7 @@ class TestFileConfigProvider:
 
     def test_load_toml_config(self, tmp_path: Path) -> None:
         """Test loading TOML config file."""
-        config_file = tmp_path / ".md2jira.toml"
+        config_file = tmp_path / ".spectra.toml"
         config_file.write_text(
             dedent("""
             markdown = "/path/to/epic.md"
@@ -81,17 +81,17 @@ class TestFileConfigProvider:
         assert config.sync.dry_run is False  # execute = true
 
     def test_load_pyproject_toml(self, tmp_path: Path) -> None:
-        """Test loading from pyproject.toml [tool.md2jira] section."""
+        """Test loading from pyproject.toml [tool.spectra] section."""
         config_file = tmp_path / "pyproject.toml"
         config_file.write_text(
             dedent("""
             [project]
             name = "my-project"
 
-            [tool.md2jira]
+            [tool.spectra]
             epic = "PROJ-789"
 
-            [tool.md2jira.jira]
+            [tool.spectra.jira]
             url = "https://test.atlassian.net"
             email = "test@test.com"
             api_token = "test-token"
@@ -116,7 +116,7 @@ class TestFileConfigProvider:
 
     def test_invalid_yaml_syntax(self, tmp_path: Path) -> None:
         """Test error on invalid YAML syntax."""
-        config_file = tmp_path / ".md2jira.yaml"
+        config_file = tmp_path / ".spectra.yaml"
         config_file.write_text(
             dedent("""
             jira:
@@ -133,7 +133,7 @@ class TestFileConfigProvider:
 
     def test_invalid_toml_syntax(self, tmp_path: Path) -> None:
         """Test error on invalid TOML syntax."""
-        config_file = tmp_path / ".md2jira.toml"
+        config_file = tmp_path / ".spectra.toml"
         config_file.write_text(
             dedent("""
             [jira
@@ -148,7 +148,7 @@ class TestFileConfigProvider:
 
     def test_cli_overrides_take_precedence(self, tmp_path: Path) -> None:
         """Test that CLI overrides take precedence over file config."""
-        config_file = tmp_path / ".md2jira.yaml"
+        config_file = tmp_path / ".spectra.yaml"
         config_file.write_text(
             dedent("""
             jira:
@@ -170,10 +170,10 @@ class TestFileConfigProvider:
         assert provider.get("sync.verbose") is True
 
     def test_auto_detect_yaml_in_cwd(self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
-        """Test auto-detection of .md2jira.yaml in current directory."""
+        """Test auto-detection of .spectra.yaml in current directory."""
         monkeypatch.chdir(tmp_path)
 
-        config_file = tmp_path / ".md2jira.yaml"
+        config_file = tmp_path / ".spectra.yaml"
         config_file.write_text(
             dedent("""
             jira:
@@ -191,7 +191,7 @@ class TestFileConfigProvider:
 
     def test_validate_missing_required_fields(self, tmp_path: Path) -> None:
         """Test validation reports missing required fields."""
-        config_file = tmp_path / ".md2jira.yaml"
+        config_file = tmp_path / ".spectra.yaml"
         config_file.write_text(
             dedent("""
             jira:
@@ -227,7 +227,7 @@ class TestEnvironmentConfigProvider:
         self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
     ) -> None:
         """Test that environment variables override file config."""
-        config_file = tmp_path / ".md2jira.yaml"
+        config_file = tmp_path / ".spectra.yaml"
         config_file.write_text(
             dedent("""
             jira:
@@ -253,7 +253,7 @@ class TestEnvironmentConfigProvider:
         self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
     ) -> None:
         """Test that CLI args override both env and file config."""
-        config_file = tmp_path / ".md2jira.yaml"
+        config_file = tmp_path / ".spectra.yaml"
         config_file.write_text(
             dedent("""
             jira:
@@ -300,7 +300,7 @@ class TestEnvironmentConfigProvider:
 
     def test_shows_config_file_in_name(self, tmp_path: Path) -> None:
         """Test that provider name includes config file when loaded."""
-        config_file = tmp_path / ".md2jira.yaml"
+        config_file = tmp_path / ".spectra.yaml"
         config_file.write_text(
             dedent("""
             jira:
@@ -312,7 +312,7 @@ class TestEnvironmentConfigProvider:
 
         provider = EnvironmentConfigProvider(config_file=config_file)
 
-        assert ".md2jira.yaml" in provider.name
+        assert ".spectra.yaml" in provider.name
 
     def test_validation_error_messages_are_actionable(
         self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
@@ -341,7 +341,7 @@ class TestConfigPrecedence:
     ) -> None:
         """Test the full configuration precedence chain."""
         # 1. Config file (lowest priority)
-        config_file = tmp_path / ".md2jira.yaml"
+        config_file = tmp_path / ".spectra.yaml"
         config_file.write_text(
             dedent("""
             jira:

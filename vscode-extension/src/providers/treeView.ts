@@ -1,5 +1,5 @@
 /**
- * Tree view provider for md2jira stories
+ * Tree view provider for spectra stories
  * 
  * Shows stories in the explorer sidebar.
  */

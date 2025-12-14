@@ -1,4 +1,4 @@
-# md2jira for VS Code
+# spectra for VS Code
 
 Sync markdown documentation with Jira directly from VS Code.
 
@@ -29,18 +29,18 @@ Sync markdown documentation with Jira directly from VS Code.
 
 | Command | Description | Keybinding |
 |---------|-------------|------------|
-| `md2jira: Validate` | Validate markdown | `Ctrl+Shift+V` |
-| `md2jira: Sync` | Sync (dry-run) | `Ctrl+Shift+S` |
-| `md2jira: Sync Execute` | Sync (execute) | - |
-| `md2jira: Dashboard` | Show dashboard | - |
-| `md2jira: Go to Story` | Jump to story | `Ctrl+Shift+G` |
-| `md2jira: Setup Wizard` | Run init | - |
+| `spectra: Validate` | Validate markdown | `Ctrl+Shift+V` |
+| `spectra: Sync` | Sync (dry-run) | `Ctrl+Shift+S` |
+| `spectra: Sync Execute` | Sync (execute) | - |
+| `spectra: Dashboard` | Show dashboard | - |
+| `spectra: Go to Story` | Jump to story | `Ctrl+Shift+G` |
+| `spectra: Setup Wizard` | Run init | - |
 
 ## 📦 Installation
 
 ### From VSIX
 1. Download the `.vsix` file
-2. Run `code --install-extension md2jira-1.0.0.vsix`
+2. Run `code --install-extension spectra-1.0.0.vsix`
 
 ### From Source
 ```bash
@@ -52,16 +52,16 @@ npm run compile
 
 ## ⚙️ Configuration
 
-Open Settings (`Ctrl+,`) and search for "md2jira":
+Open Settings (`Ctrl+,`) and search for "spectra":
 
 | Setting | Default | Description |
 |---------|---------|-------------|
-| `md2jira.executable` | `md2jira` | Path to md2jira CLI |
-| `md2jira.jiraUrl` | - | Jira instance URL |
-| `md2jira.autoValidate` | `true` | Validate on save |
-| `md2jira.showStoryDecorations` | `true` | Highlight story IDs |
-| `md2jira.showCodeLens` | `true` | Show action buttons |
-| `md2jira.showStatusBar` | `true` | Show status bar item |
+| `spectra.executable` | `spectra` | Path to spectra CLI |
+| `spectra.jiraUrl` | - | Jira instance URL |
+| `spectra.autoValidate` | `true` | Validate on save |
+| `spectra.showStoryDecorations` | `true` | Highlight story IDs |
+| `spectra.showCodeLens` | `true` | Show action buttons |
+| `spectra.showStatusBar` | `true` | Show status bar item |
 
 ## 🎯 Usage
 
@@ -103,7 +103,7 @@ The extension recognizes stories in this format:
 ## 🔧 Requirements
 
 - VS Code 1.80.0 or higher
-- md2jira CLI installed and in PATH
+- spectra CLI installed and in PATH
 
 ## 📝 Release Notes
 

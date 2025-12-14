@@ -1,7 +1,7 @@
 """
 Mutmut configuration for mutation testing.
 
-This file configures mutmut for the md2jira project.
+This file configures mutmut for the spectra project.
 Run mutation tests with: mutmut run
 
 See: https://mutmut.readthedocs.io/

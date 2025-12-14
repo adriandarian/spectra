@@ -1,6 +1,6 @@
 # Epic Template
 
-A blank template to get started with md2jira.
+A blank template to get started with spectra.
 
 ## Copy & Customize
 

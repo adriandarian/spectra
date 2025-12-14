@@ -1,6 +1,6 @@
 # Ports & Adapters
 
-API reference for md2jira's port interfaces and adapter implementations.
+API reference for spectra's port interfaces and adapter implementations.
 
 ## Ports (Interfaces)
 
@@ -12,7 +12,7 @@ Interface for issue tracker integrations.
 
 ```python
 from abc import ABC, abstractmethod
-from md2jira.core.domain import IssueData, SubtaskData, Status
+from spectra.core.domain import IssueData, SubtaskData, Status
 
 class IssueTrackerPort(ABC):
     """Abstract interface for issue trackers."""
@@ -125,7 +125,7 @@ Interface for document parsers.
 
 ```python
 from abc import ABC, abstractmethod
-from md2jira.core.domain import Epic
+from spectra.core.domain import Epic
 
 class DocumentParserPort(ABC):
     """Abstract interface for document parsers."""
@@ -245,7 +245,7 @@ class ConfigProviderPort(ABC):
 Jira implementation of `IssueTrackerPort`.
 
 ```python
-from md2jira.adapters.jira import JiraAdapter
+from spectra.adapters.jira import JiraAdapter
 
 # Create adapter with credentials
 adapter = JiraAdapter(
@@ -265,7 +265,7 @@ adapter.transition_issue("PROJ-456", Status.DONE)
 Markdown implementation of `DocumentParserPort`.
 
 ```python
-from md2jira.adapters.parsers import MarkdownParser
+from spectra.adapters.parsers import MarkdownParser
 
 parser = MarkdownParser()
 
@@ -287,7 +287,7 @@ for error in errors:
 Atlassian Document Format implementation.
 
 ```python
-from md2jira.adapters.formatters import ADFFormatter
+from spectra.adapters.formatters import ADFFormatter
 
 formatter = ADFFormatter()
 
@@ -301,7 +301,7 @@ adf_content = formatter.format_description(story.description)
 Environment-based configuration.
 
 ```python
-from md2jira.adapters.config import EnvironmentConfigProvider
+from spectra.adapters.config import EnvironmentConfigProvider
 
 config = EnvironmentConfigProvider()
 
@@ -319,11 +319,11 @@ api_token = config.get_required("jira.api_token")
 
 ```python
 from linear_api import LinearClient
-from md2jira.core.ports import IssueTrackerPort
-from md2jira.core.domain import IssueData, Status
+from spectra.core.ports import IssueTrackerPort
+from spectra.core.domain import IssueData, Status
 
 class LinearAdapter(IssueTrackerPort):
-    """Linear.app adapter for md2jira."""
+    """Linear.app adapter for spectra."""
     
     def __init__(self, api_key: str):
         self.client = LinearClient(api_key=api_key)
@@ -386,7 +386,7 @@ class LinearAdapter(IssueTrackerPort):
 ### Register the Adapter
 
 ```python
-from md2jira.plugins import get_registry
+from spectra.plugins import get_registry
 
 registry = get_registry()
 registry.register_adapter("linear", LinearAdapter)
@@ -395,6 +395,6 @@ registry.register_adapter("linear", LinearAdapter)
 ### Use via CLI
 
 ```bash
-md2jira --tracker linear --markdown EPIC.md --epic proj_123
+spectra --tracker linear --markdown EPIC.md --epic proj_123
 ```
 

@@ -5,12 +5,12 @@ Tests for audit trail functionality.
 import json
 
 
-from md2jira.application.sync.audit import (
+from spectra.application.sync.audit import (
     AuditEntry,
     AuditTrailRecorder,
     create_audit_trail,
 )
-from md2jira.core.domain.events import (
+from spectra.core.domain.events import (
     EventBus,
     SyncStarted,
     StoryMatched,
@@ -437,7 +437,7 @@ class TestCLIArgumentParsing:
 
     def test_audit_trail_argument(self):
         """Test --audit-trail argument parsing."""
-        from md2jira.cli.app import create_parser
+        from spectra.cli.app import create_parser
         
         parser = create_parser()
         

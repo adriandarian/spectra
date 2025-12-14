@@ -1,10 +1,10 @@
 #!/bin/bash
 set -e
 
-# GitHub Action Entrypoint for md2jira
-# This script parses inputs and runs md2jira with the appropriate arguments
+# GitHub Action Entrypoint for spectra
+# This script parses inputs and runs spectra with the appropriate arguments
 
-echo "🚀 md2jira GitHub Action"
+echo "🚀 spectra GitHub Action"
 echo "========================"
 
 # Required inputs
@@ -111,9 +111,9 @@ if [ -n "$EPIC_KEY" ]; then
 fi
 echo ""
 
-# Run md2jira and capture output
+# Run spectra and capture output
 set +e
-OUTPUT=$(md2jira "${CMD_ARGS[@]}" 2>&1)
+OUTPUT=$(spectra "${CMD_ARGS[@]}" 2>&1)
 EXIT_CODE=$?
 set -e
 

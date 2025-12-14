@@ -1,6 +1,6 @@
 # Configuration
 
-md2jira supports multiple configuration sources with clear precedence rules.
+spectra supports multiple configuration sources with clear precedence rules.
 
 ## Configuration Precedence
 
@@ -9,11 +9,11 @@ Configuration is loaded in this order (highest priority first):
 1. **CLI arguments** - Command line flags override all other sources
 2. **Environment variables** - `JIRA_URL`, `JIRA_EMAIL`, `JIRA_API_TOKEN`
 3. **`.env` file** - In current directory or package directory
-4. **Config files** - `.md2jira.yaml`, `.md2jira.toml`, or `pyproject.toml`
+4. **Config files** - `.spectra.yaml`, `.spectra.toml`, or `pyproject.toml`
 
 ## Config File Locations
 
-md2jira searches for config files in this order:
+spectra searches for config files in this order:
 
 1. Explicit path via `--config` flag
 2. Current working directory
@@ -23,7 +23,7 @@ md2jira searches for config files in this order:
 
 ### YAML (Recommended)
 
-Create `.md2jira.yaml` or `.md2jira.yml`:
+Create `.spectra.yaml` or `.spectra.yml`:
 
 ```yaml
 # Jira connection settings (required)
@@ -51,7 +51,7 @@ epic: PROJ-123
 
 ### TOML
 
-Create `.md2jira.toml`:
+Create `.spectra.toml`:
 
 ```toml
 # Default paths
@@ -79,19 +79,19 @@ statuses = true
 
 ### pyproject.toml
 
-Add a `[tool.md2jira]` section to your project's `pyproject.toml`:
+Add a `[tool.spectra]` section to your project's `pyproject.toml`:
 
 ```toml
-[tool.md2jira]
+[tool.spectra]
 epic = "PROJ-123"
 
-[tool.md2jira.jira]
+[tool.spectra.jira]
 url = "https://your-company.atlassian.net"
 email = "your-email@company.com"
 api_token = "your-api-token"
 project = "PROJ"
 
-[tool.md2jira.sync]
+[tool.spectra.sync]
 verbose = true
 ```
 
@@ -125,13 +125,13 @@ Add `.env` to your `.gitignore`!
 
 ```bash
 # Override Jira URL
-md2jira --markdown epic.md --epic PROJ-123 --jira-url https://other.atlassian.net
+spectra --markdown epic.md --epic PROJ-123 --jira-url https://other.atlassian.net
 
 # Specify config file
-md2jira --markdown epic.md --epic PROJ-123 --config ~/configs/md2jira-prod.yaml
+spectra --markdown epic.md --epic PROJ-123 --config ~/configs/spectra-prod.yaml
 
 # Override project
-md2jira --markdown epic.md --epic PROJ-123 --project OTHER
+spectra --markdown epic.md --epic PROJ-123 --project OTHER
 ```
 
 ## Security Best Practices
@@ -148,11 +148,11 @@ md2jira --markdown epic.md --epic PROJ-123 --project OTHER
 ### Example `.gitignore` entries
 
 ```gitignore
-# md2jira config with secrets
+# spectra config with secrets
 .env
-.md2jira.yaml
-.md2jira.yml
-.md2jira.toml
+.spectra.yaml
+.spectra.yml
+.spectra.toml
 ```
 
 ## Configuration Reference

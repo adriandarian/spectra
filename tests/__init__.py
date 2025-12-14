@@ -1,1 +1,1 @@
-"""md2jira test suite."""
+"""spectra test suite."""

@@ -240,10 +240,10 @@ The catalog should support grid and list views, with filtering and sorting optio
 
 ```bash
 # Preview changes
-md2jira --markdown ecommerce-epic.md --epic SHOP-100
+spectra --markdown ecommerce-epic.md --epic SHOP-100
 
 # Execute sync
-md2jira --markdown ecommerce-epic.md --epic SHOP-100 --execute
+spectra --markdown ecommerce-epic.md --epic SHOP-100 --execute
 ```
 
 ## Expected Results in Jira

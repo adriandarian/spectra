@@ -16,7 +16,7 @@ Automatically sync your markdown epics to Jira whenever changes are pushed:
 ```
 ┌─────────────────┐     ┌─────────────────┐     ┌─────────────────┐
 │  Push to main   │ ──▶ │  GitHub Action  │ ──▶ │  Jira Updated   │
-│  (EPIC.md)      │     │  runs md2jira   │     │  automatically  │
+│  (EPIC.md)      │     │  runs spectra   │     │  automatically  │
 └─────────────────┘     └─────────────────┘     └─────────────────┘
 ```
 
@@ -77,8 +77,8 @@ jobs:
         with:
           python-version: '3.12'
       
-      - name: Install md2jira
-        run: pip install md2jira
+      - name: Install spectra
+        run: pip install spectra
       
       - name: Sync to Jira
         env:
@@ -86,7 +86,7 @@ jobs:
           JIRA_EMAIL: ${{ secrets.JIRA_EMAIL }}
           JIRA_API_TOKEN: ${{ secrets.JIRA_API_TOKEN }}
         run: |
-          md2jira \
+          spectra \
             --markdown docs/EPIC.md \
             --epic ${{ vars.EPIC_KEY }} \
             --execute \
@@ -127,7 +127,7 @@ $ git push origin main
 <div class="terminal-session" style="background: #0d1117;">
 
 ```
-Run md2jira \
+Run spectra \
   --markdown docs/EPIC.md \
   --epic PROJ-123 \
   --execute \
@@ -135,7 +135,7 @@ Run md2jira \
   --export results.json
 
 ╭──────────────────────────────────────────────────────────────╮
-│  md2jira v1.0.0                                              │
+│  spectra v1.0.0                                              │
 │  Syncing: docs/EPIC.md → PROJ-123                            │
 │  Mode: EXECUTE (CI/CD)                                       │
 ╰──────────────────────────────────────────────────────────────╯
@@ -182,7 +182,7 @@ jobs:
         with:
           python-version: '3.12'
       
-      - run: pip install md2jira
+      - run: pip install spectra
       
       - name: Generate preview
         id: preview
@@ -191,7 +191,7 @@ jobs:
           JIRA_EMAIL: ${{ secrets.JIRA_EMAIL }}
           JIRA_API_TOKEN: ${{ secrets.JIRA_API_TOKEN }}
         run: |
-          output=$(md2jira \
+          output=$(spectra \
             --markdown docs/EPIC.md \
             --epic ${{ vars.EPIC_KEY }} \
             --output json)
@@ -276,14 +276,14 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: '3.12'
-      - run: pip install md2jira
+      - run: pip install spectra
       - name: Sync ${{ matrix.epic }}
         env:
           JIRA_URL: ${{ secrets.JIRA_URL }}
           JIRA_EMAIL: ${{ secrets.JIRA_EMAIL }}
           JIRA_API_TOKEN: ${{ secrets.JIRA_API_TOKEN }}
         run: |
-          md2jira -m "${{ matrix.file }}" -e "${{ matrix.epic }}" -x --no-confirm
+          spectra -m "${{ matrix.file }}" -e "${{ matrix.epic }}" -x --no-confirm
 ```
 
 ## Slack Notifications
@@ -328,7 +328,7 @@ Add Slack notifications for sync results:
 ```yaml
 - name: Sync with debug
   run: |
-    md2jira \
+    spectra \
       --markdown docs/EPIC.md \
       --epic ${{ vars.EPIC_KEY }} \
       --execute \

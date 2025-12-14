@@ -5,14 +5,14 @@ Tests for the interactive CLI mode.
 import pytest
 from unittest.mock import Mock, patch
 
-from md2jira.cli.interactive import (
+from spectra.cli.interactive import (
     Action,
     PendingOperation,
     PhasePreview,
     InteractiveSession,
     run_interactive,
 )
-from md2jira.cli.output import Console
+from spectra.cli.output import Console
 
 
 class TestPendingOperation:

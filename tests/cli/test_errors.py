@@ -6,7 +6,7 @@ Tests the rich error messages, suggestions, and formatting.
 
 import pytest
 
-from md2jira.cli.errors import (
+from spectra.cli.errors import (
     ErrorCode,
     ErrorFormatter,
     FormattedError,
@@ -14,8 +14,8 @@ from md2jira.cli.errors import (
     format_config_errors,
     format_connection_error,
 )
-from md2jira.cli.output import Console
-from md2jira.core.exceptions import (
+from spectra.cli.output import Console
+from spectra.core.exceptions import (
     AuthenticationError,
     AccessDeniedError,
     ResourceNotFoundError,
@@ -85,12 +85,12 @@ class TestFormattedError:
             code=ErrorCode.CONFIG_MISSING_URL,
             title="Missing URL",
             message="No URL configured.",
-            docs_url="https://md2jira.dev/guide/config",
+            docs_url="https://spectra.dev/guide/config",
         )
         
         result = error.format(color=False)
         
-        assert "https://md2jira.dev/guide/config" in result
+        assert "https://spectra.dev/guide/config" in result
         assert "Documentation:" in result
     
     def test_format_with_details(self):

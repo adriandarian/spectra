@@ -1,4 +1,4 @@
-Source: md2jira
+Source: spectra
 Section: utils
 Priority: optional
 Maintainer: Adrian Darian <adrian.the.hactus@gmail.com>
@@ -8,12 +8,12 @@ Build-Depends: debhelper-compat (= 13),
                python3-setuptools,
                python3-pip
 Standards-Version: 4.6.2
-Homepage: https://github.com/adriandarian/md2jira
-Vcs-Browser: https://github.com/adriandarian/md2jira
-Vcs-Git: https://github.com/adriandarian/md2jira.git
+Homepage: https://github.com/adriandarian/spectra
+Vcs-Browser: https://github.com/adriandarian/spectra
+Vcs-Git: https://github.com/adriandarian/spectra.git
 Rules-Requires-Root: no
 
-Package: md2jira
+Package: spectra
 Architecture: all
 Depends: ${python3:Depends},
          ${misc:Depends},

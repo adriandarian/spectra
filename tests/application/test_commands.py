@@ -3,14 +3,14 @@
 import pytest
 from unittest.mock import Mock
 
-from md2jira.application.commands import (
+from spectra.application.commands import (
     CommandResult,
     CommandBatch,
     UpdateDescriptionCommand,
     CreateSubtaskCommand,
     TransitionStatusCommand,
 )
-from md2jira.core.ports.issue_tracker import IssueData
+from spectra.core.ports.issue_tracker import IssueData
 
 
 class TestCommandResult:
@@ -244,7 +244,7 @@ class TestSyncResultGracefulDegradation:
     
     def test_failed_operation_str_format(self):
         """Test FailedOperation string representation."""
-        from md2jira.application.sync.orchestrator import FailedOperation
+        from spectra.application.sync.orchestrator import FailedOperation
         
         failed = FailedOperation(
             operation="update_description",
@@ -260,7 +260,7 @@ class TestSyncResultGracefulDegradation:
     
     def test_failed_operation_without_story_id(self):
         """Test FailedOperation without story ID."""
-        from md2jira.application.sync.orchestrator import FailedOperation
+        from spectra.application.sync.orchestrator import FailedOperation
         
         failed = FailedOperation(
             operation="transition_status",
@@ -274,7 +274,7 @@ class TestSyncResultGracefulDegradation:
     
     def test_add_failed_operation(self):
         """Test adding failed operations to SyncResult."""
-        from md2jira.application.sync.orchestrator import SyncResult
+        from spectra.application.sync.orchestrator import SyncResult
         
         result = SyncResult()
         assert result.success is True
@@ -293,7 +293,7 @@ class TestSyncResultGracefulDegradation:
     
     def test_partial_success_detection(self):
         """Test partial success when some ops succeed and some fail."""
-        from md2jira.application.sync.orchestrator import SyncResult
+        from spectra.application.sync.orchestrator import SyncResult
         
         result = SyncResult()
         result.stories_updated = 5
@@ -316,7 +316,7 @@ class TestSyncResultGracefulDegradation:
     
     def test_success_rate_calculation(self):
         """Test success rate calculation."""
-        from md2jira.application.sync.orchestrator import SyncResult
+        from spectra.application.sync.orchestrator import SyncResult
         
         result = SyncResult()
         result.stories_updated = 8
@@ -333,14 +333,14 @@ class TestSyncResultGracefulDegradation:
     
     def test_success_rate_with_no_operations(self):
         """Test success rate when no operations performed."""
-        from md2jira.application.sync.orchestrator import SyncResult
+        from spectra.application.sync.orchestrator import SyncResult
         
         result = SyncResult()
         assert result.success_rate == 1.0
     
     def test_summary_generation(self):
         """Test summary generation."""
-        from md2jira.application.sync.orchestrator import SyncResult
+        from spectra.application.sync.orchestrator import SyncResult
         
         result = SyncResult()
         result.stories_matched = 10
@@ -362,7 +362,7 @@ class TestSyncResultGracefulDegradation:
     
     def test_summary_dry_run(self):
         """Test summary shows dry run mode."""
-        from md2jira.application.sync.orchestrator import SyncResult
+        from spectra.application.sync.orchestrator import SyncResult
         
         result = SyncResult(dry_run=True)
         summary = result.summary()
@@ -371,7 +371,7 @@ class TestSyncResultGracefulDegradation:
     
     def test_summary_success(self):
         """Test summary for successful sync."""
-        from md2jira.application.sync.orchestrator import SyncResult
+        from spectra.application.sync.orchestrator import SyncResult
         
         result = SyncResult(dry_run=False)
         result.stories_updated = 5
@@ -387,8 +387,8 @@ class TestSyncOrchestratorGracefulDegradation:
         self, mock_tracker_with_children, mock_parser, mock_formatter, sync_config
     ):
         """Test that sync continues even if one description update fails."""
-        from md2jira.application.sync.orchestrator import SyncOrchestrator
-        from md2jira.core.ports.issue_tracker import IssueTrackerError
+        from spectra.application.sync.orchestrator import SyncOrchestrator
+        from spectra.core.ports.issue_tracker import IssueTrackerError
         
         # Make one description update fail
         call_count = [0]
@@ -420,7 +420,7 @@ class TestSyncOrchestratorGracefulDegradation:
         self, mock_tracker_with_children, mock_parser, mock_formatter, sync_config
     ):
         """Test that failed operations are tracked in a list."""
-        from md2jira.application.sync.orchestrator import SyncOrchestrator
+        from spectra.application.sync.orchestrator import SyncOrchestrator
         
         orchestrator = SyncOrchestrator(
             tracker=mock_tracker_with_children,

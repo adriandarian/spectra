@@ -5,9 +5,9 @@ Tests for Notion Parser.
 import pytest
 from textwrap import dedent
 
-from md2jira.adapters.parsers.notion_parser import NotionParser
-from md2jira.adapters.parsers.notion_plugin import NotionParserPlugin, create_plugin
-from md2jira.core.domain.enums import Status, Priority
+from spectra.adapters.parsers.notion_parser import NotionParser
+from spectra.adapters.parsers.notion_plugin import NotionParserPlugin, create_plugin
+from spectra.core.domain.enums import Status, Priority
 
 
 # =============================================================================

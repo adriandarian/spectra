@@ -1,6 +1,6 @@
-name: 'md2jira Sync'
+name: 'spectra Sync'
 description: 'Sync markdown documentation to Jira issues, epics, and subtasks'
-author: 'md2jira'
+author: 'spectra'
 branding:
   icon: 'upload-cloud'
   color: 'blue'
