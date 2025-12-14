@@ -50,6 +50,9 @@ Examples:
   # Strict validation (warnings are errors)
   md2jira --validate --markdown EPIC.md --strict
 
+  # Show status dashboard
+  md2jira --dashboard --markdown EPIC.md --epic PROJ-123
+
   # Analyze without making changes (dry-run)
   md2jira --markdown EPIC.md --epic PROJ-123
 
@@ -296,6 +299,11 @@ Environment Variables:
         "--strict",
         action="store_true",
         help="Strict validation mode: treat warnings as errors (used with --validate)"
+    )
+    parser.add_argument(
+        "--dashboard",
+        action="store_true",
+        help="Show TUI dashboard with sync status overview"
     )
     parser.add_argument(
         "--interactive", "-i",
@@ -2342,6 +2350,20 @@ def main() -> int:
             console,
             args.markdown,
             strict=getattr(args, 'strict', False),
+        )
+    
+    # Handle dashboard mode (markdown and epic are optional)
+    if args.dashboard:
+        from .dashboard import run_dashboard
+        console = Console(
+            color=not args.no_color,
+            verbose=args.verbose,
+            quiet=args.quiet,
+        )
+        return run_dashboard(
+            console,
+            markdown_path=args.markdown,
+            epic_key=args.epic,
         )
     
     # Validate required arguments for other modes
