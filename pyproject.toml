@@ -46,6 +46,12 @@ dependencies = [
 async = [
     "aiohttp>=3.8.0",  # Async HTTP client for parallel API calls
 ]
+telemetry = [
+    "opentelemetry-api>=1.20.0",
+    "opentelemetry-sdk>=1.20.0",
+    "opentelemetry-exporter-otlp>=1.20.0",
+    "opentelemetry-exporter-prometheus>=0.41b0",
+]
 dev = [
     "pytest>=7.0",
     "pytest-cov>=4.0",
@@ -63,6 +69,10 @@ dev = [
 ]
 all = [
     "aiohttp>=3.8.0",  # Async HTTP client for parallel API calls
+    "opentelemetry-api>=1.20.0",
+    "opentelemetry-sdk>=1.20.0",
+    "opentelemetry-exporter-otlp>=1.20.0",
+    "opentelemetry-exporter-prometheus>=0.41b0",
 ]
 docs = [
     "mkdocs>=1.5",

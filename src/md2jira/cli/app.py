@@ -53,6 +53,9 @@ Examples:
   # Show status dashboard
   md2jira --dashboard --markdown EPIC.md --epic PROJ-123
 
+  # Enable OpenTelemetry tracing
+  md2jira --otel-enable --otel-endpoint http://localhost:4317 --markdown EPIC.md --epic PROJ-123
+
   # Analyze without making changes (dry-run)
   md2jira --markdown EPIC.md --epic PROJ-123
 
@@ -305,6 +308,30 @@ Environment Variables:
         action="store_true",
         help="Show TUI dashboard with sync status overview"
     )
+    
+    # OpenTelemetry arguments
+    parser.add_argument(
+        "--otel-enable",
+        action="store_true",
+        help="Enable OpenTelemetry tracing and metrics"
+    )
+    parser.add_argument(
+        "--otel-endpoint",
+        metavar="URL",
+        help="OTLP exporter endpoint (e.g., http://localhost:4317)"
+    )
+    parser.add_argument(
+        "--otel-service-name",
+        metavar="NAME",
+        default="md2jira",
+        help="Service name for traces/metrics (default: md2jira)"
+    )
+    parser.add_argument(
+        "--otel-console",
+        action="store_true",
+        help="Export traces/metrics to console (for debugging)"
+    )
+    
     parser.add_argument(
         "--interactive", "-i",
         action="store_true",
@@ -2384,6 +2411,17 @@ def main() -> int:
         static_fields={"service": "md2jira"} if log_format == "json" else None,
     )
     
+    # Setup OpenTelemetry if enabled
+    telemetry_provider = None
+    if getattr(args, 'otel_enable', False):
+        from .telemetry import configure_telemetry
+        telemetry_provider = configure_telemetry(
+            enabled=True,
+            endpoint=getattr(args, 'otel_endpoint', None),
+            service_name=getattr(args, 'otel_service_name', 'md2jira'),
+            console_export=getattr(args, 'otel_console', False),
+        )
+    
     # Create console
     console = Console(
         color=not args.no_color,
@@ -2409,6 +2447,11 @@ def main() -> int:
             console.print()
             traceback.print_exc()
         return ExitCode.from_exception(e)
+    
+    finally:
+        # Shutdown telemetry if enabled
+        if telemetry_provider:
+            telemetry_provider.shutdown()
 
 
 def run() -> None:
