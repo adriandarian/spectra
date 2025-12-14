@@ -104,8 +104,9 @@ check: lint typecheck test
 # Cleanup
 clean:
 	rm -rf build/
-	rm -rf dist/
+	rm -rf .build/
 	rm -rf *.egg-info/
+	rm -rf src/*.egg-info/
 	rm -rf .mutmut-cache/
 	rm -rf .pytest_cache/
 	rm -rf .mypy_cache/

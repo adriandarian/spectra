@@ -38,7 +38,7 @@ docker run --rm \
 
 For easier management with persistent configuration:
 
-### docker-compose.yml
+### docker compose.yml
 
 ```yaml
 services:

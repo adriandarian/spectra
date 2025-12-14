@@ -1,5 +1,5 @@
 name: 'spectra Sync'
-description: 'Sync markdown documentation to Jira issues, epics, and subtasks'
+description: 'Sync markdown specifications to issue trackers (Jira, GitHub, Azure DevOps, Linear)'
 author: 'spectra'
 branding:
   icon: 'upload-cloud'

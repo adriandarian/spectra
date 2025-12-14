@@ -56,7 +56,7 @@ brew install adriandarian/spectra/spectra
 choco install spectra
 
 # Universal Linux installer
-curl -fsSL https://raw.githubusercontent.com/adriandarian/spectra/main/packaging/linux/install.sh | bash
+curl -fsSL https://raw.githubusercontent.com/adriandarian/spectra/main/dist/packages/linux/install.sh | bash
 ```
 
 ### From Source
@@ -74,7 +74,7 @@ pip install -e ".[dev]"
 docker pull adriandarian/spectra:latest
 
 # Or build locally
-docker build -t spectra:latest .
+docker build -t spectra:latest -f dist/docker/Dockerfile .
 
 # Run with your markdown file and Jira credentials
 docker run --rm \
@@ -285,13 +285,14 @@ spectra -m EPIC.md -e PROJ-123 -x --export sync-results.json
 
 ## Documentation
 
-- [Markdown Schema](docs/SCHEMA.md) - Detailed specification of expected markdown format
-- [Template](docs/TEMPLATE.md) - Blank template to get started
-- [Example](docs/EXAMPLE.md) - Full working example
-- [AI Prompt](docs/AI_PROMPT.md) - Prompt for AI agents to generate content
-- [Configuration](docs/CONFIG.md) - Configuration file format and options
-- [Exit Codes](docs/EXIT_CODES.md) - CLI exit codes for scripting and CI/CD
-- [Shell Completions](docs/COMPLETIONS.md) - Tab completion for Bash, Zsh, Fish
+Visit our **[documentation site](docs/index.md)** for comprehensive guides:
+
+- [Getting Started](docs/guide/getting-started.md) - Quick start guide
+- [Installation](docs/guide/installation.md) - All installation options
+- [Configuration](docs/guide/configuration.md) - Configuration file format and options
+- [CLI Reference](docs/reference/cli.md) - Complete CLI documentation
+- [Architecture](docs/guide/architecture.md) - System architecture overview
+- [Plugins](docs/guide/plugins.md) - Plugin development guide
 
 ## Development
 
@@ -323,11 +324,20 @@ black src/ tests/
 
 ```
 spectra/
-├── src/spectra/      # Source code
+├── src/spectra/      # Python source code
 ├── tests/            # Test suite
-├── docs/             # Documentation
-├── pyproject.toml    # Project config
-└── README.md
+├── docs/             # Documentation (VitePress)
+├── integrations/     # Editor & platform integrations
+│   ├── github-action/
+│   ├── vscode/
+│   ├── neovim/
+│   └── terraform/
+├── dist/             # Distribution files
+│   ├── docker/
+│   ├── completions/
+│   └── packages/
+├── scripts/          # Development scripts
+└── pyproject.toml    # Project config
 ```
 
 ## License
