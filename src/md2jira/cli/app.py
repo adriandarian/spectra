@@ -62,6 +62,13 @@ Examples:
   # Enable health check endpoint (for Kubernetes/Docker)
   md2jira --health --health-port 8080 --markdown EPIC.md --epic PROJ-123
 
+  # Enable anonymous usage analytics (opt-in)
+  md2jira --analytics --markdown EPIC.md --epic PROJ-123
+  
+  # Show/clear analytics data
+  md2jira --analytics-show
+  md2jira --analytics-clear
+
   # Analyze without making changes (dry-run)
   md2jira --markdown EPIC.md --epic PROJ-123
 
@@ -376,6 +383,23 @@ Environment Variables:
         default="0.0.0.0",
         metavar="HOST",
         help="Health check host (default: 0.0.0.0)"
+    )
+    
+    # Analytics arguments (opt-in)
+    parser.add_argument(
+        "--analytics",
+        action="store_true",
+        help="Enable anonymous usage analytics (opt-in)"
+    )
+    parser.add_argument(
+        "--analytics-show",
+        action="store_true",
+        help="Show what analytics data has been collected"
+    )
+    parser.add_argument(
+        "--analytics-clear",
+        action="store_true",
+        help="Clear all collected analytics data"
     )
     
     parser.add_argument(
@@ -2439,6 +2463,36 @@ def main() -> int:
             epic_key=args.epic,
         )
     
+    # Handle analytics commands (no markdown/epic needed)
+    if getattr(args, 'analytics_show', False):
+        from .analytics import (
+            configure_analytics, show_analytics_info, format_analytics_display
+        )
+        console = Console(color=not args.no_color)
+        
+        # Show what analytics collects
+        console.print(show_analytics_info())
+        console.print()
+        
+        # Show collected data if any
+        manager = configure_analytics(enabled=True)
+        data = manager.get_display_data()
+        console.print(format_analytics_display(data))
+        
+        return ExitCode.SUCCESS
+    
+    if getattr(args, 'analytics_clear', False):
+        from .analytics import configure_analytics
+        console = Console(color=not args.no_color)
+        
+        manager = configure_analytics(enabled=True)
+        if manager.clear_data():
+            console.success("Analytics data cleared")
+            return ExitCode.SUCCESS
+        else:
+            console.error("Failed to clear analytics data")
+            return ExitCode.ERROR
+    
     # Validate required arguments for other modes
     if not args.markdown or not args.epic:
         parser.error("the following arguments are required: --markdown/-m, --epic/-e")
@@ -2489,6 +2543,12 @@ def main() -> int:
             port=getattr(args, 'health_port', 8080),
             host=getattr(args, 'health_host', '0.0.0.0'),
         )
+    
+    # Setup analytics if enabled (opt-in)
+    analytics_manager = None
+    if getattr(args, 'analytics', False):
+        from .analytics import configure_analytics
+        analytics_manager = configure_analytics(enabled=True)
     
     # Create console
     console = Console(
