@@ -227,6 +227,63 @@ class Console:
         # Errors always print, even in quiet mode
         print(self._c(f"  {Symbols.CROSS} {text}", Colors.RED))
     
+    def error_rich(self, exc: Exception) -> None:
+        """
+        Print a rich, formatted error message from an exception.
+        
+        Provides actionable suggestions and context based on the error type.
+        Always prints, even in quiet mode.
+        
+        Args:
+            exc: Exception to format and display.
+        """
+        from .errors import format_error
+        
+        if self.json_mode:
+            self._json_errors.append(str(exc))
+            return
+        
+        formatted = format_error(exc, color=self.color, verbose=self.verbose)
+        print(formatted)
+    
+    def config_errors(self, errors: list[str]) -> None:
+        """
+        Print formatted configuration errors with suggestions.
+        
+        Provides helpful guidance on how to fix configuration issues.
+        Always prints, even in quiet mode.
+        
+        Args:
+            errors: List of configuration error messages.
+        """
+        from .errors import format_config_errors
+        
+        if self.json_mode:
+            self._json_errors.extend(errors)
+            return
+        
+        formatted = format_config_errors(errors, color=self.color)
+        print(formatted)
+    
+    def connection_error(self, url: str = "") -> None:
+        """
+        Print a formatted connection error with suggestions.
+        
+        Provides helpful guidance on how to fix connection/auth issues.
+        Always prints, even in quiet mode.
+        
+        Args:
+            url: The Jira URL that failed to connect (optional).
+        """
+        from .errors import format_connection_error
+        
+        if self.json_mode:
+            self._json_errors.append(f"Connection failed: {url}" if url else "Connection failed")
+            return
+        
+        formatted = format_connection_error(url, color=self.color)
+        print(formatted)
+    
     def warning(self, text: str) -> None:
         """
         Print a warning message with warning symbol.

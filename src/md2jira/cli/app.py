@@ -657,9 +657,7 @@ def run_restore(args) -> int:
     errors = config_provider.validate()
     
     if errors:
-        console.error("Configuration errors:")
-        for error in errors:
-            console.item(error, "fail")
+        console.config_errors(errors)
         return ExitCode.CONFIG_ERROR
     
     config = config_provider.load()
@@ -675,7 +673,7 @@ def run_restore(args) -> int:
     # Test connection
     console.section("Connecting to Jira")
     if not tracker.test_connection():
-        console.error("Failed to connect to Jira. Check credentials.")
+        console.connection_error(config.tracker.url)
         return ExitCode.CONNECTION_ERROR
     
     user = tracker.get_current_user()
@@ -796,9 +794,7 @@ def run_diff(args) -> int:
     errors = config_provider.validate()
     
     if errors:
-        console.error("Configuration errors:")
-        for error in errors:
-            console.item(error, "fail")
+        console.config_errors(errors)
         return ExitCode.CONFIG_ERROR
     
     config = config_provider.load()
@@ -814,7 +810,7 @@ def run_diff(args) -> int:
     # Test connection
     console.section("Connecting to Jira")
     if not tracker.test_connection():
-        console.error("Failed to connect to Jira. Check credentials.")
+        console.connection_error(config.tracker.url)
         return ExitCode.CONNECTION_ERROR
     
     user = tracker.get_current_user()
@@ -910,9 +906,7 @@ def run_rollback(args) -> int:
     errors = config_provider.validate()
     
     if errors:
-        console.error("Configuration errors:")
-        for error in errors:
-            console.item(error, "fail")
+        console.config_errors(errors)
         return ExitCode.CONFIG_ERROR
     
     config = config_provider.load()
@@ -928,7 +922,7 @@ def run_rollback(args) -> int:
     # Test connection
     console.section("Connecting to Jira")
     if not tracker.test_connection():
-        console.error("Failed to connect to Jira. Check credentials.")
+        console.connection_error(config.tracker.url)
         return ExitCode.CONNECTION_ERROR
     
     user = tracker.get_current_user()
@@ -1050,9 +1044,7 @@ def run_sync_links(args) -> int:
     errors = config_provider.validate()
     
     if errors:
-        console.error("Configuration errors:")
-        for error in errors:
-            console.item(error, "fail")
+        console.config_errors(errors)
         return ExitCode.CONFIG_ERROR
     
     config = config_provider.load()
@@ -1070,7 +1062,7 @@ def run_sync_links(args) -> int:
     # Test connection
     console.section("Connecting to Jira")
     if not tracker.test_connection():
-        console.error("Failed to connect to Jira. Check credentials.")
+        console.connection_error(config.tracker.url)
         return ExitCode.CONNECTION_ERROR
     
     user = tracker.get_current_user()
@@ -1241,9 +1233,7 @@ def run_multi_epic(args) -> int:
     errors = config_provider.validate()
     
     if errors:
-        console.error("Configuration errors:")
-        for error in errors:
-            console.item(error, "fail")
+        console.config_errors(errors)
         return ExitCode.CONFIG_ERROR
     
     config = config_provider.load()
@@ -1261,7 +1251,7 @@ def run_multi_epic(args) -> int:
     # Test connection
     console.section("Connecting to Jira")
     if not tracker.test_connection():
-        console.error("Failed to connect to Jira. Check credentials.")
+        console.connection_error(config.tracker.url)
         return ExitCode.CONNECTION_ERROR
     
     user = tracker.get_current_user()
@@ -1379,9 +1369,7 @@ def run_webhook(args) -> int:
     errors = config_provider.validate()
     
     if errors:
-        console.error("Configuration errors:")
-        for error in errors:
-            console.item(error, "fail")
+        console.config_errors(errors)
         return ExitCode.CONFIG_ERROR
     
     config = config_provider.load()
@@ -1403,7 +1391,7 @@ def run_webhook(args) -> int:
     
     console.section("Connecting to Jira")
     if not tracker.test_connection():
-        console.error("Failed to connect to Jira. Check credentials.")
+        console.connection_error(config.tracker.url)
         return ExitCode.CONNECTION_ERROR
     
     user = tracker.get_current_user()
@@ -1510,9 +1498,7 @@ def run_schedule(args) -> int:
     errors = config_provider.validate()
     
     if errors:
-        console.error("Configuration errors:")
-        for error in errors:
-            console.item(error, "fail")
+        console.config_errors(errors)
         return ExitCode.CONFIG_ERROR
     
     config = config_provider.load()
@@ -1541,7 +1527,7 @@ def run_schedule(args) -> int:
     
     console.section("Connecting to Jira")
     if not tracker.test_connection():
-        console.error("Failed to connect to Jira. Check credentials.")
+        console.connection_error(config.tracker.url)
         return ExitCode.CONNECTION_ERROR
     
     user = tracker.get_current_user()
@@ -1636,9 +1622,7 @@ def run_watch(args) -> int:
     errors = config_provider.validate()
     
     if errors:
-        console.error("Configuration errors:")
-        for error in errors:
-            console.item(error, "fail")
+        console.config_errors(errors)
         return ExitCode.CONFIG_ERROR
     
     config = config_provider.load()
@@ -1667,7 +1651,7 @@ def run_watch(args) -> int:
     
     console.section("Connecting to Jira")
     if not tracker.test_connection():
-        console.error("Failed to connect to Jira. Check credentials.")
+        console.connection_error(config.tracker.url)
         return ExitCode.CONNECTION_ERROR
     
     user = tracker.get_current_user()
@@ -1831,9 +1815,7 @@ def run_pull(args) -> int:
     errors = config_provider.validate()
     
     if errors:
-        console.error("Configuration errors:")
-        for error in errors:
-            console.item(error, "fail")
+        console.config_errors(errors)
         return ExitCode.CONFIG_ERROR
     
     config = config_provider.load()
@@ -1850,7 +1832,7 @@ def run_pull(args) -> int:
     # Test connection
     console.section("Connecting to Jira")
     if not tracker.test_connection():
-        console.error("Failed to connect to Jira. Check credentials.")
+        console.connection_error(config.tracker.url)
         return ExitCode.CONNECTION_ERROR
     
     user = tracker.get_current_user()
@@ -1970,9 +1952,7 @@ def run_sync(
     errors = config_provider.validate()
     
     if errors:
-        console.error("Configuration errors:")
-        for error in errors:
-            console.item(error, "fail")
+        console.config_errors(errors)
         return ExitCode.CONFIG_ERROR
     
     config = config_provider.load()
@@ -1980,7 +1960,7 @@ def run_sync(
     # Validate markdown exists
     markdown_path = Path(args.markdown)
     if not markdown_path.exists():
-        console.error(f"Markdown file not found: {markdown_path}")
+        console.error_rich(FileNotFoundError(markdown_path))
         return ExitCode.FILE_NOT_FOUND
     
     # Show header
@@ -2034,7 +2014,7 @@ def run_sync(
     # Test connection
     console.section("Connecting to Jira")
     if not tracker.test_connection():
-        console.error("Failed to connect to Jira. Check credentials.")
+        console.connection_error(config.tracker.url)
         return ExitCode.CONNECTION_ERROR
     
     user = tracker.get_current_user()
@@ -2329,9 +2309,11 @@ def main() -> int:
         return ExitCode.SIGINT
     
     except Exception as e:
-        console.error(f"Unexpected error: {e}")
+        # Use rich error formatting for better user experience
+        console.error_rich(e)
         if args.verbose:
             import traceback
+            console.print()
             traceback.print_exc()
         return ExitCode.from_exception(e)
 
