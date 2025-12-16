@@ -99,7 +99,7 @@ mypy src/
 ruff check src/ tests/
 
 # Check formatting
-black --check src/ tests/
+ruff format --check src/ tests/
 ```
 
 ### 6. Configure Environment (Optional)
@@ -221,8 +221,7 @@ We use these tools to maintain consistent code style:
 
 | Tool | Purpose | Config |
 |------|---------|--------|
-| **Black** | Code formatting | `pyproject.toml` |
-| **Ruff** | Linting | `pyproject.toml` |
+| **Ruff** | Linting & Formatting | `pyproject.toml` |
 | **mypy** | Type checking | `pyproject.toml` |
 
 ### General Guidelines
@@ -283,13 +282,13 @@ from spectra.core.ports import IssueTrackerPort
 ### Line Length
 
 - Maximum line length: **100 characters**
-- Black and Ruff enforce this automatically
+- Ruff enforces this automatically
 
 ### Running Style Checks
 
 ```bash
 # Format code
-black src/ tests/
+ruff format src/ tests/
 
 # Check linting
 ruff check src/ tests/
@@ -424,7 +423,7 @@ pytest -v
    pytest
    mypy src/
    ruff check src/ tests/
-   black --check src/ tests/
+   ruff format --check src/ tests/
    ```
 
 3. **Push your branch**

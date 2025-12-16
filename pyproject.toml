@@ -69,7 +69,6 @@ dev = [
     "aiohttp>=3.8.0",  # For testing async functionality
     "mypy>=1.0",
     "ruff>=0.1.0",
-    "black>=23.0",
     "pre-commit>=3.0",
     "types-PyYAML>=6.0",  # Type stubs for PyYAML
 ]
@@ -325,19 +324,5 @@ known-first-party = ["spectra"]
 force-single-line = false
 lines-after-imports = 2
 
-[tool.black]
-line-length = 100
-target-version = ["py310"]
-include = '\.pyi?$'
-extend-exclude = '''
-/(
-    \.git
-    | \.mypy_cache
-    | \.ruff_cache
-    | \.venv
-    | build
-    | dist
-)/
-'''
 # Mutation testing is configured via mutmut_config.py
 # Run with: mutmut run

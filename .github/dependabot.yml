@@ -19,7 +19,6 @@ updates:
           - "pytest*"
           - "mypy"
           - "ruff"
-          - "black"
           - "pre-commit"
         update-types:
           - "minor"

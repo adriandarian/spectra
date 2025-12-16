@@ -15,7 +15,7 @@ The following CI checks **must pass** before merging:
 | Check | Description | Blocking |
 |-------|-------------|----------|
 | `quick-checks` | Debug code detection, commit format, file permissions | ✅ Yes |
-| `lint` | Ruff lint, Ruff format, Black format | ✅ Yes |
+| `lint` | Ruff lint, Ruff format | ✅ Yes |
 | `typecheck` | MyPy strict type checking | ✅ Yes |
 | `test` | Unit tests (Python 3.10/3.11/3.12 × Ubuntu/macOS/Windows) | ✅ Yes |
 | `build` | Package build, twine verify, installation test | ✅ Yes |
