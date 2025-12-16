@@ -359,6 +359,7 @@ class WebhookServer:
         self._last_sync_time: float = 0
         self._sync_lock = threading.Lock()
         self._pending_sync = False
+        self._pending_timer: threading.Timer | None = None
 
         self.parser = WebhookParser()
         self.stats = WebhookStats()
@@ -413,6 +414,12 @@ class WebhookServer:
     def stop(self) -> None:
         """Stop the webhook server."""
         self._running = False
+        # Cancel any pending sync timer
+        with self._sync_lock:
+            if self._pending_timer:
+                self._pending_timer.cancel()
+                self._pending_timer = None
+            self._pending_sync = False
         if self._server:
             self._server.shutdown()
             self._server = None
@@ -466,25 +473,32 @@ class WebhookServer:
             if now - self._last_sync_time < self.debounce_seconds:
                 self._pending_sync = True
                 self.logger.debug("Sync debounced, will run after delay")
+                # Cancel any existing timer
+                if self._pending_timer:
+                    self._pending_timer.cancel()
                 # Schedule delayed sync
-                threading.Timer(
+                self._pending_timer = threading.Timer(
                     self.debounce_seconds,
                     self._execute_pending_sync,
-                ).start()
+                )
+                self._pending_timer.start()
                 return
 
             self._last_sync_time = now
             self._pending_sync = False
-
         self._execute_sync()
 
     def _execute_pending_sync(self) -> None:
         """Execute a pending sync if one is scheduled."""
+        # Check if server was stopped
+        if not self._running:
+            return
         with self._sync_lock:
             if not self._pending_sync:
                 return
             self._pending_sync = False
             self._last_sync_time = time.time()
+            self._pending_timer = None
 
         self._execute_sync()
 

@@ -2388,11 +2388,24 @@ def main() -> int:
             quiet=args.quiet,
             json_mode=(args.output == "json"),
         )
-        return validate_markdown(
-            console,
-            args.markdown,
-            strict=getattr(args, "strict", False),
-        )
+        try:
+            return validate_markdown(
+                console,
+                args.markdown,
+                strict=getattr(args, "strict", False),
+            )
+        except KeyboardInterrupt:
+            console.print()
+            console.warning("Interrupted by user")
+            return ExitCode.SIGINT
+        except Exception as e:
+            console.error_rich(e)
+            if args.verbose:
+                import traceback
+
+                console.print()
+                traceback.print_exc()
+            return ExitCode.from_exception(e)
 
     # Handle dashboard mode (markdown and epic are optional)
     if args.dashboard:
