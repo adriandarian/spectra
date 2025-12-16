@@ -357,7 +357,7 @@ class AsyncHttpClient:
             await self._session.close()
             self.logger.debug("Closed async HTTP session")
 
-    async def __aenter__(self) -> "AsyncHttpClient":
+    async def __aenter__(self) -> AsyncHttpClient:
         """Context manager entry."""
         await self._get_session()
         return self
