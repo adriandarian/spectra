@@ -7,18 +7,19 @@ The LinearAdapter uses this to implement the IssueTrackerPort.
 Linear API Documentation: https://developers.linear.app/docs/graphql/working-with-the-graphql-api
 """
 
+import contextlib
 import logging
 import random
 import threading
 import time
-from typing import Any, Optional
+from typing import Any
 
 import requests
 from requests.adapters import HTTPAdapter
 
 from spectra.core.ports.issue_tracker import (
-    IssueTrackerError,
     AuthenticationError,
+    IssueTrackerError,
     NotFoundError,
     PermissionError,
     RateLimitError,
@@ -33,12 +34,12 @@ RETRYABLE_STATUS_CODES = frozenset({429, 500, 502, 503, 504})
 class LinearRateLimiter:
     """
     Rate limiter for Linear API.
-    
+
     Linear has a rate limit of 1,500 requests per hour for the GraphQL API.
     This works out to about 0.4 requests per second sustained.
     We use a conservative default with burst capacity.
     """
-    
+
     def __init__(
         self,
         requests_per_second: float = 1.0,
@@ -46,78 +47,78 @@ class LinearRateLimiter:
     ):
         """
         Initialize the rate limiter.
-        
+
         Args:
             requests_per_second: Maximum sustained request rate.
             burst_size: Maximum tokens in bucket (allows short bursts).
         """
         self.requests_per_second = requests_per_second
         self.burst_size = max(1, burst_size)
-        
+
         # Token bucket state
         self._tokens = float(burst_size)
         self._last_update = time.monotonic()
         self._lock = threading.Lock()
-        
+
         # Linear rate limit tracking
         self._requests_remaining: int | None = None
         self._reset_at: float | None = None
-        
+
         # Statistics
         self._total_requests = 0
         self._total_wait_time = 0.0
-        
+
         self.logger = logging.getLogger("LinearRateLimiter")
-    
+
     def acquire(self, timeout: float | None = None) -> bool:
         """
         Acquire a token, waiting if necessary.
-        
+
         Args:
             timeout: Maximum time to wait in seconds.
-            
+
         Returns:
             True if token was acquired, False if timeout was reached.
         """
         start_time = time.monotonic()
-        
+
         while True:
             with self._lock:
                 self._refill_tokens()
-                
+
                 if self._tokens >= 1.0:
                     self._tokens -= 1.0
                     self._total_requests += 1
                     return True
-                
+
                 tokens_needed = 1.0 - self._tokens
                 wait_time = tokens_needed / self.requests_per_second
-            
+
             if timeout is not None:
                 elapsed = time.monotonic() - start_time
                 if elapsed >= timeout:
                     return False
                 wait_time = min(wait_time, timeout - elapsed)
-            
+
             if wait_time > 0.01:
                 self.logger.debug(f"Rate limit: waiting {wait_time:.3f}s for token")
-            
+
             self._total_wait_time += wait_time
             time.sleep(wait_time)
-    
+
     def _refill_tokens(self) -> None:
         """Refill tokens based on elapsed time. Must be called with lock held."""
         now = time.monotonic()
         elapsed = now - self._last_update
         self._last_update = now
-        
+
         new_tokens = elapsed * self.requests_per_second
         self._tokens = min(self.burst_size, self._tokens + new_tokens)
-    
+
     def update_from_response(self, response: requests.Response) -> None:
         """
         Update rate limiter based on Linear API response headers.
-        
+
         Linear provides:
         - X-RateLimit-Requests-Remaining: Remaining requests
         - X-RateLimit-Requests-Reset: Unix timestamp when limit resets
@@ -133,14 +134,12 @@ class LinearRateLimiter:
                         )
                 except ValueError:
                     pass
-            
+
             reset = response.headers.get("X-RateLimit-Requests-Reset")
             if reset is not None:
-                try:
+                with contextlib.suppress(ValueError):
                     self._reset_at = float(reset)
-                except ValueError:
-                    pass
-            
+
             if response.status_code == 429:
                 old_rate = self.requests_per_second
                 self.requests_per_second = max(0.1, self.requests_per_second * 0.5)
@@ -148,7 +147,7 @@ class LinearRateLimiter:
                     f"Rate limited by Linear, reducing rate from "
                     f"{old_rate:.2f} to {self.requests_per_second:.2f} req/s"
                 )
-    
+
     @property
     def stats(self) -> dict[str, Any]:
         """Get rate limiter statistics."""
@@ -158,14 +157,15 @@ class LinearRateLimiter:
                 "total_wait_time": self._total_wait_time,
                 "average_wait_time": (
                     self._total_wait_time / self._total_requests
-                    if self._total_requests > 0 else 0.0
+                    if self._total_requests > 0
+                    else 0.0
                 ),
                 "available_tokens": self._tokens,
                 "requests_per_second": self.requests_per_second,
                 "linear_remaining": self._requests_remaining,
                 "linear_reset_at": self._reset_at,
             }
-    
+
     def reset(self) -> None:
         """Reset the rate limiter to initial state."""
         with self._lock:
@@ -180,9 +180,9 @@ class LinearRateLimiter:
 class LinearApiClient:
     """
     Low-level Linear GraphQL API client.
-    
+
     Handles authentication, request/response, rate limiting, and error handling.
-    
+
     Features:
     - GraphQL API with automatic query building
     - API key authentication
@@ -190,23 +190,23 @@ class LinearApiClient:
     - Rate limiting with awareness of Linear's limits
     - Connection pooling
     """
-    
+
     API_URL = "https://api.linear.app/graphql"
-    
+
     # Default retry configuration
     DEFAULT_MAX_RETRIES = 3
     DEFAULT_INITIAL_DELAY = 1.0
     DEFAULT_MAX_DELAY = 60.0
     DEFAULT_BACKOFF_FACTOR = 2.0
     DEFAULT_JITTER = 0.1
-    
+
     # Default rate limiting (conservative for Linear)
     DEFAULT_REQUESTS_PER_SECOND = 1.0  # ~3600/hour, under 1500 limit
     DEFAULT_BURST_SIZE = 10
-    
+
     # Connection pool settings
     DEFAULT_TIMEOUT = 30.0
-    
+
     def __init__(
         self,
         api_key: str,
@@ -223,7 +223,7 @@ class LinearApiClient:
     ):
         """
         Initialize the Linear client.
-        
+
         Args:
             api_key: Linear API key
             api_url: Linear GraphQL API URL
@@ -242,14 +242,14 @@ class LinearApiClient:
         self.dry_run = dry_run
         self.timeout = timeout
         self.logger = logging.getLogger("LinearApiClient")
-        
+
         # Retry configuration
         self.max_retries = max_retries
         self.initial_delay = initial_delay
         self.max_delay = max_delay
         self.backoff_factor = backoff_factor
         self.jitter = jitter
-        
+
         # Rate limiting
         self._rate_limiter: LinearRateLimiter | None = None
         if requests_per_second is not None and requests_per_second > 0:
@@ -257,29 +257,29 @@ class LinearApiClient:
                 requests_per_second=requests_per_second,
                 burst_size=burst_size,
             )
-        
+
         # Headers for Linear API
         self.headers = {
             "Content-Type": "application/json",
             "Authorization": api_key,
         }
-        
+
         # Configure session with connection pooling
         self._session = requests.Session()
         self._session.headers.update(self.headers)
-        
+
         adapter = HTTPAdapter(pool_connections=10, pool_maxsize=10)
         self._session.mount("https://", adapter)
-        
+
         # Cache
-        self._viewer: Optional[dict] = None
+        self._viewer: dict | None = None
         self._team_cache: dict[str, dict] = {}
         self._workflow_states_cache: dict[str, list[dict]] = {}
-    
+
     # -------------------------------------------------------------------------
     # Core GraphQL Methods
     # -------------------------------------------------------------------------
-    
+
     def execute(
         self,
         query: str,
@@ -288,15 +288,15 @@ class LinearApiClient:
     ) -> dict[str, Any]:
         """
         Execute a GraphQL query/mutation.
-        
+
         Args:
             query: GraphQL query or mutation
             variables: Query variables
             operation_name: Optional operation name
-            
+
         Returns:
             GraphQL response data
-            
+
         Raises:
             IssueTrackerError: On API errors
         """
@@ -305,26 +305,26 @@ class LinearApiClient:
             payload["variables"] = variables
         if operation_name:
             payload["operationName"] = operation_name
-        
+
         last_exception: Exception | None = None
-        
+
         for attempt in range(self.max_retries + 1):
             if self._rate_limiter is not None:
                 self._rate_limiter.acquire()
-            
+
             try:
                 response = self._session.post(
                     self.api_url,
                     json=payload,
                     timeout=self.timeout,
                 )
-                
+
                 if self._rate_limiter is not None:
                     self._rate_limiter.update_from_response(response)
-                
+
                 if response.status_code in RETRYABLE_STATUS_CODES:
                     delay = self._calculate_delay(attempt)
-                    
+
                     if attempt < self.max_retries:
                         self.logger.warning(
                             f"Retryable error {response.status_code}, "
@@ -333,19 +333,16 @@ class LinearApiClient:
                         )
                         time.sleep(delay)
                         continue
-                    
+
                     if response.status_code == 429:
                         raise RateLimitError(
                             "Linear rate limit exceeded",
                             retry_after=int(delay),
                         )
-                    else:
-                        raise TransientError(
-                            f"Linear server error {response.status_code}"
-                        )
-                
+                    raise TransientError(f"Linear server error {response.status_code}")
+
                 return self._handle_response(response)
-                
+
             except requests.exceptions.ConnectionError as e:
                 last_exception = e
                 if attempt < self.max_retries:
@@ -354,7 +351,7 @@ class LinearApiClient:
                     time.sleep(delay)
                     continue
                 raise IssueTrackerError(f"Connection failed: {e}", cause=e)
-                
+
             except requests.exceptions.Timeout as e:
                 last_exception = e
                 if attempt < self.max_retries:
@@ -363,12 +360,11 @@ class LinearApiClient:
                     time.sleep(delay)
                     continue
                 raise IssueTrackerError(f"Request timed out: {e}", cause=e)
-        
+
         raise IssueTrackerError(
-            f"Request failed after {self.max_retries + 1} attempts",
-            cause=last_exception
+            f"Request failed after {self.max_retries + 1} attempts", cause=last_exception
         )
-    
+
     def query(
         self,
         query: str,
@@ -376,7 +372,7 @@ class LinearApiClient:
     ) -> dict[str, Any]:
         """Execute a GraphQL query (read operation)."""
         return self.execute(query, variables)
-    
+
     def mutate(
         self,
         mutation: str,
@@ -384,66 +380,64 @@ class LinearApiClient:
     ) -> dict[str, Any]:
         """
         Execute a GraphQL mutation (write operation).
-        
+
         Respects dry_run mode.
         """
         if self.dry_run:
             self.logger.info("[DRY-RUN] Would execute mutation")
             return {}
         return self.execute(mutation, variables)
-    
+
     def _calculate_delay(self, attempt: int) -> float:
         """Calculate delay before next retry using exponential backoff."""
-        base_delay = self.initial_delay * (self.backoff_factor ** attempt)
+        base_delay = self.initial_delay * (self.backoff_factor**attempt)
         base_delay = min(base_delay, self.max_delay)
-        
+
         jitter_range = base_delay * self.jitter
         jitter_value = random.uniform(-jitter_range, jitter_range)
-        
+
         return max(0, base_delay + jitter_value)
-    
+
     def _handle_response(self, response: requests.Response) -> dict[str, Any]:
         """Handle GraphQL response and convert errors."""
         if response.status_code == 401:
-            raise AuthenticationError(
-                "Linear authentication failed. Check your API key."
-            )
-        
+            raise AuthenticationError("Linear authentication failed. Check your API key.")
+
         if response.status_code == 403:
             raise PermissionError("Permission denied")
-        
+
         if not response.ok:
             raise IssueTrackerError(
                 f"Linear API error {response.status_code}: {response.text[:500]}"
             )
-        
+
         data = response.json()
-        
+
         # Check for GraphQL errors
         if "errors" in data:
             errors = data["errors"]
             error_messages = [e.get("message", str(e)) for e in errors]
-            
+
             # Check for specific error types
             for error in errors:
                 extensions = error.get("extensions", {})
                 error_type = extensions.get("type", "")
-                
+
                 if error_type == "authentication":
                     raise AuthenticationError(error_messages[0])
-                elif error_type == "forbidden":
+                if error_type == "forbidden":
                     raise PermissionError(error_messages[0])
-                elif "not found" in error_messages[0].lower():
+                if "not found" in error_messages[0].lower():
                     raise NotFoundError(error_messages[0])
-            
+
             raise IssueTrackerError(f"GraphQL errors: {'; '.join(error_messages)}")
-        
+
         return data.get("data", {})
-    
+
     # -------------------------------------------------------------------------
     # Viewer (Current User) API
     # -------------------------------------------------------------------------
-    
+
     def get_viewer(self) -> dict[str, Any]:
         """Get the current authenticated user."""
         if self._viewer is None:
@@ -460,11 +454,11 @@ class LinearApiClient:
             data = self.query(query)
             self._viewer = data.get("viewer", {})
         return self._viewer
-    
+
     def get_viewer_id(self) -> str:
         """Get the current user's ID."""
         return self.get_viewer().get("id", "")
-    
+
     def test_connection(self) -> bool:
         """Test if the API connection and credentials are valid."""
         try:
@@ -472,16 +466,16 @@ class LinearApiClient:
             return True
         except IssueTrackerError:
             return False
-    
+
     @property
     def is_connected(self) -> bool:
         """Check if the client has successfully connected."""
         return self._viewer is not None
-    
+
     # -------------------------------------------------------------------------
     # Teams API
     # -------------------------------------------------------------------------
-    
+
     def get_teams(self) -> list[dict[str, Any]]:
         """Get all teams the user has access to."""
         query = """
@@ -498,12 +492,12 @@ class LinearApiClient:
         """
         data = self.query(query)
         return data.get("teams", {}).get("nodes", [])
-    
+
     def get_team(self, team_id: str) -> dict[str, Any]:
         """Get a specific team by ID."""
         if team_id in self._team_cache:
             return self._team_cache[team_id]
-        
+
         query = """
             query Team($id: String!) {
                 team(id: $id) {
@@ -518,7 +512,7 @@ class LinearApiClient:
         team = data.get("team", {})
         self._team_cache[team_id] = team
         return team
-    
+
     def get_team_by_key(self, key: str) -> dict[str, Any] | None:
         """Get a team by its key (e.g., 'ENG')."""
         teams = self.get_teams()
@@ -527,16 +521,16 @@ class LinearApiClient:
                 self._team_cache[team["id"]] = team
                 return team
         return None
-    
+
     # -------------------------------------------------------------------------
     # Workflow States API
     # -------------------------------------------------------------------------
-    
+
     def get_workflow_states(self, team_id: str) -> list[dict[str, Any]]:
         """Get all workflow states for a team."""
         if team_id in self._workflow_states_cache:
             return self._workflow_states_cache[team_id]
-        
+
         query = """
             query WorkflowStates($teamId: String!) {
                 workflowStates(filter: { team: { id: { eq: $teamId } } }) {
@@ -556,7 +550,7 @@ class LinearApiClient:
         states.sort(key=lambda x: x.get("position", 0))
         self._workflow_states_cache[team_id] = states
         return states
-    
+
     def get_workflow_state_by_name(
         self,
         team_id: str,
@@ -569,15 +563,15 @@ class LinearApiClient:
             if state.get("name", "").lower() == name_lower:
                 return state
         return None
-    
+
     # -------------------------------------------------------------------------
     # Issues API
     # -------------------------------------------------------------------------
-    
+
     def get_issue(self, issue_id: str) -> dict[str, Any]:
         """
         Get an issue by ID or identifier.
-        
+
         Args:
             issue_id: Issue UUID or identifier (e.g., 'ENG-123')
         """
@@ -644,7 +638,7 @@ class LinearApiClient:
         if not issue:
             raise NotFoundError(f"Issue not found: {issue_id}")
         return issue
-    
+
     def search_issues(
         self,
         team_id: str | None = None,
@@ -653,7 +647,7 @@ class LinearApiClient:
     ) -> list[dict[str, Any]]:
         """
         Search for issues.
-        
+
         Args:
             team_id: Filter by team ID
             query_filter: Search query string
@@ -663,11 +657,11 @@ class LinearApiClient:
         filter_parts = []
         if team_id:
             filter_parts.append(f'team: {{ id: {{ eq: "{team_id}" }} }}')
-        
+
         filter_str = ""
         if filter_parts:
             filter_str = f"filter: {{ {', '.join(filter_parts)} }}"
-        
+
         query = f"""
             query SearchIssues($first: Int!) {{
                 issues({filter_str} first: $first) {{
@@ -697,7 +691,7 @@ class LinearApiClient:
         """
         data = self.query(query, {"first": first})
         return data.get("issues", {}).get("nodes", [])
-    
+
     def create_issue(
         self,
         team_id: str,
@@ -723,12 +717,12 @@ class LinearApiClient:
                 }
             }
         """
-        
+
         input_data: dict[str, Any] = {
             "teamId": team_id,
             "title": title,
         }
-        
+
         if description:
             input_data["description"] = description
         if priority is not None:
@@ -743,10 +737,10 @@ class LinearApiClient:
             input_data["parentId"] = parent_id
         if label_ids:
             input_data["labelIds"] = label_ids
-        
+
         data = self.mutate(mutation, {"input": input_data})
         return data.get("issueCreate", {}).get("issue", {})
-    
+
     def update_issue(
         self,
         issue_id: str,
@@ -771,9 +765,9 @@ class LinearApiClient:
                 }
             }
         """
-        
+
         input_data: dict[str, Any] = {}
-        
+
         if title is not None:
             input_data["title"] = title
         if description is not None:
@@ -788,13 +782,13 @@ class LinearApiClient:
             input_data["assigneeId"] = assignee_id
         if parent_id is not None:
             input_data["parentId"] = parent_id
-        
+
         if not input_data:
             return {}
-        
+
         data = self.mutate(mutation, {"id": issue_id, "input": input_data})
         return data.get("issueUpdate", {}).get("issue", {})
-    
+
     def get_issue_comments(self, issue_id: str) -> list[dict[str, Any]]:
         """Get all comments on an issue."""
         query = """
@@ -818,7 +812,7 @@ class LinearApiClient:
         """
         data = self.query(query, {"id": issue_id})
         return data.get("issue", {}).get("comments", {}).get("nodes", [])
-    
+
     def add_comment(self, issue_id: str, body: str) -> dict[str, Any]:
         """Add a comment to an issue."""
         mutation = """
@@ -832,14 +826,14 @@ class LinearApiClient:
                 }
             }
         """
-        
+
         data = self.mutate(mutation, {"input": {"issueId": issue_id, "body": body}})
         return data.get("commentCreate", {}).get("comment", {})
-    
+
     # -------------------------------------------------------------------------
     # Projects (Epics) API
     # -------------------------------------------------------------------------
-    
+
     def get_project(self, project_id: str) -> dict[str, Any]:
         """Get a project by ID."""
         query = """
@@ -868,12 +862,12 @@ class LinearApiClient:
         if not project:
             raise NotFoundError(f"Project not found: {project_id}")
         return project
-    
+
     def get_project_issues(self, project_id: str) -> list[dict[str, Any]]:
         """Get all issues in a project."""
         project = self.get_project(project_id)
         return project.get("issues", {}).get("nodes", [])
-    
+
     def create_project(
         self,
         name: str,
@@ -892,27 +886,27 @@ class LinearApiClient:
                 }
             }
         """
-        
+
         input_data: dict[str, Any] = {
             "name": name,
             "teamIds": team_ids,
         }
         if description:
             input_data["description"] = description
-        
+
         data = self.mutate(mutation, {"input": input_data})
         return data.get("projectCreate", {}).get("project", {})
-    
+
     # -------------------------------------------------------------------------
     # Labels API
     # -------------------------------------------------------------------------
-    
+
     def get_labels(self, team_id: str | None = None) -> list[dict[str, Any]]:
         """Get all labels, optionally filtered by team."""
         filter_str = ""
         if team_id:
             filter_str = f'filter: {{ team: {{ id: {{ eq: "{team_id}" }} }} }}'
-        
+
         query = f"""
             query Labels {{
                 issueLabels({filter_str}) {{
@@ -927,7 +921,7 @@ class LinearApiClient:
         """
         data = self.query(query)
         return data.get("issueLabels", {}).get("nodes", [])
-    
+
     def create_label(
         self,
         team_id: str,
@@ -948,7 +942,7 @@ class LinearApiClient:
                 }
             }
         """
-        
+
         input_data: dict[str, Any] = {
             "teamId": team_id,
             "name": name,
@@ -957,23 +951,23 @@ class LinearApiClient:
             input_data["color"] = color
         if description:
             input_data["description"] = description
-        
+
         data = self.mutate(mutation, {"input": input_data})
         return data.get("issueLabelCreate", {}).get("issueLabel", {})
-    
+
     # -------------------------------------------------------------------------
     # Resource Cleanup
     # -------------------------------------------------------------------------
-    
+
     def close(self) -> None:
         """Close the client and release resources."""
         self._session.close()
         self.logger.debug("Closed HTTP session")
-    
+
     def __enter__(self) -> "LinearApiClient":
         """Context manager entry."""
         return self
-    
+
     def __exit__(
         self,
         exc_type: type | None,
@@ -982,11 +976,10 @@ class LinearApiClient:
     ) -> None:
         """Context manager exit."""
         self.close()
-    
+
     @property
     def rate_limit_stats(self) -> dict[str, Any] | None:
         """Get rate limiter statistics."""
         if self._rate_limiter is None:
             return None
         return self._rate_limiter.stats
-

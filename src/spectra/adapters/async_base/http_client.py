@@ -11,22 +11,25 @@ Provides a foundation for async API clients with:
 import asyncio
 import logging
 import random
-from typing import Any, Optional
+from typing import Any
+
 
 try:
     import aiohttp
+
     AIOHTTP_AVAILABLE = True
 except ImportError:
     AIOHTTP_AVAILABLE = False
 
 from spectra.core.ports.issue_tracker import (
-    IssueTrackerError,
     AuthenticationError,
+    IssueTrackerError,
     NotFoundError,
     PermissionError,
     RateLimitError,
     TransientError,
 )
+
 from .rate_limiter import AsyncRateLimiter
 
 
@@ -37,17 +40,17 @@ RETRYABLE_STATUS_CODES = frozenset({429, 500, 502, 503, 504})
 class AsyncHttpClient:
     """
     Base async HTTP client with retry logic and rate limiting.
-    
+
     Designed to be subclassed by specific API clients (Jira, GitHub, etc.).
     Uses aiohttp for async HTTP requests with connection pooling.
-    
+
     Features:
     - Automatic retry with exponential backoff and jitter
     - Proactive rate limiting to prevent 429 errors
     - Connection pooling for performance
     - Configurable timeouts
     - Typed exception handling
-    
+
     Example:
         >>> client = AsyncHttpClient(
         ...     base_url="https://api.example.com",
@@ -56,7 +59,7 @@ class AsyncHttpClient:
         >>> async with client:
         ...     data = await client.get("/users/me")
     """
-    
+
     # Default configuration
     DEFAULT_MAX_RETRIES = 3
     DEFAULT_INITIAL_DELAY = 1.0
@@ -66,7 +69,7 @@ class AsyncHttpClient:
     DEFAULT_TIMEOUT = 30.0
     DEFAULT_REQUESTS_PER_SECOND = 5.0
     DEFAULT_BURST_SIZE = 10
-    
+
     def __init__(
         self,
         base_url: str,
@@ -84,7 +87,7 @@ class AsyncHttpClient:
     ):
         """
         Initialize the async HTTP client.
-        
+
         Args:
             base_url: Base URL for all requests
             headers: Default headers for all requests
@@ -101,26 +104,25 @@ class AsyncHttpClient:
         """
         if not AIOHTTP_AVAILABLE:
             raise ImportError(
-                "aiohttp is required for async operations. "
-                "Install with: pip install aiohttp"
+                "aiohttp is required for async operations. Install with: pip install aiohttp"
             )
-        
+
         self.base_url = base_url.rstrip("/")
         self.default_headers = headers or {}
         self.timeout = aiohttp.ClientTimeout(total=timeout)
         self.logger = logging.getLogger(self.__class__.__name__)
-        
+
         # Retry configuration
         self.max_retries = max_retries
         self.initial_delay = initial_delay
         self.max_delay = max_delay
         self.backoff_factor = backoff_factor
         self.jitter = jitter
-        
+
         # Connection pool configuration
         self._connector_limit = connector_limit
         self._connector_limit_per_host = connector_limit_per_host
-        
+
         # Rate limiting
         self._rate_limiter: AsyncRateLimiter | None = None
         if requests_per_second is not None and requests_per_second > 0:
@@ -128,11 +130,11 @@ class AsyncHttpClient:
                 requests_per_second=requests_per_second,
                 burst_size=burst_size,
             )
-        
+
         # Session (created lazily)
-        self._session: Optional[aiohttp.ClientSession] = None
-        self._connector: Optional[aiohttp.TCPConnector] = None
-    
+        self._session: aiohttp.ClientSession | None = None
+        self._connector: aiohttp.TCPConnector | None = None
+
     async def _get_session(self) -> aiohttp.ClientSession:
         """Get or create the aiohttp session."""
         if self._session is None or self._session.closed:
@@ -146,7 +148,7 @@ class AsyncHttpClient:
                 timeout=self.timeout,
             )
         return self._session
-    
+
     async def request(
         self,
         method: str,
@@ -155,34 +157,34 @@ class AsyncHttpClient:
     ) -> dict[str, Any] | list[Any]:
         """
         Make an async HTTP request with rate limiting and retry.
-        
+
         Args:
             method: HTTP method (GET, POST, PUT, DELETE)
             endpoint: API endpoint (appended to base_url)
             **kwargs: Additional arguments for aiohttp
-            
+
         Returns:
             JSON response as dict or list
-            
+
         Raises:
             IssueTrackerError: On API errors after all retries exhausted
         """
         # Build URL
-        if endpoint.startswith("http://") or endpoint.startswith("https://"):
+        if endpoint.startswith(("http://", "https://")):
             url = endpoint
         elif endpoint.startswith("/"):
             url = f"{self.base_url}{endpoint}"
         else:
             url = f"{self.base_url}/{endpoint}"
-        
+
         session = await self._get_session()
         last_exception: Exception | None = None
-        
+
         for attempt in range(self.max_retries + 1):
             # Apply rate limiting
             if self._rate_limiter is not None:
                 await self._rate_limiter.acquire()
-            
+
             try:
                 async with session.request(method, url, **kwargs) as response:
                     # Update rate limiter from response
@@ -191,12 +193,12 @@ class AsyncHttpClient:
                             response.status,
                             dict(response.headers),
                         )
-                    
+
                     # Check for retryable status codes
                     if response.status in RETRYABLE_STATUS_CODES:
                         retry_after = self._get_retry_after(response.headers)
                         delay = self._calculate_delay(attempt, retry_after)
-                        
+
                         if attempt < self.max_retries:
                             self.logger.warning(
                                 f"Retryable error {response.status} on {method} {endpoint}, "
@@ -205,7 +207,7 @@ class AsyncHttpClient:
                             )
                             await asyncio.sleep(delay)
                             continue
-                        
+
                         # All retries exhausted
                         if response.status == 429:
                             raise RateLimitError(
@@ -213,15 +215,14 @@ class AsyncHttpClient:
                                 retry_after=retry_after,
                                 issue_key=endpoint,
                             )
-                        else:
-                            raise TransientError(
-                                f"Server error {response.status} for {endpoint} "
-                                f"after {self.max_retries + 1} attempts",
-                                issue_key=endpoint,
-                            )
-                    
+                        raise TransientError(
+                            f"Server error {response.status} for {endpoint} "
+                            f"after {self.max_retries + 1} attempts",
+                            issue_key=endpoint,
+                        )
+
                     return await self._handle_response(response, endpoint)
-                    
+
             except aiohttp.ClientConnectionError as e:
                 last_exception = e
                 if attempt < self.max_retries:
@@ -234,10 +235,9 @@ class AsyncHttpClient:
                     await asyncio.sleep(delay)
                     continue
                 raise IssueTrackerError(
-                    f"Connection failed after {self.max_retries + 1} attempts: {e}",
-                    cause=e
+                    f"Connection failed after {self.max_retries + 1} attempts: {e}", cause=e
                 ) from e
-                
+
             except asyncio.TimeoutError as e:
                 last_exception = e
                 if attempt < self.max_retries:
@@ -250,34 +250,28 @@ class AsyncHttpClient:
                     await asyncio.sleep(delay)
                     continue
                 raise IssueTrackerError(
-                    f"Request timed out after {self.max_retries + 1} attempts",
-                    cause=e
+                    f"Request timed out after {self.max_retries + 1} attempts", cause=e
                 ) from e
-        
+
         # Should never reach here
         raise IssueTrackerError(
-            f"Request failed after {self.max_retries + 1} attempts",
-            cause=last_exception
+            f"Request failed after {self.max_retries + 1} attempts", cause=last_exception
         )
-    
-    def _calculate_delay(
-        self,
-        attempt: int,
-        retry_after: int | None = None
-    ) -> float:
+
+    def _calculate_delay(self, attempt: int, retry_after: int | None = None) -> float:
         """Calculate delay before next retry using exponential backoff."""
         if retry_after is not None:
             base_delay = min(retry_after, self.max_delay)
         else:
-            base_delay = self.initial_delay * (self.backoff_factor ** attempt)
+            base_delay = self.initial_delay * (self.backoff_factor**attempt)
             base_delay = min(base_delay, self.max_delay)
-        
+
         # Add jitter
         jitter_range = base_delay * self.jitter
         jitter_value = random.uniform(-jitter_range, jitter_range)
-        
+
         return max(0, base_delay + jitter_value)
-    
+
     def _get_retry_after(self, headers: Any) -> int | None:
         """Extract Retry-After header value."""
         retry_after = headers.get("Retry-After")
@@ -287,7 +281,7 @@ class AsyncHttpClient:
             except ValueError:
                 return None
         return None
-    
+
     async def _handle_response(
         self,
         response: aiohttp.ClientResponse,
@@ -299,27 +293,27 @@ class AsyncHttpClient:
             if text:
                 return await response.json()
             return {}
-        
+
         status = response.status
         error_body = (await response.text())[:500]
-        
+
         if status == 401:
             raise AuthenticationError("Authentication failed. Check credentials.")
-        
+
         if status == 403:
             raise PermissionError(f"Permission denied for {endpoint}", issue_key=endpoint)
-        
+
         if status == 404:
             raise NotFoundError(f"Not found: {endpoint}", issue_key=endpoint)
-        
+
         raise IssueTrackerError(f"API error {status}: {error_body}", issue_key=endpoint)
-    
+
     # Convenience methods
-    
+
     async def get(self, endpoint: str, **kwargs: Any) -> dict[str, Any] | list[Any]:
         """Perform a GET request."""
         return await self.request("GET", endpoint, **kwargs)
-    
+
     async def post(
         self,
         endpoint: str,
@@ -328,7 +322,7 @@ class AsyncHttpClient:
     ) -> dict[str, Any] | list[Any]:
         """Perform a POST request."""
         return await self.request("POST", endpoint, json=json, **kwargs)
-    
+
     async def put(
         self,
         endpoint: str,
@@ -337,7 +331,7 @@ class AsyncHttpClient:
     ) -> dict[str, Any] | list[Any]:
         """Perform a PUT request."""
         return await self.request("PUT", endpoint, json=json, **kwargs)
-    
+
     async def patch(
         self,
         endpoint: str,
@@ -346,22 +340,22 @@ class AsyncHttpClient:
     ) -> dict[str, Any] | list[Any]:
         """Perform a PATCH request."""
         return await self.request("PATCH", endpoint, json=json, **kwargs)
-    
+
     async def delete(self, endpoint: str, **kwargs: Any) -> dict[str, Any] | list[Any]:
         """Perform a DELETE request."""
         return await self.request("DELETE", endpoint, **kwargs)
-    
+
     async def close(self) -> None:
         """Close the client and release resources."""
         if self._session and not self._session.closed:
             await self._session.close()
             self.logger.debug("Closed async HTTP session")
-    
+
     async def __aenter__(self) -> "AsyncHttpClient":
         """Context manager entry."""
         await self._get_session()
         return self
-    
+
     async def __aexit__(
         self,
         exc_type: type | None,
@@ -370,16 +364,15 @@ class AsyncHttpClient:
     ) -> None:
         """Context manager exit - closes the client."""
         await self.close()
-    
+
     @property
     def rate_limiter(self) -> AsyncRateLimiter | None:
         """Get the rate limiter instance."""
         return self._rate_limiter
-    
+
     @property
     def rate_limit_stats(self) -> dict[str, Any] | None:
         """Get rate limiter statistics."""
         if self._rate_limiter is None:
             return None
         return self._rate_limiter.stats
-

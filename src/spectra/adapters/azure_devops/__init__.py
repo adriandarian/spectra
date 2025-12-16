@@ -5,13 +5,13 @@ This module provides the Azure DevOps implementation of the IssueTrackerPort,
 enabling syncing markdown documents to Azure DevOps work items.
 """
 
-from .client import AzureDevOpsApiClient
 from .adapter import AzureDevOpsAdapter
+from .client import AzureDevOpsApiClient
 from .plugin import AzureDevOpsTrackerPlugin
 
+
 __all__ = [
-    "AzureDevOpsApiClient",
     "AzureDevOpsAdapter",
+    "AzureDevOpsApiClient",
     "AzureDevOpsTrackerPlugin",
 ]
-

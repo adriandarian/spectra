@@ -3,7 +3,7 @@ Document Formatters - Convert domain entities to output formats.
 """
 
 from .adf import ADFFormatter
-from .markdown_writer import MarkdownWriter, MarkdownUpdater
+from .markdown_writer import MarkdownUpdater, MarkdownWriter
 
-__all__ = ["ADFFormatter", "MarkdownWriter", "MarkdownUpdater"]
 
+__all__ = ["ADFFormatter", "MarkdownUpdater", "MarkdownWriter"]

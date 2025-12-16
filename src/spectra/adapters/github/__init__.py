@@ -5,13 +5,13 @@ This module provides the GitHub Issues implementation of the IssueTrackerPort,
 enabling syncing markdown documents to GitHub Issues.
 """
 
-from .client import GitHubApiClient
 from .adapter import GitHubAdapter
+from .client import GitHubApiClient
 from .plugin import GitHubTrackerPlugin
 
+
 __all__ = [
-    "GitHubApiClient",
     "GitHubAdapter",
+    "GitHubApiClient",
     "GitHubTrackerPlugin",
 ]
-

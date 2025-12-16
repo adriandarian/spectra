@@ -10,49 +10,53 @@ This module contains:
 - services: Service registration and factories
 """
 
-from .domain import *
-from .ports import *
-from .exceptions import *
+# Import domain first (has canonical IssueType enum)
+# Import constants (IssueType alias will override domain's - we'll fix that below)
 from .constants import *
 from .container import (
-    Container,
-    Lifecycle,
-    ContainerError,
-    ServiceNotFoundError,
     CircularDependencyError,
+    Container,
+    ContainerError,
+    Lifecycle,
+    ServiceNotFoundError,
     get_container,
     reset_container,
 )
-from .services import (
-    register_defaults,
-    register_for_sync,
-    create_test_container,
-    create_sync_orchestrator,
-)
+from .domain import *
+
+# Re-import the domain IssueType to make it the canonical export
+from .domain.enums import IssueType
+from .exceptions import *
+from .ports import *
 from .result import (
-    Result,
-    Ok,
-    Err,
-    ResultError,
-    OperationError,
-    OperationResult,
     BatchItem,
     BatchResult,
+    Err,
+    Ok,
+    OperationError,
+    OperationResult,
+    Result,
+    ResultError,
+)
+from .services import (
+    create_sync_orchestrator,
+    create_test_container,
+    register_defaults,
+    register_for_sync,
 )
 from .specification import (
-    Specification,
-    PredicateSpec,
-    StatusSpec,
-    IssueTypeSpec,
-    HasSubtasksSpec,
-    TitleMatchesSpec,
-    HasKeySpec,
     HasDescriptionSpec,
-    StoryPointsSpec,
+    HasKeySpec,
+    HasSubtasksSpec,
+    IssueTypeSpec,
     MatchedSpec,
+    PredicateSpec,
+    Specification,
+    StatusSpec,
+    StoryPointsSpec,
+    TitleMatchesSpec,
     UnmatchedSpec,
     all_of,
     any_of,
     none_of,
 )
-

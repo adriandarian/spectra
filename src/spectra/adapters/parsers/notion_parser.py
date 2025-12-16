@@ -15,93 +15,92 @@ import csv
 import logging
 import re
 from pathlib import Path
-from typing import Optional, Union
 
-from spectra.core.ports.document_parser import DocumentParserPort
-from spectra.core.domain.entities import Epic, UserStory, Subtask
+from spectra.core.domain.entities import Epic, Subtask, UserStory
+from spectra.core.domain.enums import Priority, Status
 from spectra.core.domain.value_objects import (
-    StoryId,
-    IssueKey,
-    Description,
     AcceptanceCriteria,
+    Description,
+    IssueKey,
+    StoryId,
 )
-from spectra.core.domain.enums import Status, Priority
+from spectra.core.ports.document_parser import DocumentParserPort
 
 
 class NotionParser(DocumentParserPort):
     """
     Parser for Notion export files.
-    
+
     Handles both single-page exports and database exports.
-    
+
     Notion exports have specific characteristics:
     - Properties block at the top (key: value format)
     - Callout blocks: > emoji text
     - Toggle blocks: <details><summary>
     - Tables for databases/subtasks
     - Nested structure via folders
-    
+
     Expected Notion page structure for stories:
-    
+
     ```
     # Story Title
-    
+
     Status: In Progress
     Priority: High
     Story Points: 5
     Assignee: @user
-    
+
     ## Description
-    
+
     > 👤 As a user, I want to do something so that I get benefit
-    
+
     ## Acceptance Criteria
-    
+
     - [ ] First criterion
     - [x] Completed criterion
-    
+
     ## Subtasks
-    
+
     | Task | Description | Points | Status |
     |------|-------------|--------|--------|
     | Task 1 | Do thing | 2 | Done |
-    
+
     ## Technical Notes
-    
+
     Implementation details here.
     ```
     """
-    
+
     # Story ID patterns (flexible)
     STORY_ID_PATTERNS = [
-        r'(?:US|STORY|S)-?\d{3,}',  # US-001, STORY-123, S001
-        r'#\d+',  # #123
-        r'\[([A-Z]+-\d+)\]',  # [PROJ-123]
+        r"(?:US|STORY|S)-?\d{3,}",  # US-001, STORY-123, S001
+        r"#\d+",  # #123
+        r"\[([A-Z]+-\d+)\]",  # [PROJ-123]
     ]
-    
+
     # Property patterns
-    PROPERTY_PATTERN = r'^([A-Za-z][A-Za-z\s]*?):\s*(.+)$'
-    
+    PROPERTY_PATTERN = r"^([A-Za-z][A-Za-z\s]*?):\s*(.+)$"
+
     def __init__(self) -> None:
         """Initialize the Notion parser."""
         self.logger = logging.getLogger("NotionParser")
-    
+
     # -------------------------------------------------------------------------
     # DocumentParserPort Implementation
     # -------------------------------------------------------------------------
-    
+
     @property
     def name(self) -> str:
         return "Notion"
-    
+
     @property
     def supported_extensions(self) -> list[str]:
         return [".md", ".markdown", ".csv"]
-    
-    def can_parse(self, source: Union[str, Path]) -> bool:
+
+    def can_parse(self, source: str | Path) -> bool:
         """
         Check if source looks like a Notion export.
-        
+
         Notion exports have specific patterns:
         - Properties at top of file
         - Callout blocks with emojis
@@ -111,109 +110,106 @@ class NotionParser(DocumentParserPort):
             # Check if it's a Notion export folder structure
             if source.is_dir():
                 # Notion exports have UUID suffixes in folder names
-                return bool(re.search(r'[a-f0-9]{32}', str(source)))
-            
+                return bool(re.search(r"[a-f0-9]{32}", str(source)))
+
             if source.suffix.lower() == ".csv":
                 return self._is_notion_database_csv(source)
-            
+
             if source.suffix.lower() not in self.supported_extensions:
                 return False
-            
+
             content = source.read_text(encoding="utf-8")
         else:
             content = source
-        
+
         return self._looks_like_notion(content)
-    
+
     def _looks_like_notion(self, content: str) -> bool:
         """Check if content has Notion-like characteristics."""
         # Check for property block at top
-        lines = content.strip().split('\n')
+        lines = content.strip().split("\n")
         property_count = 0
-        
+
         for line in lines[:20]:  # Check first 20 lines
             if re.match(self.PROPERTY_PATTERN, line.strip()):
                 property_count += 1
-            if line.startswith('# '):
+            if line.startswith("# "):
                 break
-        
+
         if property_count >= 2:
             return True
-        
+
         # Check for Notion callout pattern
-        if re.search(r'^>\s*[🔥📌💡⚠️❗ℹ️✅❌👤🎯📋💻🔧]', content, re.MULTILINE):
+        if re.search(r"^>\s*[🔥📌💡⚠️❗ℹ️✅❌👤🎯📋💻🔧]", content, re.MULTILINE):
             return True
-        
+
         # Check for Notion-style toggle
-        if '<details>' in content and '<summary>' in content:
-            return True
-        
-        return False
-    
+        return bool("<details>" in content and "<summary>" in content)
+
     def _is_notion_database_csv(self, path: Path) -> bool:
         """Check if CSV looks like a Notion database export."""
         try:
-            with open(path, 'r', encoding='utf-8') as f:
+            with open(path, encoding="utf-8") as f:
                 reader = csv.reader(f)
                 headers = next(reader, [])
                 # Notion databases typically have Name/Title as first column
-                if headers and headers[0].lower() in ['name', 'title', 'task', 'story']:
+                if headers and headers[0].lower() in ["name", "title", "task", "story"]:
                     return True
         except Exception:
             pass
         return False
-    
-    def parse_stories(self, source: Union[str, Path]) -> list[UserStory]:
+
+    def parse_stories(self, source: str | Path) -> list[UserStory]:
         """Parse user stories from Notion export."""
         if isinstance(source, Path):
             if source.suffix.lower() == ".csv":
                 return self._parse_database_csv(source)
-            elif source.is_dir():
+            if source.is_dir():
                 return self._parse_notion_folder(source)
             content = source.read_text(encoding="utf-8")
         elif isinstance(source, str) and Path(source).exists():
             path = Path(source)
             if path.suffix.lower() == ".csv":
                 return self._parse_database_csv(path)
-            elif path.is_dir():
+            if path.is_dir():
                 return self._parse_notion_folder(path)
             content = path.read_text(encoding="utf-8")
         else:
             content = source
-        
+
         return self._parse_notion_page(content)
-    
-    def parse_epic(self, source: Union[str, Path]) -> Optional[Epic]:
+
+    def parse_epic(self, source: str | Path) -> Epic | None:
         """Parse an epic with its stories from Notion export."""
         stories = self.parse_stories(source)
-        
+
         if not stories:
             return None
-        
+
         # Try to get epic title from content
         epic_title = "Notion Import"
-        
+
         if isinstance(source, Path):
             # Use folder/file name as epic title
             epic_title = source.stem
             # Remove Notion UUID suffix if present
-            epic_title = re.sub(r'\s+[a-f0-9]{32}$', '', epic_title)
+            epic_title = re.sub(r"\s+[a-f0-9]{32}$", "", epic_title)
         elif isinstance(source, str) and not Path(source).exists():
             # Extract first heading
-            match = re.search(r'^#\s+(.+)$', source, re.MULTILINE)
+            match = re.search(r"^#\s+(.+)$", source, re.MULTILINE)
             if match:
                 epic_title = match.group(1).strip()
-        
+
         return Epic(
             key=IssueKey("EPIC-0"),
             title=epic_title,
             stories=stories,
         )
-    
-    def validate(self, source: Union[str, Path]) -> list[str]:
+
+    def validate(self, source: str | Path) -> list[str]:
         """Validate Notion export source."""
         errors: list[str] = []
-        
+
         try:
             if isinstance(source, Path):
                 if source.is_dir():
@@ -222,21 +218,21 @@ class NotionParser(DocumentParserPort):
                     if not md_files:
                         errors.append("No markdown files found in Notion export folder")
                     return errors
-                
+
                 if not source.exists():
                     errors.append(f"File not found: {source}")
                     return errors
-                
+
                 content = source.read_text(encoding="utf-8")
             elif isinstance(source, str) and Path(source).exists():
                 content = Path(source).read_text(encoding="utf-8")
             else:
                 content = source
-            
+
             # Check for at least one story-like structure
             if not self._looks_like_notion(content):
                 errors.append("Content doesn't appear to be a Notion export")
-            
+
             # Try to parse and collect any errors
             try:
                 stories = self._parse_notion_page(content)
@@ -244,23 +240,23 @@ class NotionParser(DocumentParserPort):
                     errors.append("No stories could be parsed from content")
             except Exception as e:
                 errors.append(f"Parse error: {e}")
-                
+
         except Exception as e:
             errors.append(f"Validation error: {e}")
-        
+
         return errors
-    
+
     # -------------------------------------------------------------------------
     # Private Methods - Notion Page Parsing
     # -------------------------------------------------------------------------
-    
+
     def _parse_notion_page(self, content: str) -> list[UserStory]:
         """Parse a Notion page export into stories."""
         stories = []
-        
+
         # Check if this is a multi-story page or single story
         story_sections = self._split_into_stories(content)
-        
+
         for section in story_sections:
             try:
                 story = self._parse_single_story(section)
@@ -268,79 +264,75 @@ class NotionParser(DocumentParserPort):
                     stories.append(story)
             except Exception as e:
                 self.logger.warning(f"Failed to parse story section: {e}")
-        
+
         return stories
-    
+
     def _split_into_stories(self, content: str) -> list[str]:
         """Split content into individual story sections."""
         # Count H1 headings - looking for actual headings, not just any # character
-        h1_matches = list(re.finditer(r'^# [^#\n]+$', content, flags=re.MULTILINE))
-        
+        h1_matches = list(re.finditer(r"^# [^#\n]+$", content, flags=re.MULTILINE))
+
         if len(h1_matches) > 1:
             # Multiple H1 headings - split at each one
             sections = []
             for i, match in enumerate(h1_matches):
                 start = match.start()
-                if i + 1 < len(h1_matches):
-                    end = h1_matches[i + 1].start()
-                else:
-                    end = len(content)
+                end = h1_matches[i + 1].start() if i + 1 < len(h1_matches) else len(content)
                 section = content[start:end].strip()
                 if section:
                     sections.append(section)
             return sections
-        
+
         # Check for H2 with story IDs (for epic pages with sub-stories)
-        h2_pattern = r'^## .*(?:US-\d+|STORY-\d+|#\d+)'
+        h2_pattern = r"^## .*(?:US-\d+|STORY-\d+|#\d+)"
         h2_matches = list(re.finditer(h2_pattern, content, flags=re.MULTILINE | re.IGNORECASE))
-        
+
         if len(h2_matches) > 1:
             sections = []
             for i, match in enumerate(h2_matches):
                 start = match.start()
-                if i + 1 < len(h2_matches):
-                    end = h2_matches[i + 1].start()
-                else:
-                    end = len(content)
+                end = h2_matches[i + 1].start() if i + 1 < len(h2_matches) else len(content)
                 section = content[start:end].strip()
                 if section:
                     sections.append(section)
             return sections
-        
+
         # Single story page - include any properties at the top
         return [content] if content.strip() else []
-    
-    def _parse_single_story(self, content: str) -> Optional[UserStory]:
+
+    def _parse_single_story(self, content: str) -> UserStory | None:
         """Parse a single story from Notion content."""
         # Extract title and ID
         title, story_id = self._extract_title_and_id(content)
-        
+
         if not title or title == "Untitled Story":
             # No valid title found - this is probably not a story
             # Check if there's at least a heading
-            if not re.search(r'^##?\s+.+$', content, re.MULTILINE):
+            if not re.search(r"^##?\s+.+$", content, re.MULTILINE):
                 return None
-        
+
         # Extract properties block (may be before or after heading)
         properties = self._extract_properties(content)
-        
+
         # Extract description from callout or section
         description = self._extract_description(content)
-        
+
         # Extract acceptance criteria
         acceptance = self._extract_acceptance_criteria(content)
-        
+
         # Extract subtasks from table
         subtasks = self._extract_subtasks(content)
-        
+
         # Extract technical notes
         tech_notes = self._extract_technical_notes(content)
-        
+
         # Map properties to story fields
-        story_points = self._parse_int(properties.get("story points", properties.get("points", "0")))
+        story_points = self._parse_int(
+            properties.get("story points", properties.get("points", "0"))
+        )
         priority = Priority.from_string(properties.get("priority", "medium"))
         status = Status.from_string(properties.get("status", "planned"))
-        
+
         return UserStory(
             id=StoryId(story_id),
             title=title,
@@ -353,168 +345,170 @@ class NotionParser(DocumentParserPort):
             subtasks=subtasks,
             commits=[],
         )
-    
+
     def _extract_title_and_id(self, content: str) -> tuple[str, str]:
         """Extract story title and ID from content."""
         # Try H1 heading first
-        h1_match = re.search(r'^#\s+(.+)$', content, re.MULTILINE)
-        
+        h1_match = re.search(r"^#\s+(.+)$", content, re.MULTILINE)
+
         if h1_match:
             title = h1_match.group(1).strip()
         else:
             # Try H2 heading
-            h2_match = re.search(r'^##\s+(.+)$', content, re.MULTILINE)
+            h2_match = re.search(r"^##\s+(.+)$", content, re.MULTILINE)
             title = h2_match.group(1).strip() if h2_match else "Untitled Story"
-        
+
         # Extract story ID from title or properties
         story_id = self._extract_story_id(title + "\n" + content)
-        
+
         # Clean title (remove ID if present)
-        title = re.sub(r'\s*\[?(?:US|STORY|S)-?\d+\]?\s*:?\s*', '', title)
-        title = re.sub(r'\s*#\d+\s*:?\s*', '', title)
-        
+        title = re.sub(r"\s*\[?(?:US|STORY|S)-?\d+\]?\s*:?\s*", "", title)
+        title = re.sub(r"\s*#\d+\s*:?\s*", "", title)
+
         return title.strip(), story_id
-    
+
     def _extract_story_id(self, content: str) -> str:
         """Extract story ID from content."""
         for pattern in self.STORY_ID_PATTERNS:
             match = re.search(pattern, content, re.IGNORECASE)
             if match:
-                id_str = match.group(0).strip('[]#').upper()
-                if not id_str.startswith('US-') and not id_str.startswith('STORY-'):
+                id_str = match.group(0).strip("[]#").upper()
+                if not id_str.startswith("US-") and not id_str.startswith("STORY-"):
                     id_str = f"US-{id_str.lstrip('S-')}"
                 return id_str
-        
+
         # Generate ID from title hash
         return f"US-{abs(hash(content[:100])) % 1000:03d}"
-    
+
     def _extract_properties(self, content: str) -> dict[str, str]:
         """Extract Notion property block."""
         properties: dict[str, str] = {}
-        
-        lines = content.split('\n')
+
+        lines = content.split("\n")
         in_property_block = True
-        
+
         for line in lines:
             line = line.strip()
-            
+
             # Stop at first heading or empty line after properties
-            if line.startswith('#') or (not line and properties):
+            if line.startswith("#") or (not line and properties):
                 if properties:
                     break
                 continue
-            
+
             match = re.match(self.PROPERTY_PATTERN, line)
             if match:
                 key = match.group(1).strip().lower()
                 value = match.group(2).strip()
                 # Remove Notion-style formatting
-                value = re.sub(r'^@', '', value)  # @mentions
-                value = re.sub(r'^\[(.+)\]$', r'\1', value)  # [links]
+                value = re.sub(r"^@", "", value)  # @mentions
+                value = re.sub(r"^\[(.+)\]$", r"\1", value)  # [links]
                 properties[key] = value
             elif line and in_property_block:
                 # Non-property line in expected property area
                 in_property_block = False
-        
+
         return properties
-    
-    def _extract_description(self, content: str) -> Optional[Description]:
+
+    def _extract_description(self, content: str) -> Description | None:
         """Extract user story description."""
         # Look for callout-style description with user emoji
-        callout_pattern = r'>\s*(?:👤|🙋|👨‍💻|👩‍💻)?\s*(?:As a[n]?|I am a[n]?)\s+(.+?)(?:,\s*)?(?:I want|I need)\s+(.+?)(?:,\s*)?(?:so that|in order to)\s+(.+?)(?:\n|$)'
+        callout_pattern = r">\s*(?:👤|🙋|👨‍💻|👩‍💻)?\s*(?:As a[n]?|I am a[n]?)\s+(.+?)(?:,\s*)?(?:I want|I need)\s+(.+?)(?:,\s*)?(?:so that|in order to)\s+(.+?)(?:\n|$)"
         match = re.search(callout_pattern, content, re.IGNORECASE | re.DOTALL)
-        
+
         if match:
             return Description(
-                role=match.group(1).strip().rstrip(','),
-                want=match.group(2).strip().rstrip(','),
-                benefit=match.group(3).strip().rstrip('.'),
+                role=match.group(1).strip().rstrip(","),
+                want=match.group(2).strip().rstrip(","),
+                benefit=match.group(3).strip().rstrip("."),
             )
-        
+
         # Look for Description section
         section = self._extract_section(content, "Description")
         if section:
             # Try to parse structured description
             as_a_match = re.search(
-                r'(?:As a[n]?)\s+(.+?)(?:,\s*)?(?:I want|I need)\s+(.+?)(?:,\s*)?(?:so that|in order to)\s+(.+)',
+                r"(?:As a[n]?)\s+(.+?)(?:,\s*)?(?:I want|I need)\s+(.+?)(?:,\s*)?(?:so that|in order to)\s+(.+)",
                 section,
-                re.IGNORECASE | re.DOTALL
+                re.IGNORECASE | re.DOTALL,
             )
             if as_a_match:
                 return Description(
-                    role=as_a_match.group(1).strip().rstrip(','),
-                    want=as_a_match.group(2).strip().rstrip(','),
+                    role=as_a_match.group(1).strip().rstrip(","),
+                    want=as_a_match.group(2).strip().rstrip(","),
                     benefit=as_a_match.group(3).strip(),
                 )
-            
+
             # Return as simple description
             return Description(role="", want=section.strip(), benefit="")
-        
+
         return None
-    
+
     def _extract_acceptance_criteria(self, content: str) -> AcceptanceCriteria:
         """Extract acceptance criteria from checkboxes."""
         items: list[str] = []
         checked: list[bool] = []
-        
+
         # Find Acceptance Criteria section
         section = self._extract_section(content, "Acceptance Criteria")
-        
+
         if not section:
             # Try alternate names
             for name in ["Acceptance", "Criteria", "Requirements", "AC"]:
                 section = self._extract_section(content, name)
                 if section:
                     break
-        
+
         if section:
             # Parse checkboxes
-            for match in re.finditer(r'[-*]\s*\[([ xX✓✔])\]\s*(.+)', section):
-                is_checked = match.group(1).lower() in ['x', '✓', '✔']
+            for match in re.finditer(r"[-*]\s*\[([ xX✓✔])\]\s*(.+)", section):
+                is_checked = match.group(1).lower() in ["x", "✓", "✔"]
                 text = match.group(2).strip()
                 items.append(text)
                 checked.append(is_checked)
-        
+
         return AcceptanceCriteria.from_list(items, checked)
-    
+
     def _extract_subtasks(self, content: str) -> list[Subtask]:
         """Extract subtasks from table."""
         subtasks = []
-        
+
         # Find Subtasks/Tasks section
         section = self._extract_section(content, "Subtasks")
         if not section:
             section = self._extract_section(content, "Tasks")
-        
+
         if not section:
             return subtasks
-        
+
         # Parse markdown table
         table_rows = self._parse_markdown_table(section)
-        
+
         for i, row in enumerate(table_rows):
             if not row:
                 continue
-            
+
             # Try to match columns
-            name = row.get('task', row.get('name', row.get('title', '')))
-            description = row.get('description', row.get('desc', ''))
-            points = self._parse_int(row.get('points', row.get('sp', row.get('story points', '1'))))
-            status = Status.from_string(row.get('status', 'planned'))
-            assignee = row.get('assignee', row.get('owner', None))
-            
+            name = row.get("task", row.get("name", row.get("title", "")))
+            description = row.get("description", row.get("desc", ""))
+            points = self._parse_int(row.get("points", row.get("sp", row.get("story points", "1"))))
+            status = Status.from_string(row.get("status", "planned"))
+            assignee = row.get("assignee", row.get("owner", None))
+
             if name:
-                subtasks.append(Subtask(
-                    number=i + 1,
-                    name=name,
-                    description=description,
-                    story_points=points,
-                    status=status,
-                    assignee=assignee,
-                ))
-        
+                subtasks.append(
+                    Subtask(
+                        number=i + 1,
+                        name=name,
+                        description=description,
+                        story_points=points,
+                        status=status,
+                        assignee=assignee,
+                    )
+                )
+
         return subtasks
-    
+
     def _extract_technical_notes(self, content: str) -> str:
         """Extract technical notes section."""
         section = self._extract_section(content, "Technical Notes")
@@ -522,50 +516,47 @@ class NotionParser(DocumentParserPort):
             section = self._extract_section(content, "Technical Details")
         if not section:
             section = self._extract_section(content, "Implementation")
-        
+
         return section.strip() if section else ""
-    
-    def _extract_section(self, content: str, heading: str) -> Optional[str]:
+
+    def _extract_section(self, content: str, heading: str) -> str | None:
         """Extract content under a heading."""
         # Match heading at any level
-        pattern = rf'^#+\s*{re.escape(heading)}\s*$'
+        pattern = rf"^#+\s*{re.escape(heading)}\s*$"
         match = re.search(pattern, content, re.MULTILINE | re.IGNORECASE)
-        
+
         if not match:
             return None
-        
+
         start = match.end()
-        
+
         # Find next heading at same or higher level
-        heading_level = len(re.match(r'^#+', match.group(0)).group(0))
-        next_heading = re.search(rf'^#{{{1},{heading_level}}}\s', content[start:], re.MULTILINE)
-        
-        if next_heading:
-            end = start + next_heading.start()
-        else:
-            end = len(content)
-        
+        heading_level = len(re.match(r"^#+", match.group(0)).group(0))
+        next_heading = re.search(rf"^#{{{1},{heading_level}}}\s", content[start:], re.MULTILINE)
+
+        end = start + next_heading.start() if next_heading else len(content)
+
         return content[start:end].strip()
-    
+
     def _parse_markdown_table(self, content: str) -> list[dict[str, str]]:
         """Parse a markdown table into list of dicts."""
         rows: list[dict[str, str]] = []
-        
-        lines = content.strip().split('\n')
+
+        lines = content.strip().split("\n")
         headers: list[str] = []
-        
+
         for line in lines:
             line = line.strip()
-            if not line.startswith('|'):
+            if not line.startswith("|"):
                 continue
-            
+
             # Parse cells
-            cells = [c.strip() for c in line.strip('|').split('|')]
-            
+            cells = [c.strip() for c in line.strip("|").split("|")]
+
             if not headers:
                 # First row is headers
                 headers = [h.lower().strip() for h in cells]
-            elif all(c.replace('-', '').replace(':', '') == '' for c in cells):
+            elif all(c.replace("-", "").replace(":", "") == "" for c in cells):
                 # Separator row
                 continue
             else:
@@ -576,94 +567,92 @@ class NotionParser(DocumentParserPort):
                         row[headers[i]] = cell
                 if any(row.values()):
                     rows.append(row)
-        
+
         return rows
-    
+
     def _parse_int(self, value: str) -> int:
         """Parse integer from string, handling various formats."""
         if not value:
             return 0
-        
+
         # Remove non-numeric chars except minus
-        cleaned = re.sub(r'[^\d-]', '', str(value))
-        
+        cleaned = re.sub(r"[^\d-]", "", str(value))
+
         try:
             return int(cleaned) if cleaned else 0
         except ValueError:
             return 0
-    
+
     # -------------------------------------------------------------------------
     # Private Methods - Database/Folder Parsing
     # -------------------------------------------------------------------------
-    
+
     def _parse_database_csv(self, path: Path) -> list[UserStory]:
         """Parse a Notion database CSV export."""
         stories = []
-        
+
         try:
-            with open(path, 'r', encoding='utf-8') as f:
+            with open(path, encoding="utf-8") as f:
                 reader = csv.DictReader(f)
-                
+
                 for i, row in enumerate(reader):
                     story = self._parse_csv_row(row, i)
                     if story:
                         stories.append(story)
-                        
+
         except Exception as e:
             self.logger.error(f"Failed to parse CSV: {e}")
-        
+
         return stories
-    
-    def _parse_csv_row(self, row: dict[str, str], index: int) -> Optional[UserStory]:
+
+    def _parse_csv_row(self, row: dict[str, str], index: int) -> UserStory | None:
         """Parse a CSV row into a UserStory."""
         # Normalize keys to lowercase
         row = {k.lower(): v for k, v in row.items()}
-        
+
         # Get title (try various column names)
         title = (
-            row.get('name') or 
-            row.get('title') or 
-            row.get('story') or 
-            row.get('task') or
-            ''
+            row.get("name") or row.get("title") or row.get("story") or row.get("task") or ""
         ).strip()
-        
+
         if not title:
             return None
-        
+
         # Get ID
-        story_id = row.get('id', row.get('story id', f"US-{index + 1:03d}"))
-        if not story_id.startswith('US-'):
+        story_id = row.get("id", row.get("story id", f"US-{index + 1:03d}"))
+        if not story_id.startswith("US-"):
             story_id = f"US-{story_id}"
-        
+
         # Parse fields
-        story_points = self._parse_int(row.get('story points', row.get('points', row.get('sp', '0'))))
-        priority = Priority.from_string(row.get('priority', 'medium'))
-        status = Status.from_string(row.get('status', 'planned'))
-        
+        story_points = self._parse_int(
+            row.get("story points", row.get("points", row.get("sp", "0")))
+        )
+        priority = Priority.from_string(row.get("priority", "medium"))
+        status = Status.from_string(row.get("status", "planned"))
+
         # Build description
         description = None
-        desc_text = row.get('description', '')
+        desc_text = row.get("description", "")
         if desc_text:
             description = Description(role="", want=desc_text, benefit="")
-        
+
         return UserStory(
             id=StoryId(story_id),
             title=title,
             description=description,
             acceptance_criteria=AcceptanceCriteria.from_list([], []),
-            technical_notes=row.get('notes', row.get('technical notes', '')),
+            technical_notes=row.get("notes", row.get("technical notes", "")),
             story_points=story_points,
             priority=priority,
             status=status,
             subtasks=[],
             commits=[],
         )
-    
+
     def _parse_notion_folder(self, folder: Path) -> list[UserStory]:
         """Parse a Notion export folder structure."""
         stories = []
-        
+
         # Find all markdown files
         for md_file in sorted(folder.rglob("*.md")):
             try:
@@ -672,7 +661,7 @@ class NotionParser(DocumentParserPort):
                 stories.extend(page_stories)
             except Exception as e:
                 self.logger.warning(f"Failed to parse {md_file}: {e}")
-        
+
         # Also check for CSV files (database exports)
         for csv_file in folder.rglob("*.csv"):
             try:
@@ -680,6 +669,5 @@ class NotionParser(DocumentParserPort):
                 stories.extend(csv_stories)
             except Exception as e:
                 self.logger.warning(f"Failed to parse {csv_file}: {e}")
-        
-        return stories
 
+        return stories

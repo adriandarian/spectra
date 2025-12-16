@@ -10,89 +10,87 @@ Implementations:
 
 from abc import ABC, abstractmethod
 from pathlib import Path
-from typing import Optional, Union
 
-from ..domain.entities import Epic, UserStory
+from spectra.core.domain.entities import Epic, UserStory
 
 # Import ParserError from centralized module and re-export for backward compatibility
-from ..exceptions import ParserError
+from spectra.core.exceptions import ParserError
 
-# ParserError is now imported from ..exceptions and re-exported above
-# for backward compatibility. See core/exceptions.py for definition.
+
+__all__ = ["DocumentParserPort", "ParserError"]
 
 
 class DocumentParserPort(ABC):
     """
     Abstract interface for document parsers.
-    
+
     Parsers convert source documents (Markdown, YAML, etc.)
     into domain entities.
     """
-    
+
     @property
     @abstractmethod
     def name(self) -> str:
         """Get the parser name (e.g., 'Markdown', 'YAML')."""
         ...
-    
+
     @property
     @abstractmethod
     def supported_extensions(self) -> list[str]:
         """Get list of supported file extensions."""
         ...
-    
+
     @abstractmethod
-    def can_parse(self, source: Union[str, Path]) -> bool:
+    def can_parse(self, source: str | Path) -> bool:
         """
         Check if this parser can handle the given source.
-        
+
         Args:
             source: File path or content string
-            
+
         Returns:
             True if parser can handle this source
         """
         ...
-    
+
     @abstractmethod
-    def parse_stories(self, source: Union[str, Path]) -> list[UserStory]:
+    def parse_stories(self, source: str | Path) -> list[UserStory]:
         """
         Parse user stories from source.
-        
+
         Args:
             source: File path or content string
-            
+
         Returns:
             List of UserStory entities
-            
+
         Raises:
             ParserError: If parsing fails
         """
         ...
-    
+
     @abstractmethod
-    def parse_epic(self, source: Union[str, Path]) -> Optional[Epic]:
+    def parse_epic(self, source: str | Path) -> Epic | None:
         """
         Parse an epic with its stories from source.
-        
+
         Args:
             source: File path or content string
-            
+
         Returns:
             Epic entity with stories, or None if no epic found
         """
         ...
-    
+
     @abstractmethod
-    def validate(self, source: Union[str, Path]) -> list[str]:
+    def validate(self, source: str | Path) -> list[str]:
         """
         Validate source document without parsing.
-        
+
         Args:
             source: File path or content string
-            
+
         Returns:
             List of validation error messages (empty if valid)
         """
         ...
-

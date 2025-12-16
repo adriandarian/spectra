@@ -5,26 +5,23 @@ Provides common fixtures for performance testing.
 """
 
 import pytest
-from dataclasses import dataclass, field
-from typing import Any
-from uuid import uuid4
 
 from spectra.core.domain import (
-    Epic,
-    UserStory,
-    Subtask,
-    StoryId,
-    Status,
-    Priority,
     AcceptanceCriteria,
+    Epic,
+    Priority,
+    Status,
+    StoryId,
+    Subtask,
+    UserStory,
 )
-from spectra.core.result import Ok, Err, Result
-from spectra.core.specification import StatusSpec, PredicateSpec
+from spectra.core.result import Err, Ok, Result
 
 
 # =============================================================================
 # Data Generators
 # =============================================================================
+
 
 def generate_subtask(index: int) -> Subtask:
     """Generate a subtask for benchmarking."""
@@ -44,9 +41,7 @@ def generate_story(index: int, num_subtasks: int = 5) -> UserStory:
         id=StoryId(f"US-{index:03d}"),
         title=f"User Story {index}: Feature implementation for module",
         description=None,
-        acceptance_criteria=AcceptanceCriteria.from_list([
-            f"Criterion {i}" for i in range(3)
-        ]),
+        acceptance_criteria=AcceptanceCriteria.from_list([f"Criterion {i}" for i in range(3)]),
         story_points=index % 13 + 1,
         priority=Priority.MEDIUM,
         status=Status.IN_PROGRESS if index % 2 == 0 else Status.PLANNED,
@@ -66,6 +61,7 @@ def generate_epic(num_stories: int, subtasks_per_story: int = 5) -> Epic:
 # =============================================================================
 # Fixtures
 # =============================================================================
+
 
 @pytest.fixture
 def small_epic() -> Epic:
@@ -119,6 +115,7 @@ def result_list_medium() -> list[Result]:
 # Benchmark Groups
 # =============================================================================
 
+
 @pytest.fixture
 def benchmark_group_core():
     """Marker for core module benchmarks."""
@@ -135,4 +132,3 @@ def benchmark_group_domain():
 def benchmark_group_specification():
     """Marker for specification benchmarks."""
     return "specification"
-

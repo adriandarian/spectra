@@ -1,2 +1,1 @@
 """CLI tests for spectra."""
-

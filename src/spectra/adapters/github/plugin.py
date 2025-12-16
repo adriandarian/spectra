@@ -6,19 +6,20 @@ enabling it to be discovered and loaded through the plugin system.
 """
 
 import os
-from typing import Any, Optional
+from typing import Any
 
-from ...plugins.base import TrackerPlugin, PluginMetadata, PluginType
 from spectra.core.ports.issue_tracker import IssueTrackerPort
+from spectra.plugins.base import PluginMetadata, PluginType, TrackerPlugin
+
 from .adapter import GitHubAdapter
 
 
 class GitHubTrackerPlugin(TrackerPlugin):
     """
     Plugin wrapper for the GitHub Issues adapter.
-    
+
     Enables GitHub Issues integration through the spectra plugin system.
-    
+
     Configuration options:
     - token: GitHub Personal Access Token (required, or use GITHUB_TOKEN env)
     - owner: Repository owner (required, or use GITHUB_OWNER env)
@@ -30,7 +31,7 @@ class GitHubTrackerPlugin(TrackerPlugin):
     - subtask_label: Label for subtask issues (default: "subtask")
     - subtasks_as_issues: Create subtasks as separate issues (default: False)
     """
-    
+
     # Configuration schema for validation
     CONFIG_SCHEMA = {
         "type": "object",
@@ -82,11 +83,11 @@ class GitHubTrackerPlugin(TrackerPlugin):
             },
         },
     }
-    
-    def __init__(self, config: Optional[dict[str, Any]] = None) -> None:
+
+    def __init__(self, config: dict[str, Any] | None = None) -> None:
         """
         Initialize the GitHub tracker plugin.
-        
+
         Configuration can be passed directly or loaded from environment variables:
         - GITHUB_TOKEN: Personal Access Token
         - GITHUB_OWNER: Repository owner
@@ -94,8 +95,8 @@ class GitHubTrackerPlugin(TrackerPlugin):
         - GITHUB_API_URL: API base URL (for GitHub Enterprise)
         """
         super().__init__(config)
-        self._adapter: Optional[GitHubAdapter] = None
-    
+        self._adapter: GitHubAdapter | None = None
+
     @property
     def metadata(self) -> PluginMetadata:
         """Get plugin metadata."""
@@ -108,11 +109,11 @@ class GitHubTrackerPlugin(TrackerPlugin):
             requires=[],
             config_schema=self.CONFIG_SCHEMA,
         )
-    
+
     def initialize(self) -> None:
         """
         Initialize the plugin.
-        
+
         Creates the GitHub adapter with configuration from config dict
         or environment variables.
         """
@@ -123,7 +124,7 @@ class GitHubTrackerPlugin(TrackerPlugin):
         base_url = self.config.get("base_url") or os.getenv(
             "GITHUB_API_URL", "https://api.github.com"
         )
-        
+
         if not token:
             raise ValueError(
                 "GitHub token is required. Set 'token' in config or GITHUB_TOKEN env var."
@@ -136,7 +137,7 @@ class GitHubTrackerPlugin(TrackerPlugin):
             raise ValueError(
                 "Repository name is required. Set 'repo' in config or GITHUB_REPO env var."
             )
-        
+
         # Create the adapter
         self._adapter = GitHubAdapter(
             token=token,
@@ -149,68 +150,65 @@ class GitHubTrackerPlugin(TrackerPlugin):
             subtask_label=self.config.get("subtask_label", "subtask"),
             subtasks_as_issues=self.config.get("subtasks_as_issues", False),
         )
-        
+
         self._initialized = True
-    
+
     def shutdown(self) -> None:
         """Shutdown the plugin and cleanup resources."""
         if self._adapter is not None:
             self._adapter._client.close()
             self._adapter = None
         self._initialized = False
-    
+
     def get_tracker(self) -> IssueTrackerPort:
         """
         Get the GitHub tracker instance.
-        
+
         Returns:
             GitHubAdapter implementing IssueTrackerPort
-            
+
         Raises:
             RuntimeError: If plugin not initialized
         """
         if not self.is_initialized or self._adapter is None:
-            raise RuntimeError(
-                "GitHub plugin not initialized. Call initialize() first."
-            )
+            raise RuntimeError("GitHub plugin not initialized. Call initialize() first.")
         return self._adapter
-    
+
     def validate_config(self) -> list[str]:
         """
         Validate plugin configuration.
-        
+
         Returns:
             List of validation errors (empty if valid)
         """
         errors = super().validate_config()
-        
+
         # Check required fields (either in config or env)
         token = self.config.get("token") or os.getenv("GITHUB_TOKEN")
         owner = self.config.get("owner") or os.getenv("GITHUB_OWNER")
         repo = self.config.get("repo") or os.getenv("GITHUB_REPO")
-        
+
         if not token:
             errors.append("Missing GitHub token (set 'token' or GITHUB_TOKEN)")
         if not owner:
             errors.append("Missing repository owner (set 'owner' or GITHUB_OWNER)")
         if not repo:
             errors.append("Missing repository name (set 'repo' or GITHUB_REPO)")
-        
+
         return errors
 
 
-def create_plugin(config: Optional[dict[str, Any]] = None) -> GitHubTrackerPlugin:
+def create_plugin(config: dict[str, Any] | None = None) -> GitHubTrackerPlugin:
     """
     Factory function for plugin discovery.
-    
+
     This function is called by the plugin registry when discovering
     plugins from files.
-    
+
     Args:
         config: Optional plugin configuration
-        
+
     Returns:
         Configured GitHubTrackerPlugin instance
     """
     return GitHubTrackerPlugin(config)
-

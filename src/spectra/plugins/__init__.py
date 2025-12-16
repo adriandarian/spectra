@@ -8,18 +8,18 @@ Plugins can extend:
 - Hooks: Add pre/post processing
 """
 
+from .base import Plugin, PluginMetadata, PluginType
+from .hooks import Hook, HookContext, HookManager, HookPoint
 from .registry import PluginRegistry
-from .base import Plugin, PluginType, PluginMetadata
-from .hooks import Hook, HookPoint, HookManager, HookContext
+
 
 __all__ = [
-    "PluginRegistry",
-    "Plugin",
-    "PluginType",
-    "PluginMetadata",
     "Hook",
-    "HookPoint",
-    "HookManager",
     "HookContext",
+    "HookManager",
+    "HookPoint",
+    "Plugin",
+    "PluginMetadata",
+    "PluginRegistry",
+    "PluginType",
 ]
-

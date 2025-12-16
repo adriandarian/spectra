@@ -3,30 +3,30 @@ CLI Module - Command Line Interface for spectra.
 """
 
 from .app import main, run
+from .completions import SUPPORTED_SHELLS, get_completion_script
 from .exit_codes import ExitCode
 from .interactive import InteractiveSession, run_interactive
-from .completions import get_completion_script, SUPPORTED_SHELLS
 from .logging import (
+    ContextLogger,
     JSONFormatter,
     TextFormatter,
-    ContextLogger,
-    setup_logging,
     get_logger,
+    setup_logging,
 )
 
+
 __all__ = [
-    "main",
-    "run",
+    "SUPPORTED_SHELLS",
+    "ContextLogger",
     "ExitCode",
     "InteractiveSession",
-    "run_interactive",
-    "get_completion_script",
-    "SUPPORTED_SHELLS",
     # Logging
     "JSONFormatter",
     "TextFormatter",
-    "ContextLogger",
-    "setup_logging",
+    "get_completion_script",
     "get_logger",
+    "main",
+    "run",
+    "run_interactive",
+    "setup_logging",
 ]
-

@@ -336,9 +336,7 @@ class TestEnvironmentConfigProvider:
 class TestConfigPrecedence:
     """Test configuration precedence: CLI > env > .env > config file."""
 
-    def test_full_precedence_chain(
-        self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
-    ) -> None:
+    def test_full_precedence_chain(self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
         """Test the full configuration precedence chain."""
         # 1. Config file (lowest priority)
         config_file = tmp_path / ".spectra.yaml"
@@ -387,4 +385,3 @@ class TestConfigPrecedence:
         assert config.tracker.project_key == "FILE-PROJ"
         # - Verbose: CLI wins
         assert config.sync.verbose is True
-

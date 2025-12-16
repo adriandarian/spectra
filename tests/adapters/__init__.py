@@ -1,2 +1,1 @@
 """Adapter tests."""
-

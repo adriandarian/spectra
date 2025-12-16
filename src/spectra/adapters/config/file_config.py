@@ -16,15 +16,14 @@ import sys
 from pathlib import Path
 from typing import Any, ClassVar
 
+# Import ConfigFileError from centralized module and re-export for backward compatibility
+from spectra.core.exceptions import ConfigFileError
 from spectra.core.ports.config_provider import (
     AppConfig,
     ConfigProviderPort,
     SyncConfig,
     TrackerConfig,
 )
-
-# Import ConfigFileError from centralized module and re-export for backward compatibility
-from spectra.core.exceptions import ConfigFileError
 
 
 # TOML support: use stdlib tomllib (3.11+) or tomli fallback (3.10)
@@ -104,9 +103,7 @@ class FileConfigProvider(ConfigProviderPort):
             email=self._get_nested("jira.email", ""),
             api_token=self._get_nested("jira.api_token", ""),
             project_key=self._get_nested("jira.project", None),
-            story_points_field=self._get_nested(
-                "jira.story_points_field", "customfield_10014"
-            ),
+            story_points_field=self._get_nested("jira.story_points_field", "customfield_10014"),
         )
 
         sync = SyncConfig(
@@ -312,4 +309,3 @@ class FileConfigProvider(ConfigProviderPort):
         for cli_key, config_key in cli_mapping.items():
             if cli_key in self._cli_overrides and self._cli_overrides[cli_key] is not None:
                 self.set(config_key, self._cli_overrides[cli_key])
-

@@ -9,23 +9,23 @@ This module provides the foundation for parallel API calls using asyncio:
 Requires aiohttp: pip install aiohttp
 """
 
-from .rate_limiter import AsyncRateLimiter
 from .http_client import AsyncHttpClient
 from .parallel import (
-    gather_with_limit,
-    batch_execute,
-    run_parallel,
-    ParallelResult,
     ParallelExecutor,
+    ParallelResult,
+    batch_execute,
+    gather_with_limit,
+    run_parallel,
 )
+from .rate_limiter import AsyncRateLimiter
+
 
 __all__ = [
-    "AsyncRateLimiter",
     "AsyncHttpClient",
-    "gather_with_limit",
-    "batch_execute",
-    "run_parallel",
-    "ParallelResult",
+    "AsyncRateLimiter",
     "ParallelExecutor",
+    "ParallelResult",
+    "batch_execute",
+    "gather_with_limit",
+    "run_parallel",
 ]
-
