@@ -735,7 +735,7 @@ class TestRunSync:
         with (
             patch("spectra.cli.app.EnvironmentConfigProvider") as MockProvider,
             patch("spectra.cli.app.JiraAdapter") as MockAdapter,
-            patch("spectra.cli.app.SyncOrchestrator") as MockOrchestrator,
+            patch("spectra.cli.app.SyncOrchestrator"),  # Mock to prevent real instantiation
             patch("spectra.application.sync.StateStore") as MockStateStore,
         ):
             mock_provider = MockProvider.return_value
