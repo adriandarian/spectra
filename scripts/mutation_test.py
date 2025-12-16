@@ -83,32 +83,32 @@ def run_mutation_test(
     else:
         paths = "src/spectra/core/"
         tests = "tests/core/"
-    
+
     # Build mutmut command
     cmd = ["mutmut", "run"]
     cmd.extend(["--paths-to-mutate", paths])
     cmd.extend(["--tests-dir", tests])
-    
+
     if quick:
         # Limit mutations for quick testing
         cmd.extend(["--simple-status"])
-    
+
     print(f"🧬 Running mutation tests on: {paths}")
     print(f"📋 Using tests from: {tests}")
     print("-" * 60)
-    
+
     # Run mutation testing
-    result = subprocess.run(cmd, cwd=Path(__file__).parent.parent)
-    
+    result = subprocess.run(cmd, check=False, cwd=Path(__file__).parent.parent)
+
     # Show results
     print()
     print("=" * 60)
     print("📊 Mutation Testing Results")
     print("=" * 60)
-    
+
     # Get results summary
-    subprocess.run(["mutmut", "results"], cwd=Path(__file__).parent.parent)
-    
+    subprocess.run(["mutmut", "results"], check=False, cwd=Path(__file__).parent.parent)
+
     # Show survivors if requested
     if survivors_only:
         print()
@@ -117,19 +117,19 @@ def run_mutation_test(
         print("-" * 60)
         subprocess.run(
             ["mutmut", "results", "--only-survivors"],
-            cwd=Path(__file__).parent.parent
+            check=False, cwd=Path(__file__).parent.parent
         )
-    
+
     # Generate HTML report if requested
     if html:
         print()
         print("📄 Generating HTML report...")
         subprocess.run(
             ["mutmut", "html"],
-            cwd=Path(__file__).parent.parent
+            check=False, cwd=Path(__file__).parent.parent
         )
         print("Report generated: html/index.html")
-    
+
     return result.returncode
 
 
@@ -137,7 +137,7 @@ def show_surviving_mutant(mutant_id: int) -> None:
     """Show diff for a specific surviving mutant."""
     subprocess.run(
         ["mutmut", "show", str(mutant_id)],
-        cwd=Path(__file__).parent.parent
+        check=False, cwd=Path(__file__).parent.parent
     )
 
 
@@ -172,13 +172,13 @@ def main() -> int:
         metavar="ID",
         help="Show diff for a specific mutant ID"
     )
-    
+
     args = parser.parse_args()
-    
+
     if args.show:
         show_surviving_mutant(args.show)
         return 0
-    
+
     return run_mutation_test(
         module=args.module,
         quick=args.quick,

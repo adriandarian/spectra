@@ -20,22 +20,21 @@ def pre_mutation(context):
     # Skip mutations in test files
     if "test_" in context.filename:
         return True
-    
+
     # Skip __init__.py files (usually just re-exports)
     if context.filename.endswith("__init__.py"):
         return True
-    
+
     # Skip docstrings
     if context.current_source_line.strip().startswith('"""'):
         return True
     if context.current_source_line.strip().startswith("'''"):
         return True
-    
+
     return False
 
 
 # Configure source paths
 def init():
     """Initialize mutmut configuration."""
-    pass
 
