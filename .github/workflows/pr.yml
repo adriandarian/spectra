@@ -295,20 +295,20 @@ jobs:
         run: pip install build twine
 
       - name: 🏗️ Build Package
-        run: python -m build
+        run: python -m build --outdir build-dist/
 
       - name: ✅ Verify Package
-        run: twine check dist/*
+        run: twine check build-dist/*
 
       - name: 📤 Upload Build Artifacts
         uses: actions/upload-artifact@v4
         with:
           name: dist
-          path: dist/
+          path: build-dist/
 
       - name: 🧪 Test Installation
         run: |
-          pip install dist/*.whl
+          pip install build-dist/*.whl
           spectra --help
           spectra --version
 
@@ -330,6 +330,7 @@ jobs:
           context: .
           file: dist/docker/Dockerfile
           push: false
+          load: true
           tags: spectra:test
           cache-from: type=gha
           cache-to: type=gha,mode=max
