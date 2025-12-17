@@ -91,4 +91,4 @@ backup_*.json
 .ipynb_checkpoints/
 
 # Allow markdown files in tests/samples
-!tests/samples/*.md
+tests/samples/*.md
