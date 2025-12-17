@@ -7,4 +7,3 @@ from .file_config import ConfigFileError, FileConfigProvider
 
 
 __all__ = ["ConfigFileError", "EnvironmentConfigProvider", "FileConfigProvider"]
-

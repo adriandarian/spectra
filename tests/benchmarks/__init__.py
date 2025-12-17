@@ -13,14 +13,13 @@ Benchmarks help:
 Usage:
     # Run all benchmarks
     pytest tests/benchmarks/ --benchmark-only
-    
+
     # Save baseline
     pytest tests/benchmarks/ --benchmark-save=baseline
-    
+
     # Compare against baseline
     pytest tests/benchmarks/ --benchmark-compare=baseline
-    
+
     # Generate HTML report
     pytest tests/benchmarks/ --benchmark-only --benchmark-autosave
 """
-

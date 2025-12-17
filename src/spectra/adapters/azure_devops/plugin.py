@@ -6,19 +6,20 @@ enabling it to be discovered and loaded through the plugin system.
 """
 
 import os
-from typing import Any, Optional
+from typing import Any
 
-from ...plugins.base import TrackerPlugin, PluginMetadata, PluginType
 from spectra.core.ports.issue_tracker import IssueTrackerPort
+from spectra.plugins.base import PluginMetadata, PluginType, TrackerPlugin
+
 from .adapter import AzureDevOpsAdapter
 
 
 class AzureDevOpsTrackerPlugin(TrackerPlugin):
     """
     Plugin wrapper for the Azure DevOps adapter.
-    
+
     Enables Azure DevOps integration through the spectra plugin system.
-    
+
     Configuration options:
     - organization: Azure DevOps organization (required, or AZURE_DEVOPS_ORG env)
     - project: Project name (required, or AZURE_DEVOPS_PROJECT env)
@@ -29,7 +30,7 @@ class AzureDevOpsTrackerPlugin(TrackerPlugin):
     - story_type: Work item type for stories (default: "User Story")
     - task_type: Work item type for tasks (default: "Task")
     """
-    
+
     # Configuration schema for validation
     CONFIG_SCHEMA = {
         "type": "object",
@@ -76,11 +77,11 @@ class AzureDevOpsTrackerPlugin(TrackerPlugin):
             },
         },
     }
-    
-    def __init__(self, config: Optional[dict[str, Any]] = None) -> None:
+
+    def __init__(self, config: dict[str, Any] | None = None) -> None:
         """
         Initialize the Azure DevOps tracker plugin.
-        
+
         Configuration can be passed directly or loaded from environment variables:
         - AZURE_DEVOPS_ORG: Organization name
         - AZURE_DEVOPS_PROJECT: Project name
@@ -88,8 +89,8 @@ class AzureDevOpsTrackerPlugin(TrackerPlugin):
         - AZURE_DEVOPS_URL: Base URL (optional)
         """
         super().__init__(config)
-        self._adapter: Optional[AzureDevOpsAdapter] = None
-    
+        self._adapter: AzureDevOpsAdapter | None = None
+
     @property
     def metadata(self) -> PluginMetadata:
         """Get plugin metadata."""
@@ -102,11 +103,11 @@ class AzureDevOpsTrackerPlugin(TrackerPlugin):
             requires=[],
             config_schema=self.CONFIG_SCHEMA,
         )
-    
+
     def initialize(self) -> None:
         """
         Initialize the plugin.
-        
+
         Creates the Azure DevOps adapter with configuration from config dict
         or environment variables.
         """
@@ -117,7 +118,7 @@ class AzureDevOpsTrackerPlugin(TrackerPlugin):
         base_url = self.config.get("base_url") or os.getenv(
             "AZURE_DEVOPS_URL", "https://dev.azure.com"
         )
-        
+
         if not organization:
             raise ValueError(
                 "Azure DevOps organization is required. "
@@ -125,15 +126,14 @@ class AzureDevOpsTrackerPlugin(TrackerPlugin):
             )
         if not project:
             raise ValueError(
-                "Project name is required. "
-                "Set 'project' in config or AZURE_DEVOPS_PROJECT env var."
+                "Project name is required. Set 'project' in config or AZURE_DEVOPS_PROJECT env var."
             )
         if not pat:
             raise ValueError(
                 "Personal Access Token is required. "
                 "Set 'pat' in config or AZURE_DEVOPS_PAT env var."
             )
-        
+
         # Create the adapter
         self._adapter = AzureDevOpsAdapter(
             organization=organization,
@@ -145,68 +145,65 @@ class AzureDevOpsTrackerPlugin(TrackerPlugin):
             story_type=self.config.get("story_type", "User Story"),
             task_type=self.config.get("task_type", "Task"),
         )
-        
+
         self._initialized = True
-    
+
     def shutdown(self) -> None:
         """Shutdown the plugin and cleanup resources."""
         if self._adapter is not None:
             self._adapter._client.close()
             self._adapter = None
         self._initialized = False
-    
+
     def get_tracker(self) -> IssueTrackerPort:
         """
         Get the Azure DevOps tracker instance.
-        
+
         Returns:
             AzureDevOpsAdapter implementing IssueTrackerPort
-            
+
         Raises:
             RuntimeError: If plugin not initialized
         """
         if not self.is_initialized or self._adapter is None:
-            raise RuntimeError(
-                "Azure DevOps plugin not initialized. Call initialize() first."
-            )
+            raise RuntimeError("Azure DevOps plugin not initialized. Call initialize() first.")
         return self._adapter
-    
+
     def validate_config(self) -> list[str]:
         """
         Validate plugin configuration.
-        
+
         Returns:
             List of validation errors (empty if valid)
         """
         errors = super().validate_config()
-        
+
         # Check required fields (either in config or env)
         organization = self.config.get("organization") or os.getenv("AZURE_DEVOPS_ORG")
         project = self.config.get("project") or os.getenv("AZURE_DEVOPS_PROJECT")
         pat = self.config.get("pat") or os.getenv("AZURE_DEVOPS_PAT")
-        
+
         if not organization:
             errors.append("Missing organization (set 'organization' or AZURE_DEVOPS_ORG)")
         if not project:
             errors.append("Missing project (set 'project' or AZURE_DEVOPS_PROJECT)")
         if not pat:
             errors.append("Missing PAT (set 'pat' or AZURE_DEVOPS_PAT)")
-        
+
         return errors
 
 
-def create_plugin(config: Optional[dict[str, Any]] = None) -> AzureDevOpsTrackerPlugin:
+def create_plugin(config: dict[str, Any] | None = None) -> AzureDevOpsTrackerPlugin:
     """
     Factory function for plugin discovery.
-    
+
     This function is called by the plugin registry when discovering
     plugins from files.
-    
+
     Args:
         config: Optional plugin configuration
-        
+
     Returns:
         Configured AzureDevOpsTrackerPlugin instance
     """
     return AzureDevOpsTrackerPlugin(config)
-

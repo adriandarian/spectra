@@ -5,25 +5,25 @@ Provides a structured record of every action taken during a sync operation,
 including timestamps, operation details, and outcomes.
 """
 
-import json
 import getpass
+import json
 import socket
 from dataclasses import dataclass, field
 from datetime import datetime, timezone
 from pathlib import Path
-from typing import Any, Optional
+from typing import Any
 
-from ...core.domain.events import (
+from spectra.core.domain.events import (
+    CommentAdded,
     DomainEvent,
     EventBus,
+    StatusTransitioned,
     StoryMatched,
     StoryUpdated,
     SubtaskCreated,
     SubtaskUpdated,
-    StatusTransitioned,
-    CommentAdded,
-    SyncStarted,
     SyncCompleted,
+    SyncStarted,
 )
 
 
@@ -31,9 +31,9 @@ from ...core.domain.events import (
 class AuditEntry:
     """
     A single audit trail entry.
-    
+
     Captures all relevant details about an operation for auditing purposes.
-    
+
     Attributes:
         timestamp: ISO8601 timestamp in UTC.
         event_type: Type of event (e.g., "StoryUpdated", "SubtaskCreated").
@@ -43,14 +43,15 @@ class AuditEntry:
         details: Additional event-specific details.
         error: Error message if status is "failed".
     """
+
     timestamp: str
     event_type: str
     operation: str
     issue_key: str = ""
     status: str = "success"
     details: dict[str, Any] = field(default_factory=dict)
-    error: Optional[str] = None
-    
+    error: str | None = None
+
     def to_dict(self) -> dict[str, Any]:
         """Convert to dictionary for serialization."""
         result = {
@@ -71,10 +72,10 @@ class AuditEntry:
 class AuditTrail:
     """
     Complete audit trail for a sync session.
-    
+
     Records all operations performed during a sync, with metadata
     about the session for traceability.
-    
+
     Attributes:
         session_id: Unique identifier for this sync session.
         started_at: When the sync started (ISO8601 UTC).
@@ -87,30 +88,31 @@ class AuditTrail:
         entries: List of audit entries.
         summary: Summary statistics.
     """
+
     session_id: str
     started_at: str
     epic_key: str
     markdown_path: str
     dry_run: bool = True
-    completed_at: Optional[str] = None
+    completed_at: str | None = None
     user: str = field(default_factory=lambda: getpass.getuser())
     hostname: str = field(default_factory=socket.gethostname)
     entries: list[AuditEntry] = field(default_factory=list)
     summary: dict[str, Any] = field(default_factory=dict)
     spectra_version: str = "2.0.0"
-    
+
     def add_entry(
         self,
         event_type: str,
         operation: str,
         issue_key: str = "",
         status: str = "success",
-        details: Optional[dict[str, Any]] = None,
-        error: Optional[str] = None,
+        details: dict[str, Any] | None = None,
+        error: str | None = None,
     ) -> AuditEntry:
         """
         Add an audit entry.
-        
+
         Args:
             event_type: Type of event.
             operation: Human-readable operation description.
@@ -118,7 +120,7 @@ class AuditTrail:
             status: Outcome status.
             details: Additional details.
             error: Error message if failed.
-            
+
         Returns:
             The created AuditEntry.
         """
@@ -133,7 +135,7 @@ class AuditTrail:
         )
         self.entries.append(entry)
         return entry
-    
+
     def complete(
         self,
         success: bool,
@@ -143,12 +145,12 @@ class AuditTrail:
         subtasks_updated: int = 0,
         comments_added: int = 0,
         statuses_updated: int = 0,
-        errors: Optional[list[str]] = None,
-        warnings: Optional[list[str]] = None,
+        errors: list[str] | None = None,
+        warnings: list[str] | None = None,
     ) -> None:
         """
         Mark the audit trail as complete with summary statistics.
-        
+
         Args:
             success: Whether the sync was successful.
             stories_matched: Number of stories matched.
@@ -177,7 +179,7 @@ class AuditTrail:
             self.summary["errors"] = errors
         if warnings:
             self.summary["warnings"] = warnings
-    
+
     def to_dict(self) -> dict[str, Any]:
         """Convert to dictionary for serialization."""
         return {
@@ -196,38 +198,38 @@ class AuditTrail:
             "summary": self.summary,
             "entries": [e.to_dict() for e in self.entries],
         }
-    
+
     def to_json(self, indent: int = 2) -> str:
         """Convert to JSON string."""
         return json.dumps(self.to_dict(), indent=indent, default=str)
-    
+
     def export(self, path: str | Path) -> Path:
         """
         Export audit trail to a JSON file.
-        
+
         Args:
             path: Path to the output file.
-            
+
         Returns:
             Path to the exported file.
         """
         path = Path(path)
         path.parent.mkdir(parents=True, exist_ok=True)
-        
+
         with open(path, "w", encoding="utf-8") as f:
             f.write(self.to_json())
-        
+
         return path
 
 
 class AuditTrailRecorder:
     """
     Records domain events into an audit trail.
-    
+
     Subscribe this to an EventBus to automatically capture all
     sync operations into the audit trail.
     """
-    
+
     def __init__(
         self,
         audit_trail: AuditTrail,
@@ -235,27 +237,27 @@ class AuditTrailRecorder:
     ):
         """
         Initialize the recorder.
-        
+
         Args:
             audit_trail: The audit trail to record to.
             dry_run: Whether this is a dry-run sync.
         """
         self.audit_trail = audit_trail
         self.dry_run = dry_run
-    
+
     def subscribe_to(self, event_bus: EventBus) -> None:
         """
         Subscribe to all relevant events on the event bus.
-        
+
         Args:
             event_bus: The event bus to subscribe to.
         """
         event_bus.subscribe(DomainEvent, self._handle_event)
-    
+
     def _handle_event(self, event: DomainEvent) -> None:
         """Handle any domain event and record it."""
         status = "dry_run" if self.dry_run else "success"
-        
+
         if isinstance(event, SyncStarted):
             self.audit_trail.add_entry(
                 event_type="SyncStarted",
@@ -267,7 +269,7 @@ class AuditTrailRecorder:
                     "dry_run": event.dry_run,
                 },
             )
-        
+
         elif isinstance(event, StoryMatched):
             self.audit_trail.add_entry(
                 event_type="StoryMatched",
@@ -280,7 +282,7 @@ class AuditTrailRecorder:
                     "match_method": event.match_method,
                 },
             )
-        
+
         elif isinstance(event, StoryUpdated):
             self.audit_trail.add_entry(
                 event_type="StoryUpdated",
@@ -292,7 +294,7 @@ class AuditTrailRecorder:
                     "had_previous_value": event.old_value is not None,
                 },
             )
-        
+
         elif isinstance(event, SubtaskCreated):
             self.audit_trail.add_entry(
                 event_type="SubtaskCreated",
@@ -305,7 +307,7 @@ class AuditTrailRecorder:
                     "story_points": event.story_points,
                 },
             )
-        
+
         elif isinstance(event, SubtaskUpdated):
             self.audit_trail.add_entry(
                 event_type="SubtaskUpdated",
@@ -316,7 +318,7 @@ class AuditTrailRecorder:
                     "changes": list(event.changes.keys()) if event.changes else [],
                 },
             )
-        
+
         elif isinstance(event, StatusTransitioned):
             self.audit_trail.add_entry(
                 event_type="StatusTransitioned",
@@ -329,12 +331,12 @@ class AuditTrailRecorder:
                     "transition_id": event.transition_id,
                 },
             )
-        
+
         elif isinstance(event, CommentAdded):
             operation = f"Added {event.comment_type} comment"
             if event.commit_count > 0:
                 operation = f"Added commit log with {event.commit_count} commits"
-            
+
             self.audit_trail.add_entry(
                 event_type="CommentAdded",
                 operation=operation,
@@ -345,7 +347,7 @@ class AuditTrailRecorder:
                     "commit_count": event.commit_count,
                 },
             )
-        
+
         elif isinstance(event, SyncCompleted):
             self.audit_trail.add_entry(
                 event_type="SyncCompleted",
@@ -370,13 +372,13 @@ def create_audit_trail(
 ) -> AuditTrail:
     """
     Create a new audit trail for a sync session.
-    
+
     Args:
         session_id: Unique session identifier.
         epic_key: The Jira epic key.
         markdown_path: Path to the markdown file.
         dry_run: Whether this is a dry-run.
-        
+
     Returns:
         Configured AuditTrail instance.
     """
@@ -387,4 +389,3 @@ def create_audit_trail(
         markdown_path=markdown_path,
         dry_run=dry_run,
     )
-

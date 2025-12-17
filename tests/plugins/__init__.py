@@ -1,2 +1,1 @@
 """Plugin system tests."""
-

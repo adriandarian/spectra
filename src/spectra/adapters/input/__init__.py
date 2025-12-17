@@ -2,13 +2,13 @@
 
 from spectra.adapters.parsers import (
     MarkdownParser,
-    YamlParser,
     NotionParser,
+    YamlParser,
 )
+
 
 __all__ = [
     "MarkdownParser",
-    "YamlParser",
     "NotionParser",
+    "YamlParser",
 ]
-

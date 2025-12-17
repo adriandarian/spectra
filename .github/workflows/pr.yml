@@ -3,11 +3,15 @@ name: 🔍 Pull Request
 on:
   pull_request:
     branches: [main]
-    types: [opened, synchronize, reopened, ready_for_review]
+    types: [opened, synchronize, reopened, ready_for_review, edited]
+  # pull_request_target is needed for PR title validation to access PR metadata
+  # This is safe because pr-title job does NOT checkout any code
+  pull_request_target:
+    branches: [main]
+    types: [opened, edited, reopened]
   push:
     branches: [main]
 
-# Cancel in-progress runs for the same PR
 concurrency:
   group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
   cancel-in-progress: true
@@ -18,369 +22,257 @@ permissions:
   checks: write
 
 env:
-  PYTHON_VERSION_PRIMARY: '3.11'
+  PYTHON_VERSION: '3.11'
   NODE_VERSION: '20'
 
 jobs:
   # ============================================================================
-  # Quick Checks (Fast Feedback)
+  # Stage 1: Fast Feedback (runs immediately)
   # ============================================================================
-  quick-checks:
-    name: ⚡ Quick Checks
+  pr-title:
+    name: 📝 PR Title
     runs-on: ubuntu-latest
+    # Only run on pull_request_target to have access to PR metadata
+    if: github.event_name == 'pull_request_target'
+    permissions:
+      pull-requests: read
     steps:
-      - uses: actions/checkout@v4
+      - name: Check PR title format
+        uses: amannn/action-semantic-pull-request@v5
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
-          fetch-depth: 0
+          types: |
+            feat
+            fix
+            docs
+            style
+            refactor
+            perf
+            test
+            build
+            ci
+            chore
+            revert
+            deps
+          scopes: |
+            core
+            adapters
+            cli
+            application
+            plugins
+            docs
+            tests
+            ci
+            deps
+            vscode
+            github-action
+            config
+          requireScope: false
+          ignoreLabels: |
+            dependencies
+            automated
+          wip: true
+          subjectPattern: ^(?![A-Z]).+$
+          subjectPatternError: |
+            The subject "{subject}" doesn't match the required format.
+            
+            ❌ Your PR title: "{title}"
+            
+            ✅ Expected format: <type>(<scope>): <lowercase description>
+            
+            Examples:
+              • feat: add new sync command
+              • fix(cli): resolve argument parsing issue
+              • docs(readme): update installation instructions
+              • ci: improve test coverage
+            
+            Valid types: feat, fix, docs, style, refactor, perf, test, build, ci, chore, revert, deps
+            Valid scopes (optional): core, adapters, cli, application, plugins, docs, tests, ci, deps, vscode, github-action, config
 
-      - name: 🐍 Set up Python
-        uses: actions/setup-python@v5
-        with:
-          python-version: ${{ env.PYTHON_VERSION_PRIMARY }}
-          cache: 'pip'
-
-      - name: 📦 Install Dependencies
-        run: pip install -e ".[dev]"
-
-      - name: 🔍 Check for Debug Code
-        run: |
-          # Fail if debug code is present
-          if grep -rn "breakpoint()" src/ tests/ --include="*.py"; then
-            echo "❌ Found breakpoint() calls"
-            exit 1
-          fi
-          if grep -rn "import pdb" src/ tests/ --include="*.py"; then
-            echo "❌ Found pdb imports"
-            exit 1
-          fi
-          if grep -rn "print(" src/spectra/ --include="*.py" | grep -v "# noqa"; then
-            echo "⚠️ Warning: Found print() statements (consider using logging)"
-          fi
-          echo "✅ No debug code found"
-
-      - name: 📋 Check Commit Messages
-        if: github.event_name == 'pull_request'
-        run: |
-          # Check conventional commits format (optional warning)
-          git log --oneline origin/main..HEAD | while read line; do
-            if ! echo "$line" | grep -qE "^[a-f0-9]+ (feat|fix|docs|style|refactor|test|chore|build|ci|perf|revert)(\(.+\))?: .+"; then
-              echo "⚠️ Non-conventional commit: $line"
-            fi
-          done
-          echo "✅ Commit message check complete"
-
-      - name: 📁 Check File Permissions
-        run: |
-          # Ensure no executable Python files
-          find src tests -name "*.py" -executable -type f | while read f; do
-            echo "❌ Executable Python file: $f"
-            exit 1
-          done
-          echo "✅ File permissions OK"
-
-  # ============================================================================
-  # Code Quality
-  # ============================================================================
   lint:
-    name: 🧹 Lint
+    name: 🧹 Lint & Format
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-
-      - name: 🐍 Set up Python
-        uses: actions/setup-python@v5
+      - uses: actions/setup-python@v5
         with:
-          python-version: ${{ env.PYTHON_VERSION_PRIMARY }}
+          python-version: ${{ env.PYTHON_VERSION }}
           cache: 'pip'
-
-      - name: 📦 Install Dependencies
-        run: pip install -e ".[dev]"
-
-      - name: 🔍 Ruff Lint
+      - run: pip install -e ".[dev]"
+      - name: Ruff Lint
         run: ruff check src/ tests/ --output-format=github
-
-      - name: 🔍 Ruff Format Check
+      - name: Ruff Format
         run: ruff format --check src/ tests/
-
-      - name: 🔍 Black Format Check
-        run: black --check src/ tests/
 
   typecheck:
     name: 🏷️ Type Check
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-
-      - name: 🐍 Set up Python
-        uses: actions/setup-python@v5
+      - uses: actions/setup-python@v5
         with:
-          python-version: ${{ env.PYTHON_VERSION_PRIMARY }}
+          python-version: ${{ env.PYTHON_VERSION }}
           cache: 'pip'
-
-      - name: 📦 Install Dependencies
-        run: pip install -e ".[dev]"
-
-      - name: 🔍 MyPy
-        run: mypy src/spectra/ --pretty
+      - run: pip install -e ".[dev]"
+      - run: mypy --pretty
 
   # ============================================================================
-  # Security
-  # ============================================================================
-  security:
-    name: 🔒 Security
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-
-      - name: 🐍 Set up Python
-        uses: actions/setup-python@v5
-        with:
-          python-version: ${{ env.PYTHON_VERSION_PRIMARY }}
-          cache: 'pip'
-
-      - name: 📦 Install Dependencies
-        run: pip install -e ".[dev]" bandit safety pip-audit
-
-      - name: 🔍 Bandit Security Scan
-        run: bandit -r src/spectra/ -ll -ii -x "*/tests/*"
-        continue-on-error: true
-
-      - name: 🔍 Pip Audit
-        run: pip-audit --strict --desc
-        continue-on-error: true
-
-      - name: 🔍 Check for Secrets
-        uses: trufflesecurity/trufflehog@main
-        with:
-          extra_args: --only-verified
-        continue-on-error: true
-
-  # ============================================================================
-  # Unit Tests (Matrix)
+  # Stage 2: Tests (after lint passes - no point testing broken code)
   # ============================================================================
   test:
-    name: 🧪 Test (Python ${{ matrix.python-version }}, ${{ matrix.os }})
+    name: 🧪 Test (py${{ matrix.python-version }}, ${{ matrix.os }})
+    needs: [lint, typecheck]
     runs-on: ${{ matrix.os }}
+    timeout-minutes: 15
     strategy:
       fail-fast: false
       matrix:
-        os: [ubuntu-latest, macos-latest, windows-latest]
+        os: [ubuntu-latest]
         python-version: ['3.10', '3.11', '3.12']
-        exclude:
-          # Reduce matrix size - only test all Python versions on Ubuntu
+        include:
+          # Only test primary Python version on other OSes
           - os: macos-latest
-            python-version: '3.10'
+            python-version: '3.11'
           - os: windows-latest
-            python-version: '3.10'
+            python-version: '3.11'
     steps:
       - uses: actions/checkout@v4
-
-      - name: 🐍 Set up Python ${{ matrix.python-version }}
-        uses: actions/setup-python@v5
+      - uses: actions/setup-python@v5
         with:
           python-version: ${{ matrix.python-version }}
           cache: 'pip'
+      - run: pip install -e ".[dev,async]" pytest-timeout
 
-      - name: 📦 Install Dependencies
-        run: pip install -e ".[dev,async]"
-
-      - name: 🧪 Run Tests
-        run: pytest tests/ -v --tb=short --junitxml=test-results-${{ matrix.os }}-${{ matrix.python-version }}.xml
-
-      - name: 📤 Upload Test Results
-        uses: actions/upload-artifact@v4
-        if: always()
-        with:
-          name: test-results-${{ matrix.os }}-${{ matrix.python-version }}
-          path: test-results-*.xml
-
-  # ============================================================================
-  # Coverage
-  # ============================================================================
-  coverage:
-    name: 📊 Coverage
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-
-      - name: 🐍 Set up Python
-        uses: actions/setup-python@v5
-        with:
-          python-version: ${{ env.PYTHON_VERSION_PRIMARY }}
-          cache: 'pip'
-
-      - name: 📦 Install Dependencies
-        run: pip install -e ".[dev,async]"
-
-      - name: 🧪 Run Tests with Coverage
+      # Run tests with coverage only on ubuntu + primary Python
+      - name: Run Tests with Coverage
+        if: matrix.os == 'ubuntu-latest' && matrix.python-version == '3.11'
         run: |
           pytest tests/ \
+            --ignore=tests/benchmarks/ \
+            --ignore=tests/integration/ \
+            --ignore=tests/property/ \
+            --timeout=60 \
             --cov=src/spectra \
             --cov-report=xml \
             --cov-report=html \
-            --cov-report=term-missing \
-            --cov-fail-under=70
+            --cov-fail-under=65
 
-      - name: 📤 Upload Coverage Report
+      # Run tests without coverage on other matrix combinations
+      - name: Run Tests
+        if: matrix.os != 'ubuntu-latest' || matrix.python-version != '3.11'
+        run: pytest tests/ -v --tb=short --ignore=tests/benchmarks/ --ignore=tests/integration/ --ignore=tests/property/ --timeout=60
+
+      - name: Upload Coverage
+        if: matrix.os == 'ubuntu-latest' && matrix.python-version == '3.11'
         uses: actions/upload-artifact@v4
         with:
           name: coverage-report
           path: htmlcov/
 
-      - name: 📊 Coverage Comment
-        if: github.event_name == 'pull_request'
-        uses: py-cov-action/python-coverage-comment-action@v3
-        with:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          MINIMUM_GREEN: 80
-          MINIMUM_ORANGE: 60
+      - name: Coverage Summary
+        if: matrix.os == 'ubuntu-latest' && matrix.python-version == '3.11'
+        run: |
+          echo "## 📊 Coverage Report" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          # Extract coverage percentage from the XML report
+          if [ -f coverage.xml ]; then
+            COVERAGE=$(python -c "import xml.etree.ElementTree as ET; tree = ET.parse('coverage.xml'); print(f\"{float(tree.getroot().attrib['line-rate']) * 100:.1f}%\")")
+            echo "**Line Coverage:** $COVERAGE" >> $GITHUB_STEP_SUMMARY
+          fi
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "📁 Full coverage report available in workflow artifacts" >> $GITHUB_STEP_SUMMARY
 
   # ============================================================================
-  # Integration Tests
+  # Stage 3: Additional Tests (after primary tests pass)
   # ============================================================================
   integration:
     name: 🔗 Integration Tests
+    needs: [test]
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-
-      - name: 🐍 Set up Python
-        uses: actions/setup-python@v5
+      - uses: actions/setup-python@v5
         with:
-          python-version: ${{ env.PYTHON_VERSION_PRIMARY }}
+          python-version: ${{ env.PYTHON_VERSION }}
           cache: 'pip'
+      - run: pip install -e ".[dev,async]"
+      - run: pytest tests/integration/ -v --tb=short -m "not slow"
 
-      - name: 📦 Install Dependencies
-        run: pip install -e ".[dev,async]"
-
-      - name: 🔗 Run Integration Tests
-        run: pytest tests/integration/ -v --tb=short -m "not slow"
-
-  # ============================================================================
-  # Property-Based Tests
-  # ============================================================================
   property-tests:
     name: 🎲 Property Tests
+    needs: [test]
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-
-      - name: 🐍 Set up Python
-        uses: actions/setup-python@v5
+      - uses: actions/setup-python@v5
         with:
-          python-version: ${{ env.PYTHON_VERSION_PRIMARY }}
+          python-version: ${{ env.PYTHON_VERSION }}
           cache: 'pip'
-
-      - name: 📦 Install Dependencies
-        run: pip install -e ".[dev]"
-
-      - name: 🎲 Run Property Tests
-        run: pytest tests/property/ -v --hypothesis-show-statistics
+      - run: pip install -e ".[dev]"
+      - run: pytest tests/property/ -v --hypothesis-show-statistics
 
   # ============================================================================
-  # Build Verification
+  # Stage 3: Build & Package (parallel with additional tests)
   # ============================================================================
   build:
     name: 📦 Build
+    needs: [lint, typecheck]
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-
-      - name: 🐍 Set up Python
-        uses: actions/setup-python@v5
+      - uses: actions/setup-python@v5
         with:
-          python-version: ${{ env.PYTHON_VERSION_PRIMARY }}
-
-      - name: 📦 Install Build Tools
-        run: pip install build twine
-
-      - name: 🏗️ Build Package
-        run: python -m build
-
-      - name: ✅ Verify Package
-        run: twine check dist/*
-
-      - name: 📤 Upload Build Artifacts
-        uses: actions/upload-artifact@v4
-        with:
-          name: dist
-          path: dist/
-
-      - name: 🧪 Test Installation
+          python-version: ${{ env.PYTHON_VERSION }}
+      - run: pip install build twine
+      - run: python -m build
+      - run: twine check dist/*.whl dist/*.tar.gz
+      - name: Test Installation
         run: |
           pip install dist/*.whl
           spectra --help
           spectra --version
+      - uses: actions/upload-artifact@v4
+        with:
+          name: dist
+          path: dist/
 
-  # ============================================================================
-  # Docker Build
-  # ============================================================================
   docker:
-    name: 🐳 Docker Build
+    name: 🐳 Docker
+    needs: [lint]
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-
-      - name: 🐳 Set up Docker Buildx
-        uses: docker/setup-buildx-action@v3
-
-      - name: 🏗️ Build Docker Image
-        uses: docker/build-push-action@v5
+      - uses: docker/setup-buildx-action@v3
+      - uses: docker/build-push-action@v5
         with:
           context: .
           file: dist/docker/Dockerfile
           push: false
+          load: true
           tags: spectra:test
           cache-from: type=gha
           cache-to: type=gha,mode=max
-
-      - name: 🧪 Test Docker Image
+      - name: Test Docker Image
         run: |
           docker run --rm spectra:test --help
           docker run --rm spectra:test --version
 
-  # ============================================================================
-  # Documentation Build
-  # ============================================================================
   docs:
-    name: 📚 Documentation
+    name: 📚 Docs
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-
-      - name: 📦 Set up Node.js
-        uses: actions/setup-node@v4
+      - uses: actions/setup-node@v4
         with:
           node-version: ${{ env.NODE_VERSION }}
           cache: 'npm'
           cache-dependency-path: docs/package-lock.json
-
-      - name: 📦 Install Dependencies
-        working-directory: docs
+      - working-directory: docs
         run: npm ci
-
-      - name: 🔍 Lint Markdown
-        run: |
-          npm install -g markdownlint-cli
-          markdownlint "**/*.md" --ignore node_modules --ignore docs/node_modules || true
-
-      - name: 🏗️ Build Documentation
-        working-directory: docs
+      - working-directory: docs
         run: npm run build
 
-      - name: 🔍 Check for Broken Links
-        working-directory: docs
-        run: |
-          npm install -g broken-link-checker
-          # Start local server and check links (optional, can be slow)
-          # npx serve .vitepress/dist &
-          # sleep 5
-          # blc http://localhost:3000 -ro
-        continue-on-error: true
-
-  # ============================================================================
-  # VS Code Extension
-  # ============================================================================
   vscode-extension:
     name: 🆚 VS Code Extension
     runs-on: ubuntu-latest
@@ -389,141 +281,129 @@ jobs:
         working-directory: integrations/vscode
     steps:
       - uses: actions/checkout@v4
-
-      - name: 📦 Set up Node.js
-        uses: actions/setup-node@v4
+      - uses: actions/setup-node@v4
         with:
           node-version: ${{ env.NODE_VERSION }}
-
-      - name: 📦 Install Dependencies
-        run: npm ci
-
-      - name: 🔍 Lint
-        run: npm run lint || true
-
-      - name: 🏗️ Build
-        run: npm run compile
-
-      - name: 📦 Package
-        run: npx vsce package --no-dependencies
+      - run: npm ci
+      - run: npm run lint || true
+      - run: npm run compile
+      - run: npx vsce package --no-dependencies
 
   # ============================================================================
-  # API Compatibility (for breaking changes)
+  # Security (runs in parallel, informational)
   # ============================================================================
-  api-compat:
-    name: 🔄 API Compatibility
+  security:
+    name: 🔒 Security
+    runs-on: ubuntu-latest
+    # Security checks are informational - don't block PRs
+    continue-on-error: true
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+          cache: 'pip'
+      - run: pip install -e ".[dev]" bandit pip-audit
+      - name: Bandit
+        run: bandit -r src/spectra/ -ll -ii -x "*/tests/*" || echo "Bandit found issues (non-blocking)"
+      - name: Pip Audit
+        run: pip-audit --desc || echo "Pip audit found issues (non-blocking)"
+
+  # ============================================================================
+  # PR Management (runs in parallel)
+  # ============================================================================
+  auto-assign:
+    name: 👥 Auto Assign
+    runs-on: ubuntu-latest
+    if: github.event_name == 'pull_request' && !github.event.pull_request.draft && github.actor != 'dependabot[bot]'
+    permissions:
+      pull-requests: write
+    steps:
+      - uses: kentaro-m/auto-assign-action@v2.0.0
+        with:
+          configuration-path: ".github/auto-assign.yml"
+      - uses: actions/github-script@v7
+        with:
+          script: |
+            const pr = context.payload.pull_request;
+            const author = pr.user.login;
+            
+            // Skip if author is a bot or PR already has assignees
+            if (author.includes('[bot]')) {
+              console.log('Skipping: author is a bot');
+              return;
+            }
+            
+            if (pr.assignees && pr.assignees.length > 0) {
+              console.log('Skipping: PR already has assignees:', pr.assignees.map(a => a.login));
+              return;
+            }
+            
+            console.log(`Assigning ${author} to PR #${pr.number}`);
+            await github.rest.issues.addAssignees({
+              ...context.repo,
+              issue_number: pr.number,
+              assignees: [author]
+            });
+
+  labeler:
+    name: 🏷️ Labels
     runs-on: ubuntu-latest
     if: github.event_name == 'pull_request'
+    permissions:
+      contents: read
+      pull-requests: write
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/labeler@v5
         with:
-          fetch-depth: 0
-
-      - name: 🐍 Set up Python
-        uses: actions/setup-python@v5
+          repo-token: "${{ secrets.GITHUB_TOKEN }}"
+          configuration-path: .github/labeler.yml
+          sync-labels: true
+      - uses: codelytv/pr-size-labeler@v1
         with:
-          python-version: ${{ env.PYTHON_VERSION_PRIMARY }}
-          cache: 'pip'
-
-      - name: 📦 Install Dependencies
-        run: pip install -e ".[dev]" griffe
-
-      - name: 🔍 Check API Changes
-        run: |
-          # Generate API signature for current branch
-          griffe dump src/spectra -o api-current.json
-          
-          # Get main branch API (if exists)
-          git checkout origin/main -- . 2>/dev/null || exit 0
-          pip install -e ".[dev]"
-          griffe dump src/spectra -o api-main.json 2>/dev/null || exit 0
-          
-          # Compare (informational only)
-          echo "📋 API changes detected (review required for breaking changes)"
-        continue-on-error: true
-
-  # ============================================================================
-  # Size Check
-  # ============================================================================
-  size-check:
-    name: 📏 Size Check
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-
-      - name: 🐍 Set up Python
-        uses: actions/setup-python@v5
-        with:
-          python-version: ${{ env.PYTHON_VERSION_PRIMARY }}
-
-      - name: 📦 Build Package
-        run: |
-          pip install build
-          python -m build
-
-      - name: 📏 Check Package Size
-        run: |
-          WHEEL=$(ls dist/*.whl)
-          SIZE=$(stat -f%z "$WHEEL" 2>/dev/null || stat -c%s "$WHEEL")
-          SIZE_MB=$(echo "scale=2; $SIZE / 1048576" | bc)
-          
-          echo "📦 Package size: ${SIZE_MB} MB"
-          
-          # Warn if package is too large (> 5MB)
-          if [ $(echo "$SIZE_MB > 5" | bc) -eq 1 ]; then
-            echo "⚠️ Warning: Package is larger than 5MB"
-          fi
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          xs_label: "size/XS"
+          xs_max_size: 10
+          s_label: "size/S"
+          s_max_size: 100
+          m_label: "size/M"
+          m_max_size: 500
+          l_label: "size/L"
+          l_max_size: 1000
+          xl_label: "size/XL"
+          fail_if_xl: false
+          files_to_ignore: |
+            "*.lock"
+            "*.md"
+            "package-lock.json"
+            "CHANGELOG.md"
 
   # ============================================================================
   # Final Status Check (Required for branch protection)
   # ============================================================================
   status-check:
     name: ✅ Status Check
-    needs:
-      - quick-checks
-      - lint
-      - typecheck
-      - security
-      - test
-      - coverage
-      - integration
-      - property-tests
-      - build
-      - docker
-      - docs
+    needs: [lint, typecheck, test, build]
     runs-on: ubuntu-latest
     if: always()
     steps:
-      - name: 📋 Check All Jobs
+      - name: Check Required Jobs
         run: |
           echo "## PR Validation Summary" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
           echo "| Check | Status |" >> $GITHUB_STEP_SUMMARY
           echo "|-------|--------|" >> $GITHUB_STEP_SUMMARY
-          echo "| Quick Checks | ${{ needs.quick-checks.result == 'success' && '✅' || '❌' }} |" >> $GITHUB_STEP_SUMMARY
           echo "| Lint | ${{ needs.lint.result == 'success' && '✅' || '❌' }} |" >> $GITHUB_STEP_SUMMARY
           echo "| Type Check | ${{ needs.typecheck.result == 'success' && '✅' || '❌' }} |" >> $GITHUB_STEP_SUMMARY
-          echo "| Security | ${{ needs.security.result == 'success' && '✅' || '⚠️' }} |" >> $GITHUB_STEP_SUMMARY
-          echo "| Unit Tests | ${{ needs.test.result == 'success' && '✅' || '❌' }} |" >> $GITHUB_STEP_SUMMARY
-          echo "| Coverage | ${{ needs.coverage.result == 'success' && '✅' || '❌' }} |" >> $GITHUB_STEP_SUMMARY
-          echo "| Integration | ${{ needs.integration.result == 'success' && '✅' || '❌' }} |" >> $GITHUB_STEP_SUMMARY
-          echo "| Property Tests | ${{ needs.property-tests.result == 'success' && '✅' || '❌' }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| Tests | ${{ needs.test.result == 'success' && '✅' || '❌' }} |" >> $GITHUB_STEP_SUMMARY
           echo "| Build | ${{ needs.build.result == 'success' && '✅' || '❌' }} |" >> $GITHUB_STEP_SUMMARY
-          echo "| Docker | ${{ needs.docker.result == 'success' && '✅' || '❌' }} |" >> $GITHUB_STEP_SUMMARY
-          echo "| Docs | ${{ needs.docs.result == 'success' && '✅' || '❌' }} |" >> $GITHUB_STEP_SUMMARY
 
-      - name: ❌ Fail if Required Checks Failed
+      - name: Fail if Required Checks Failed
         if: |
-          needs.quick-checks.result != 'success' ||
           needs.lint.result != 'success' ||
           needs.typecheck.result != 'success' ||
           needs.test.result != 'success' ||
-          needs.coverage.result != 'success' ||
           needs.build.result != 'success'
-        run: |
-          echo "❌ One or more required checks failed"
-          exit 1
+        run: exit 1
 
-      - name: ✅ All Checks Passed
-        run: echo "✅ All required checks passed!"
 

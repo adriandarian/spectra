@@ -6,37 +6,38 @@ Provides plugin system integration for publishing to Confluence.
 
 import os
 from dataclasses import dataclass
-from typing import Any, Optional
+from typing import Any
 
-from ...plugins.base import Plugin, PluginMetadata, PluginType
 from spectra.core.ports.document_output import DocumentOutputPort
-from .client import ConfluenceClient, ConfluenceConfig
+from spectra.plugins.base import Plugin, PluginMetadata, PluginType
+
 from .adapter import ConfluenceAdapter
+from .client import ConfluenceClient, ConfluenceConfig
 
 
 @dataclass
 class ConfluencePluginConfig:
     """Configuration for Confluence plugin."""
-    
+
     base_url: str
     username: str
     api_token: str
     is_cloud: bool = True
-    default_space: Optional[str] = None
+    default_space: str | None = None
     timeout: int = 30
 
 
 class ConfluencePlugin(Plugin):
     """
     Plugin wrapper for Confluence adapter.
-    
+
     Configuration via environment variables:
     - CONFLUENCE_URL: Base URL (e.g., https://company.atlassian.net/wiki)
     - CONFLUENCE_USERNAME: Username/email
     - CONFLUENCE_API_TOKEN: API token (Cloud) or password (Server)
     - CONFLUENCE_SPACE: Default space key
     - CONFLUENCE_IS_CLOUD: "true" for Cloud, "false" for Server
-    
+
     Or via config dict:
     {
         "base_url": "https://company.atlassian.net/wiki",
@@ -46,7 +47,7 @@ class ConfluencePlugin(Plugin):
         "default_space": "DEV"
     }
     """
-    
+
     CONFIG_SCHEMA = {
         "type": "object",
         "properties": {
@@ -59,18 +60,18 @@ class ConfluencePlugin(Plugin):
         },
         "required": ["base_url", "username", "api_token"],
     }
-    
-    def __init__(self, config: Optional[dict[str, Any]] = None) -> None:
+
+    def __init__(self, config: dict[str, Any] | None = None) -> None:
         """
         Initialize the Confluence plugin.
-        
+
         Args:
             config: Optional configuration dict
         """
         super().__init__(config)
-        self._adapter: Optional[ConfluenceAdapter] = None
-        self._config: Optional[ConfluencePluginConfig] = None
-    
+        self._adapter: ConfluenceAdapter | None = None
+        self._config: ConfluencePluginConfig | None = None
+
     @property
     def metadata(self) -> PluginMetadata:
         """Get plugin metadata."""
@@ -83,12 +84,12 @@ class ConfluencePlugin(Plugin):
             requires=[],
             config_schema=self.CONFIG_SCHEMA,
         )
-    
+
     def initialize(self) -> None:
         """Initialize the plugin and connect to Confluence."""
         # Build config from environment and provided config
         config = self._build_config()
-        
+
         # Create client and adapter
         client_config = ConfluenceConfig(
             base_url=config.base_url,
@@ -97,13 +98,13 @@ class ConfluencePlugin(Plugin):
             is_cloud=config.is_cloud,
             timeout=config.timeout,
         )
-        
+
         client = ConfluenceClient(client_config)
         self._adapter = ConfluenceAdapter(client)
         self._adapter.connect()
         self._config = config
         self._initialized = True
-    
+
     def shutdown(self) -> None:
         """Disconnect and cleanup."""
         if self._adapter:
@@ -111,32 +112,32 @@ class ConfluencePlugin(Plugin):
             self._adapter = None
         self._config = None
         self._initialized = False
-    
+
     def _build_config(self) -> ConfluencePluginConfig:
         """Build configuration from environment and provided config."""
         provided = self.config or {}
-        
+
         base_url = provided.get("base_url") or os.environ.get("CONFLUENCE_URL")
         username = provided.get("username") or os.environ.get("CONFLUENCE_USERNAME")
         api_token = provided.get("api_token") or os.environ.get("CONFLUENCE_API_TOKEN")
-        
+
         if not base_url:
             raise ValueError("Confluence URL required (base_url or CONFLUENCE_URL)")
         if not username:
             raise ValueError("Confluence username required (username or CONFLUENCE_USERNAME)")
         if not api_token:
             raise ValueError("Confluence API token required (api_token or CONFLUENCE_API_TOKEN)")
-        
+
         # Determine if Cloud or Server
         is_cloud_str = provided.get("is_cloud")
         if is_cloud_str is None:
             is_cloud_str = os.environ.get("CONFLUENCE_IS_CLOUD", "true")
-        
+
         if isinstance(is_cloud_str, bool):
             is_cloud = is_cloud_str
         else:
             is_cloud = str(is_cloud_str).lower() in ("true", "1", "yes")
-        
+
         return ConfluencePluginConfig(
             base_url=base_url,
             username=username,
@@ -145,38 +146,35 @@ class ConfluencePlugin(Plugin):
             default_space=provided.get("default_space") or os.environ.get("CONFLUENCE_SPACE"),
             timeout=int(provided.get("timeout", os.environ.get("CONFLUENCE_TIMEOUT", 30))),
         )
-    
+
     def get_adapter(self) -> DocumentOutputPort:
         """
         Get the Confluence adapter.
-        
+
         Returns:
             ConfluenceAdapter implementing DocumentOutputPort
-            
+
         Raises:
             RuntimeError: If plugin not initialized
         """
         if not self.is_initialized or self._adapter is None:
-            raise RuntimeError(
-                "Confluence plugin not initialized. Call initialize() first."
-            )
+            raise RuntimeError("Confluence plugin not initialized. Call initialize() first.")
         return self._adapter
-    
+
     @property
-    def default_space(self) -> Optional[str]:
+    def default_space(self) -> str | None:
         """Get the configured default space key."""
         return self._config.default_space if self._config else None
 
 
-def create_plugin(config: Optional[dict[str, Any]] = None) -> ConfluencePlugin:
+def create_plugin(config: dict[str, Any] | None = None) -> ConfluencePlugin:
     """
     Factory function for plugin discovery.
-    
+
     Args:
         config: Optional configuration dict
-        
+
     Returns:
         Configured ConfluencePlugin instance
     """
     return ConfluencePlugin(config)
-

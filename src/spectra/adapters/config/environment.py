@@ -179,9 +179,7 @@ class EnvironmentConfigProvider(ConfigProviderPort):
                 if file_app_config.tracker.project_key:
                     self._values["project_key"] = file_app_config.tracker.project_key
                 if file_app_config.tracker.story_points_field:
-                    self._values["story_points_field"] = (
-                        file_app_config.tracker.story_points_field
-                    )
+                    self._values["story_points_field"] = file_app_config.tracker.story_points_field
                 if file_app_config.markdown_path:
                     self._values["markdown_path"] = file_app_config.markdown_path
                 if file_app_config.epic_key:
@@ -286,4 +284,3 @@ class EnvironmentConfigProvider(ConfigProviderPort):
         for cli_key, config_key in cli_mapping.items():
             if cli_key in self._cli_overrides and self._cli_overrides[cli_key] is not None:
                 self._values[config_key] = self._cli_overrides[cli_key]
-

@@ -26,9 +26,10 @@ APP_DESCRIPTION: Final[str] = "Sync markdown documentation with issue trackers"
 # HTTP Constants
 # =============================================================================
 
+
 class ContentType:
     """HTTP Content-Type header values."""
-    
+
     JSON: Final[str] = "application/json"
     FORM: Final[str] = "application/x-www-form-urlencoded"
     TEXT: Final[str] = "text/plain"
@@ -37,7 +38,7 @@ class ContentType:
 
 class HttpHeader:
     """HTTP header names."""
-    
+
     CONTENT_TYPE: Final[str] = "Content-Type"
     ACCEPT: Final[str] = "Accept"
     AUTHORIZATION: Final[str] = "Authorization"
@@ -47,7 +48,7 @@ class HttpHeader:
 
 class HttpMethod:
     """HTTP methods."""
-    
+
     GET: Final[str] = "GET"
     POST: Final[str] = "POST"
     PUT: Final[str] = "PUT"
@@ -59,30 +60,31 @@ class HttpMethod:
 # API Defaults
 # =============================================================================
 
+
 class ApiDefaults:
     """Default values for API clients."""
-    
+
     # Timeouts (seconds)
     TIMEOUT: Final[float] = 30.0
     CONNECT_TIMEOUT: Final[float] = 10.0
     READ_TIMEOUT: Final[float] = 30.0
-    
+
     # Retry configuration
     MAX_RETRIES: Final[int] = 3
     INITIAL_DELAY: Final[float] = 1.0
     MAX_DELAY: Final[float] = 30.0
     BACKOFF_FACTOR: Final[float] = 2.0
     JITTER: Final[float] = 0.1
-    
+
     # Rate limiting
     REQUESTS_PER_SECOND: Final[float] = 10.0
     BURST_SIZE: Final[int] = 10
-    
+
     # Connection pooling
     POOL_CONNECTIONS: Final[int] = 10
     POOL_MAXSIZE: Final[int] = 10
     POOL_BLOCK: Final[bool] = False
-    
+
     # Batch operations
     BATCH_SIZE: Final[int] = 50
     MAX_CONCURRENT: Final[int] = 5
@@ -92,15 +94,16 @@ class ApiDefaults:
 # Jira Constants
 # =============================================================================
 
+
 class JiraApi:
     """Jira API constants."""
-    
+
     # API version
     VERSION: Final[str] = "3"
-    
+
     # API path prefix
     REST_PATH: Final[str] = "/rest/api"
-    
+
     # Endpoints
     ISSUE_ENDPOINT: Final[str] = "issue"
     ISSUE_BULK_ENDPOINT: Final[str] = "issue/bulk"
@@ -113,13 +116,13 @@ class JiraApi:
 
 class JiraField:
     """Jira issue field names."""
-    
+
     # Core fields
     KEY: Final[str] = "key"
     ID: Final[str] = "id"
     SELF: Final[str] = "self"
     FIELDS: Final[str] = "fields"
-    
+
     # Issue fields
     SUMMARY: Final[str] = "summary"
     DESCRIPTION: Final[str] = "description"
@@ -139,34 +142,45 @@ class JiraField:
     RESOLUTION: Final[str] = "resolution"
     RESOLUTIONDATE: Final[str] = "resolutiondate"
     COMMENT: Final[str] = "comment"
-    
+
     # Custom fields (common defaults, can be overridden)
     STORY_POINTS: Final[str] = "customfield_10014"
     EPIC_LINK: Final[str] = "customfield_10008"
     SPRINT: Final[str] = "customfield_10007"
-    
+
     # Nested field accessors
     NAME: Final[str] = "name"
     ACCOUNT_ID: Final[str] = "accountId"
     EMAIL_ADDRESS: Final[str] = "emailAddress"
     DISPLAY_NAME: Final[str] = "displayName"
-    
+
     # Standard field sets for API calls
-    BASIC_FIELDS: Final[tuple[str, ...]] = (
-        "summary", "description", "status", "issuetype"
-    )
+    BASIC_FIELDS: Final[tuple[str, ...]] = ("summary", "description", "status", "issuetype")
     ISSUE_WITH_SUBTASKS: Final[tuple[str, ...]] = (
-        "summary", "description", "status", "issuetype", "subtasks"
+        "summary",
+        "description",
+        "status",
+        "issuetype",
+        "subtasks",
     )
     ALL_CORE_FIELDS: Final[tuple[str, ...]] = (
-        "summary", "description", "status", "issuetype", "subtasks",
-        "assignee", "reporter", "priority", "labels", "created", "updated"
+        "summary",
+        "description",
+        "status",
+        "issuetype",
+        "subtasks",
+        "assignee",
+        "reporter",
+        "priority",
+        "labels",
+        "created",
+        "updated",
     )
 
 
-class IssueType:
-    """Standard issue type names."""
-    
+class IssueTypeName:
+    """Standard issue type name strings for API compatibility."""
+
     EPIC: Final[str] = "Epic"
     STORY: Final[str] = "Story"
     SUBTASK: Final[str] = "Sub-task"
@@ -174,21 +188,26 @@ class IssueType:
     BUG: Final[str] = "Bug"
     FEATURE: Final[str] = "Feature"
     IMPROVEMENT: Final[str] = "Improvement"
-    
+
     # Jira-specific subtask name
     JIRA_SUBTASK: Final[str] = "Sub-task"
+
+
+# Backwards compatibility alias
+IssueType = IssueTypeName
 
 
 # =============================================================================
 # GitHub Constants
 # =============================================================================
 
+
 class GitHubApi:
     """GitHub API constants."""
-    
+
     BASE_URL: Final[str] = "https://api.github.com"
     VERSION: Final[str] = "2022-11-28"
-    
+
     # Endpoints
     ISSUES_ENDPOINT: Final[str] = "issues"
     REPOS_ENDPOINT: Final[str] = "repos"
@@ -197,7 +216,7 @@ class GitHubApi:
 
 class GitHubLabel:
     """GitHub label constants."""
-    
+
     EPIC: Final[str] = "epic"
     STORY: Final[str] = "story"
     SUBTASK: Final[str] = "subtask"
@@ -208,9 +227,10 @@ class GitHubLabel:
 # Linear Constants
 # =============================================================================
 
+
 class LinearApi:
     """Linear API constants."""
-    
+
     GRAPHQL_URL: Final[str] = "https://api.linear.app/graphql"
 
 
@@ -218,15 +238,16 @@ class LinearApi:
 # Azure DevOps Constants
 # =============================================================================
 
+
 class AzureDevOpsApi:
     """Azure DevOps API constants."""
-    
+
     VERSION: Final[str] = "7.0"
 
 
 class AzureWorkItemType:
     """Azure DevOps work item types."""
-    
+
     EPIC: Final[str] = "Epic"
     FEATURE: Final[str] = "Feature"
     USER_STORY: Final[str] = "User Story"
@@ -238,13 +259,14 @@ class AzureWorkItemType:
 # Confluence Constants
 # =============================================================================
 
+
 class ConfluenceApi:
     """Confluence API constants."""
-    
+
     # API paths
     CLOUD_PATH: Final[str] = "/wiki/rest/api"
     SERVER_PATH: Final[str] = "/rest/api"
-    
+
     # Endpoints
     CONTENT_ENDPOINT: Final[str] = "content"
     SPACE_ENDPOINT: Final[str] = "space"
@@ -252,7 +274,7 @@ class ConfluenceApi:
 
 class ConfluenceLabel:
     """Confluence label constants."""
-    
+
     EPIC: Final[str] = "epic"
     STORY: Final[str] = "story"
     MD2JIRA: Final[str] = "spectra"
@@ -262,28 +284,29 @@ class ConfluenceLabel:
 # File and Path Constants
 # =============================================================================
 
+
 class ConfigFile:
     """Configuration file names and paths."""
-    
+
     # Config file names (searched in order)
     YAML_NAME: Final[str] = ".spectra.yaml"
     YML_NAME: Final[str] = ".spectra.yml"
     TOML_NAME: Final[str] = ".spectra.toml"
     PYPROJECT: Final[str] = "pyproject.toml"
-    
+
     # State directory
     STATE_DIR: Final[str] = ".spectra"
     STATE_FILE: Final[str] = "state.json"
     BACKUP_DIR: Final[str] = "backups"
     CACHE_DIR: Final[str] = "cache"
-    
+
     # pyproject.toml section
     PYPROJECT_SECTION: Final[str] = "tool.spectra"
 
 
 class FileExtension:
     """File extensions."""
-    
+
     MARKDOWN: Final[tuple[str, ...]] = (".md", ".markdown")
     YAML: Final[tuple[str, ...]] = (".yaml", ".yml")
     TOML: Final[tuple[str, ...]] = (".toml",)
@@ -294,19 +317,20 @@ class FileExtension:
 # Markdown Parser Constants
 # =============================================================================
 
+
 class MarkdownPattern:
     """Markdown parsing patterns and markers."""
-    
+
     # Headers
     H1_PREFIX: Final[str] = "# "
     H2_PREFIX: Final[str] = "## "
     H3_PREFIX: Final[str] = "### "
-    
+
     # Special markers
     ACCEPTANCE_CRITERIA_HEADER: Final[str] = "Acceptance Criteria"
     TECHNICAL_NOTES_HEADER: Final[str] = "Technical Notes"
     SUBTASKS_HEADER: Final[str] = "Subtasks"
-    
+
     # Status markers
     TODO_MARKER: Final[str] = "[ ]"
     DONE_MARKER: Final[str] = "[x]"
@@ -317,16 +341,17 @@ class MarkdownPattern:
 # Sync Constants
 # =============================================================================
 
+
 class SyncDefaults:
     """Default values for sync operations."""
-    
+
     # Backup retention
     MAX_BACKUPS: Final[int] = 10
     BACKUP_RETENTION_DAYS: Final[int] = 30
-    
+
     # Incremental sync
     FINGERPRINT_ALGORITHM: Final[str] = "sha256"
-    
+
     # Watch mode
     DEBOUNCE_SECONDS: Final[float] = 2.0
     POLL_INTERVAL_SECONDS: Final[float] = 1.0
@@ -336,19 +361,20 @@ class SyncDefaults:
 # Logging Constants
 # =============================================================================
 
+
 class LogFormat:
     """Logging format constants."""
-    
+
     # Format types
     TEXT: Final[str] = "text"
     JSON: Final[str] = "json"
-    
+
     # Log levels
     DEBUG: Final[str] = "DEBUG"
     INFO: Final[str] = "INFO"
     WARNING: Final[str] = "WARNING"
     ERROR: Final[str] = "ERROR"
-    
+
     # Service identifier for structured logging
     SERVICE_NAME: Final[str] = APP_NAME
 
@@ -357,9 +383,10 @@ class LogFormat:
 # Exit Codes (reference only - canonical definitions in cli/exit_codes.py)
 # =============================================================================
 
+
 class ExitCode:
     """Exit code constants."""
-    
+
     SUCCESS: Final[int] = 0
     GENERAL_ERROR: Final[int] = 1
     CONFIG_ERROR: Final[int] = 2
@@ -379,41 +406,40 @@ class ExitCode:
 # =============================================================================
 
 __all__ = [
+    "APP_DESCRIPTION",
     # App metadata
     "APP_NAME",
     "APP_VERSION",
-    "APP_DESCRIPTION",
-    # HTTP
-    "ContentType",
-    "HttpHeader",
-    "HttpMethod",
     # API defaults
     "ApiDefaults",
-    # Jira
-    "JiraApi",
-    "JiraField",
-    "IssueType",
-    # GitHub
-    "GitHubApi",
-    "GitHubLabel",
-    # Linear
-    "LinearApi",
     # Azure DevOps
     "AzureDevOpsApi",
     "AzureWorkItemType",
+    # Files
+    "ConfigFile",
     # Confluence
     "ConfluenceApi",
     "ConfluenceLabel",
-    # Files
-    "ConfigFile",
+    # HTTP
+    "ContentType",
+    # Exit codes
+    "ExitCode",
     "FileExtension",
+    # GitHub
+    "GitHubApi",
+    "GitHubLabel",
+    "HttpHeader",
+    "HttpMethod",
+    "IssueType",
+    # Jira
+    "JiraApi",
+    "JiraField",
+    # Linear
+    "LinearApi",
+    # Logging
+    "LogFormat",
     # Markdown
     "MarkdownPattern",
     # Sync
     "SyncDefaults",
-    # Logging
-    "LogFormat",
-    # Exit codes
-    "ExitCode",
 ]
-

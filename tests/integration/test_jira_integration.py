@@ -14,15 +14,16 @@ Note: Common fixtures are imported from conftest.py:
 - mock_create_issue_response
 """
 
-import pytest
-from unittest.mock import Mock, patch
 import json
+from unittest.mock import Mock, patch
 
-from spectra.adapters.jira.client import JiraApiClient, RateLimiter
+import pytest
+
 from spectra.adapters.jira.adapter import JiraAdapter
+from spectra.adapters.jira.client import JiraApiClient, RateLimiter
 from spectra.core.ports.issue_tracker import (
-    IssueTrackerError,
     AuthenticationError,
+    IssueTrackerError,
     NotFoundError,
     PermissionError,
     RateLimitError,
@@ -40,6 +41,7 @@ def jira_config(tracker_config):
 # =============================================================================
 # JiraApiClient Tests
 # =============================================================================
+
 
 class TestJiraApiClientIntegration:
     """Integration tests for JiraApiClient with mocked HTTP."""
@@ -231,6 +233,7 @@ class TestJiraApiClientIntegration:
 # Retry Logic Tests
 # =============================================================================
 
+
 class TestRetryLogic:
     """Tests for retry logic with exponential backoff."""
 
@@ -247,8 +250,10 @@ class TestRetryLogic:
             initial_delay=0.01,  # Fast for testing
         )
 
-        with patch.object(client._session, "request") as mock_request, \
-             patch("time.sleep"):  # Skip actual sleep
+        with (
+            patch.object(client._session, "request") as mock_request,
+            patch("time.sleep"),
+        ):  # Skip actual sleep
             # First call fails, second succeeds
             mock_success = Mock()
             mock_success.ok = True
@@ -280,8 +285,7 @@ class TestRetryLogic:
             initial_delay=0.01,
         )
 
-        with patch.object(client._session, "request") as mock_request, \
-             patch("time.sleep"):
+        with patch.object(client._session, "request") as mock_request, patch("time.sleep"):
             mock_success = Mock()
             mock_success.ok = True
             mock_success.status_code = 200
@@ -310,8 +314,7 @@ class TestRetryLogic:
             initial_delay=0.01,
         )
 
-        with patch.object(client._session, "request") as mock_request, \
-             patch("time.sleep"):
+        with patch.object(client._session, "request") as mock_request, patch("time.sleep"):
             mock_rate_limit = Mock()
             mock_rate_limit.ok = False
             mock_rate_limit.status_code = 429
@@ -343,8 +346,7 @@ class TestRetryLogic:
             initial_delay=0.01,
         )
 
-        with patch.object(client._session, "request") as mock_request, \
-             patch("time.sleep"):
+        with patch.object(client._session, "request") as mock_request, patch("time.sleep"):
             mock_503 = Mock()
             mock_503.ok = False
             mock_503.status_code = 503
@@ -376,8 +378,7 @@ class TestRetryLogic:
             initial_delay=0.01,
         )
 
-        with patch.object(client._session, "request") as mock_request, \
-             patch("time.sleep"):
+        with patch.object(client._session, "request") as mock_request, patch("time.sleep"):
             mock_rate_limit = Mock()
             mock_rate_limit.ok = False
             mock_rate_limit.status_code = 429
@@ -405,8 +406,7 @@ class TestRetryLogic:
             initial_delay=0.01,
         )
 
-        with patch.object(client._session, "request") as mock_request, \
-             patch("time.sleep"):
+        with patch.object(client._session, "request") as mock_request, patch("time.sleep"):
             mock_500 = Mock()
             mock_500.ok = False
             mock_500.status_code = 500
@@ -434,8 +434,7 @@ class TestRetryLogic:
             initial_delay=0.01,
         )
 
-        with patch.object(client._session, "request") as mock_request, \
-             patch("time.sleep"):
+        with patch.object(client._session, "request") as mock_request, patch("time.sleep"):
             mock_request.side_effect = requests.exceptions.ConnectionError("Connection refused")
 
             with pytest.raises(IssueTrackerError) as exc_info:
@@ -510,10 +509,10 @@ class TestRetryLogic:
         )
 
         # Test exponential growth
-        assert client._calculate_delay(0) == 1.0   # 1 * 2^0 = 1
-        assert client._calculate_delay(1) == 2.0   # 1 * 2^1 = 2
-        assert client._calculate_delay(2) == 4.0   # 1 * 2^2 = 4
-        assert client._calculate_delay(3) == 8.0   # 1 * 2^3 = 8
+        assert client._calculate_delay(0) == 1.0  # 1 * 2^0 = 1
+        assert client._calculate_delay(1) == 2.0  # 1 * 2^1 = 2
+        assert client._calculate_delay(2) == 4.0  # 1 * 2^2 = 4
+        assert client._calculate_delay(3) == 8.0  # 1 * 2^3 = 8
         assert client._calculate_delay(4) == 16.0  # 1 * 2^4 = 16
 
     def test_delay_respects_max_delay(self, jira_config):
@@ -546,7 +545,7 @@ class TestRetryLogic:
 
         # Should use retry_after value
         assert client._calculate_delay(0, retry_after=30) == 30.0
-        
+
         # Should cap at max_delay even with retry_after
         assert client._calculate_delay(0, retry_after=200) == 120.0
 
@@ -574,71 +573,75 @@ class TestRetryLogic:
 # Rate Limiting Tests
 # =============================================================================
 
+
 class TestRateLimiter:
     """Tests for the RateLimiter class."""
 
     def test_initial_burst_capacity(self):
         """Test that rate limiter starts with full burst capacity."""
         limiter = RateLimiter(requests_per_second=10.0, burst_size=5)
-        
+
         # Should be able to acquire burst_size tokens immediately
         for _ in range(5):
             assert limiter.try_acquire() is True
-        
+
         # Next one should fail (no tokens left)
         assert limiter.try_acquire() is False
 
     def test_token_refill(self):
         """Test that tokens refill over time."""
         limiter = RateLimiter(requests_per_second=100.0, burst_size=1)
-        
+
         # Use the token
         assert limiter.try_acquire() is True
         assert limiter.try_acquire() is False
-        
+
         # Wait for refill (10ms at 100 req/s = 1 token)
         import time
+
         time.sleep(0.015)
-        
+
         # Should have refilled
         assert limiter.try_acquire() is True
 
     def test_acquire_blocks_and_succeeds(self):
         """Test that acquire() blocks until token is available."""
         limiter = RateLimiter(requests_per_second=100.0, burst_size=1)
-        
+
         # Use the token
         limiter.try_acquire()
-        
+
         # Acquire should block briefly then succeed
         import time
+
         start = time.monotonic()
         result = limiter.acquire(timeout=1.0)
         elapsed = time.monotonic() - start
-        
+
         assert result is True
         assert elapsed < 0.1  # Should be quick at 100 req/s
 
     def test_acquire_timeout(self):
         """Test that acquire() respects timeout."""
         limiter = RateLimiter(requests_per_second=0.5, burst_size=1)  # Very slow: 1 req/2s
-        
+
         # Use the token
         limiter.try_acquire()
-        
+
         # Acquire with short timeout should fail
         import time
+
         start = time.monotonic()
         result = limiter.acquire(timeout=0.05)
         elapsed = time.monotonic() - start
-        
+
         assert result is False
         assert elapsed < 0.1  # Should respect timeout
 
     def test_burst_capacity(self):
         """Test that burst allows multiple quick requests."""
         limiter = RateLimiter(requests_per_second=1.0, burst_size=10)
-        
+
         # Should be able to burst 10 requests instantly
         successes = sum(1 for _ in range(15) if limiter.try_acquire())
         assert successes == 10
@@ -646,11 +649,11 @@ class TestRateLimiter:
     def test_stats_tracking(self):
         """Test that statistics are tracked correctly."""
         limiter = RateLimiter(requests_per_second=100.0, burst_size=5)
-        
+
         # Make some requests
         for _ in range(3):
             limiter.try_acquire()
-        
+
         stats = limiter.stats
         assert stats["total_requests"] == 3
         assert stats["burst_size"] == 5
@@ -659,16 +662,16 @@ class TestRateLimiter:
     def test_reset(self):
         """Test that reset restores initial state."""
         limiter = RateLimiter(requests_per_second=10.0, burst_size=5)
-        
+
         # Use all tokens
         for _ in range(5):
             limiter.try_acquire()
-        
+
         assert limiter.try_acquire() is False
-        
+
         # Reset
         limiter.reset()
-        
+
         # Should have full burst capacity again
         assert limiter.available_tokens == 5.0
         stats = limiter.stats
@@ -677,35 +680,35 @@ class TestRateLimiter:
     def test_update_from_429_response(self):
         """Test that 429 response reduces rate."""
         limiter = RateLimiter(requests_per_second=10.0, burst_size=5)
-        
+
         original_rate = limiter.requests_per_second
-        
+
         mock_response = Mock()
         mock_response.status_code = 429
         mock_response.headers = {}
-        
+
         limiter.update_from_response(mock_response)
-        
+
         # Rate should be reduced by 50%
         assert limiter.requests_per_second == original_rate * 0.5
 
     def test_thread_safety(self):
         """Test that rate limiter is thread-safe."""
         import threading
-        
+
         limiter = RateLimiter(requests_per_second=1000.0, burst_size=100)
         results = []
-        
+
         def worker():
             for _ in range(10):
                 results.append(limiter.try_acquire())
-        
+
         threads = [threading.Thread(target=worker) for _ in range(5)]
         for t in threads:
             t.start()
         for t in threads:
             t.join()
-        
+
         # Should have exactly 50 attempts, 100 tokens available initially
         # but only burst_size tokens available
         successes = sum(1 for r in results if r)
@@ -725,7 +728,7 @@ class TestRateLimitingIntegration:
             api_token=jira_config.api_token,
             dry_run=False,
         )
-        
+
         assert client.is_rate_limited is True
         assert client.rate_limiter is not None
 
@@ -738,7 +741,7 @@ class TestRateLimitingIntegration:
             dry_run=False,
             requests_per_second=None,  # Disable rate limiting
         )
-        
+
         assert client.is_rate_limited is False
         assert client.rate_limiter is None
         assert client.rate_limit_stats is None
@@ -753,7 +756,7 @@ class TestRateLimitingIntegration:
             requests_per_second=2.0,
             burst_size=5,
         )
-        
+
         assert client.is_rate_limited is True
         stats = client.rate_limit_stats
         assert stats["requests_per_second"] == 2.0
@@ -769,7 +772,7 @@ class TestRateLimitingIntegration:
             requests_per_second=100.0,
             burst_size=10,
         )
-        
+
         with patch.object(client._session, "request") as mock_request:
             mock_response = Mock()
             mock_response.ok = True
@@ -778,11 +781,11 @@ class TestRateLimitingIntegration:
             mock_response.json.return_value = mock_myself_response
             mock_response.headers = {}
             mock_request.return_value = mock_response
-            
+
             # Make several requests
             for _ in range(5):
                 client.get("myself")
-            
+
             # Rate limiter should have tracked these
             stats = client.rate_limit_stats
             assert stats["total_requests"] == 5
@@ -799,29 +802,28 @@ class TestRateLimitingIntegration:
             max_retries=1,
             initial_delay=0.01,
         )
-        
+
         original_rate = client.rate_limiter.requests_per_second
-        
-        with patch.object(client._session, "request") as mock_request, \
-             patch("time.sleep"):
+
+        with patch.object(client._session, "request") as mock_request, patch("time.sleep"):
             # First call returns 429, second succeeds
             mock_429 = Mock()
             mock_429.ok = False
             mock_429.status_code = 429
             mock_429.headers = {}
             mock_429.text = "Rate limited"
-            
+
             mock_success = Mock()
             mock_success.ok = True
             mock_success.status_code = 200
             mock_success.text = json.dumps(mock_myself_response)
             mock_success.json.return_value = mock_myself_response
             mock_success.headers = {}
-            
+
             mock_request.side_effect = [mock_429, mock_success]
-            
+
             client.get("myself")
-            
+
             # Rate should have been reduced
             assert client.rate_limiter.requests_per_second < original_rate
 
@@ -829,6 +831,7 @@ class TestRateLimitingIntegration:
 # =============================================================================
 # Connection Pooling Tests
 # =============================================================================
+
 
 class TestConnectionPooling:
     """Tests for connection pooling functionality."""
@@ -841,7 +844,7 @@ class TestConnectionPooling:
             api_token=jira_config.api_token,
             dry_run=False,
         )
-        
+
         config = client.pool_config
         assert config["pool_connections"] == 10
         assert config["pool_maxsize"] == 10
@@ -860,7 +863,7 @@ class TestConnectionPooling:
             pool_block=True,
             timeout=60.0,
         )
-        
+
         config = client.pool_config
         assert config["pool_connections"] == 5
         assert config["pool_maxsize"] == 20
@@ -870,18 +873,18 @@ class TestConnectionPooling:
     def test_session_has_adapter_mounted(self, jira_config):
         """Test that HTTP adapter is mounted on session."""
         from requests.adapters import HTTPAdapter
-        
+
         client = JiraApiClient(
             base_url=jira_config.url,
             email=jira_config.email,
             api_token=jira_config.api_token,
             dry_run=False,
         )
-        
+
         # Check that adapters are mounted for both http and https
         https_adapter = client._session.get_adapter("https://")
         http_adapter = client._session.get_adapter("http://")
-        
+
         assert isinstance(https_adapter, HTTPAdapter)
         assert isinstance(http_adapter, HTTPAdapter)
 
@@ -893,7 +896,7 @@ class TestConnectionPooling:
             api_token=jira_config.api_token,
             dry_run=False,
         )
-        
+
         # Should not raise
         client.close()
 
@@ -915,10 +918,10 @@ class TestConnectionPooling:
                 mock_response.json.return_value = mock_myself_response
                 mock_response.headers = {}
                 mock_request.return_value = mock_response
-                
+
                 result = client.get_myself()
                 assert result["accountId"] == "user-123-abc"
-        
+
         # After context, session is closed (no easy way to verify)
 
     def test_timeout_applied_to_requests(self, jira_config, mock_myself_response):
@@ -930,7 +933,7 @@ class TestConnectionPooling:
             dry_run=False,
             timeout=15.0,
         )
-        
+
         with patch.object(client._session, "request") as mock_request:
             mock_response = Mock()
             mock_response.ok = True
@@ -939,9 +942,9 @@ class TestConnectionPooling:
             mock_response.json.return_value = mock_myself_response
             mock_response.headers = {}
             mock_request.return_value = mock_response
-            
+
             client.get("myself")
-            
+
             # Check that timeout was passed to request
             call_kwargs = mock_request.call_args[1]
             assert call_kwargs.get("timeout") == 15.0
@@ -955,7 +958,7 @@ class TestConnectionPooling:
             dry_run=False,
             timeout=30.0,
         )
-        
+
         with patch.object(client._session, "request") as mock_request:
             mock_response = Mock()
             mock_response.ok = True
@@ -964,10 +967,10 @@ class TestConnectionPooling:
             mock_response.json.return_value = mock_myself_response
             mock_response.headers = {}
             mock_request.return_value = mock_response
-            
+
             # Override timeout for this request
             client.request("GET", "myself", timeout=5.0)
-            
+
             # Check that overridden timeout was used
             call_kwargs = mock_request.call_args[1]
             assert call_kwargs.get("timeout") == 5.0
@@ -976,6 +979,7 @@ class TestConnectionPooling:
 # =============================================================================
 # JiraAdapter Tests
 # =============================================================================
+
 
 class TestJiraAdapterIntegration:
     """Integration tests for JiraAdapter with mocked client."""
@@ -1013,10 +1017,14 @@ class TestJiraAdapterIntegration:
             assert children[1].key == "TEST-11"
             assert len(children[1].subtasks) == 1
 
-    def test_create_subtask_builds_correct_payload(self, adapter, mock_create_issue_response, mock_myself_response):
+    def test_create_subtask_builds_correct_payload(
+        self, adapter, mock_create_issue_response, mock_myself_response
+    ):
         """Test create_subtask sends correct fields."""
-        with patch.object(adapter._client, "post") as mock_post, \
-             patch.object(adapter._client, "get_current_user_id") as mock_user:
+        with (
+            patch.object(adapter._client, "post") as mock_post,
+            patch.object(adapter._client, "get_current_user_id") as mock_user,
+        ):
             mock_post.return_value = mock_create_issue_response
             mock_user.return_value = "user-123-abc"
 
@@ -1030,10 +1038,10 @@ class TestJiraAdapterIntegration:
 
             assert result == "TEST-99"
             mock_post.assert_called_once()
-            
+
             call_args = mock_post.call_args
             payload = call_args[1]["json"]["fields"]
-            
+
             assert payload["project"]["key"] == "TEST"
             assert payload["parent"]["key"] == "TEST-10"
             assert payload["summary"] == "New subtask"
@@ -1062,7 +1070,7 @@ class TestJiraAdapterIntegration:
 
             assert result is True
             mock_put.assert_called_once()
-            
+
             call_args = mock_put.call_args
             assert "issue/TEST-123" in call_args[0]
             assert "description" in call_args[1]["json"]["fields"]
@@ -1076,16 +1084,14 @@ class TestJiraAdapterIntegration:
 
             assert result is True
             mock_post.assert_called_once()
-            
+
             call_args = mock_post.call_args
             assert "issue/TEST-123/comment" in call_args[0]
 
     def test_get_issue_status(self, adapter):
         """Test get_issue_status extracts status name."""
         with patch.object(adapter._client, "get") as mock_get:
-            mock_get.return_value = {
-                "fields": {"status": {"name": "In Progress"}}
-            }
+            mock_get.return_value = {"fields": {"status": {"name": "In Progress"}}}
 
             status = adapter.get_issue_status("TEST-123")
 
@@ -1117,9 +1123,10 @@ class TestJiraAdapterIntegration:
 # End-to-End Sync Flow Tests
 # =============================================================================
 
+
 class TestSyncFlowIntegration:
     """End-to-end integration tests for the sync flow.
-    
+
     Uses shared fixtures from conftest.py:
     - mock_tracker_with_children
     - mock_parser
@@ -1127,7 +1134,9 @@ class TestSyncFlowIntegration:
     - sync_config
     """
 
-    def test_analyze_matches_stories(self, mock_tracker_with_children, mock_parser, mock_formatter, sync_config):
+    def test_analyze_matches_stories(
+        self, mock_tracker_with_children, mock_parser, mock_formatter, sync_config
+    ):
         """Test that analyze correctly matches markdown stories to Jira issues."""
         from spectra.application.sync.orchestrator import SyncOrchestrator
 
@@ -1145,7 +1154,9 @@ class TestSyncFlowIntegration:
         assert ("US-001", "TEST-10") in result.matched_stories
         assert ("US-002", "TEST-11") in result.matched_stories
 
-    def test_sync_updates_descriptions(self, mock_tracker_with_children, mock_parser, mock_formatter, sync_config):
+    def test_sync_updates_descriptions(
+        self, mock_tracker_with_children, mock_parser, mock_formatter, sync_config
+    ):
         """Test that sync updates story descriptions."""
         from spectra.application.sync.orchestrator import SyncOrchestrator
 
@@ -1161,7 +1172,9 @@ class TestSyncFlowIntegration:
         assert result.stories_updated == 2
         assert mock_tracker_with_children.update_issue_description.call_count == 2
 
-    def test_sync_creates_new_subtasks(self, mock_tracker_with_children, mock_parser, mock_formatter, sync_config):
+    def test_sync_creates_new_subtasks(
+        self, mock_tracker_with_children, mock_parser, mock_formatter, sync_config
+    ):
         """Test that sync creates subtasks that don't exist."""
         from spectra.application.sync.orchestrator import SyncOrchestrator
 
@@ -1179,7 +1192,9 @@ class TestSyncFlowIntegration:
         assert result.subtasks_created >= 1
         mock_tracker_with_children.create_subtask.assert_called()
 
-    def test_sync_dry_run_no_changes(self, mock_tracker_with_children, mock_parser, mock_formatter, sync_config_dry_run):
+    def test_sync_dry_run_no_changes(
+        self, mock_tracker_with_children, mock_parser, mock_formatter, sync_config_dry_run
+    ):
         """Test that dry_run mode doesn't make actual changes."""
         from spectra.application.sync.orchestrator import SyncOrchestrator
 
@@ -1196,12 +1211,14 @@ class TestSyncFlowIntegration:
         # In dry_run, commands don't execute actual tracker methods
         # (the command layer handles this)
 
-    def test_sync_handles_unmatched_stories(self, mock_tracker_with_children, mock_parser, mock_formatter, sync_config):
+    def test_sync_handles_unmatched_stories(
+        self, mock_tracker_with_children, mock_parser, mock_formatter, sync_config
+    ):
         """Test that unmatched stories are reported as warnings."""
         from spectra.application.sync.orchestrator import SyncOrchestrator
         from spectra.core.domain.entities import UserStory
         from spectra.core.domain.enums import Status
-        from spectra.core.domain.value_objects import StoryId, Description
+        from spectra.core.domain.value_objects import Description, StoryId
 
         # Add an unmatched story
         mock_parser.parse_stories.return_value.append(
@@ -1211,7 +1228,7 @@ class TestSyncFlowIntegration:
                 description=Description(
                     role="user",
                     want="this story to not match",
-                    benefit="we can test unmatched handling"
+                    benefit="we can test unmatched handling",
                 ),
                 status=Status.PLANNED,
             )
@@ -1233,6 +1250,7 @@ class TestSyncFlowIntegration:
 # =============================================================================
 # Error Handling Tests
 # =============================================================================
+
 
 class TestErrorHandlingIntegration:
     """Test error handling in integration scenarios."""
@@ -1258,4 +1276,3 @@ class TestErrorHandlingIntegration:
 
             # Should return False for unknown status
             assert result is False
-

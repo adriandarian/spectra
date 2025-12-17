@@ -8,79 +8,79 @@ This layer contains:
 - watch: File watching for auto-sync
 """
 
-from .sync import SyncOrchestrator, SyncResult
 from .commands import (
+    AddCommentCommand,
     Command,
     CommandResult,
-    UpdateDescriptionCommand,
     CreateSubtaskCommand,
-    AddCommentCommand,
     TransitionStatusCommand,
-)
-from .watch import (
-    FileWatcher,
-    WatchOrchestrator,
-    WatchDisplay,
-    WatchEvent,
-    FileChange,
-    WatchStats,
+    UpdateDescriptionCommand,
 )
 from .scheduler import (
-    Schedule,
-    IntervalSchedule,
+    CronSchedule,
     DailySchedule,
     HourlySchedule,
-    CronSchedule,
-    ScheduledSyncRunner,
+    IntervalSchedule,
+    Schedule,
     ScheduleDisplay,
+    ScheduledSyncRunner,
     ScheduleStats,
     ScheduleType,
     parse_schedule,
 )
+from .sync import SyncOrchestrator, SyncResult
+from .watch import (
+    FileChange,
+    FileWatcher,
+    WatchDisplay,
+    WatchEvent,
+    WatchOrchestrator,
+    WatchStats,
+)
 from .webhook import (
-    WebhookServer,
-    WebhookHandler,
-    WebhookParser,
+    WebhookDisplay,
     WebhookEvent,
     WebhookEventType,
+    WebhookHandler,
+    WebhookParser,
+    WebhookServer,
     WebhookStats,
-    WebhookDisplay,
 )
 
+
 __all__ = [
-    "SyncOrchestrator",
-    "SyncResult",
+    "AddCommentCommand",
     "Command",
     "CommandResult",
-    "UpdateDescriptionCommand",
     "CreateSubtaskCommand",
-    "AddCommentCommand",
-    "TransitionStatusCommand",
+    "CronSchedule",
+    "DailySchedule",
+    "FileChange",
     # Watch mode
     "FileWatcher",
-    "WatchOrchestrator",
-    "WatchDisplay",
-    "WatchEvent",
-    "FileChange",
-    "WatchStats",
+    "HourlySchedule",
+    "IntervalSchedule",
     # Scheduled sync
     "Schedule",
-    "IntervalSchedule",
-    "DailySchedule",
-    "HourlySchedule",
-    "CronSchedule",
-    "ScheduledSyncRunner",
     "ScheduleDisplay",
     "ScheduleStats",
     "ScheduleType",
-    "parse_schedule",
-    # Webhook receiver
-    "WebhookServer",
-    "WebhookHandler",
-    "WebhookParser",
+    "ScheduledSyncRunner",
+    "SyncOrchestrator",
+    "SyncResult",
+    "TransitionStatusCommand",
+    "UpdateDescriptionCommand",
+    "WatchDisplay",
+    "WatchEvent",
+    "WatchOrchestrator",
+    "WatchStats",
+    "WebhookDisplay",
     "WebhookEvent",
     "WebhookEventType",
+    "WebhookHandler",
+    "WebhookParser",
+    # Webhook receiver
+    "WebhookServer",
     "WebhookStats",
-    "WebhookDisplay",
+    "parse_schedule",
 ]
-

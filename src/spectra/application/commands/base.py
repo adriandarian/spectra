@@ -10,10 +10,10 @@ Commands follow the Command pattern for:
 from abc import ABC, abstractmethod
 from dataclasses import dataclass, field
 from datetime import datetime
-from typing import Any, Generic, Optional, TypeVar
+from typing import Any, Generic, TypeVar
 
-from ...core.ports.issue_tracker import IssueTrackerPort
-from ...core.domain.events import DomainEvent, EventBus
+from spectra.core.domain.events import DomainEvent, EventBus
+from spectra.core.ports.issue_tracker import IssueTrackerPort
 
 
 T = TypeVar("T")
@@ -22,26 +22,26 @@ T = TypeVar("T")
 @dataclass
 class CommandResult(Generic[T]):
     """Result of command execution."""
-    
+
     success: bool
-    data: Optional[T] = None
-    error: Optional[str] = None
+    data: T | None = None
+    error: str | None = None
     skipped: bool = False
     dry_run: bool = False
-    
+
     # For undo support
-    undo_data: Optional[Any] = None
-    
+    undo_data: Any | None = None
+
     @classmethod
-    def ok(cls, data: Optional[T] = None, dry_run: bool = False) -> "CommandResult[T]":
+    def ok(cls, data: T | None = None, dry_run: bool = False) -> "CommandResult[T]":
         """Create successful result."""
         return cls(success=True, data=data, dry_run=dry_run)
-    
+
     @classmethod
     def fail(cls, error: str) -> "CommandResult[T]":
         """Create failed result."""
         return cls(success=False, error=error)
-    
+
     @classmethod
     def skip(cls, reason: str = "") -> "CommandResult[T]":
         """Create skipped result."""
@@ -51,23 +51,23 @@ class CommandResult(Generic[T]):
 class Command(ABC):
     """
     Abstract base class for all commands.
-    
+
     Commands encapsulate a single operation that can be:
     - Validated before execution
     - Executed
     - Undone (if supported)
     - Logged for audit
     """
-    
+
     def __init__(
         self,
         tracker: IssueTrackerPort,
-        event_bus: Optional[EventBus] = None,
+        event_bus: EventBus | None = None,
         dry_run: bool = True,
     ) -> None:
         """
         Initialize command.
-        
+
         Args:
             tracker: Issue tracker port
             event_bus: Optional event bus for publishing events
@@ -76,48 +76,48 @@ class Command(ABC):
         self.tracker = tracker
         self.event_bus = event_bus
         self.dry_run = dry_run
-        self.executed_at: Optional[datetime] = None
-        self._undo_data: Optional[Any] = None
-    
+        self.executed_at: datetime | None = None
+        self._undo_data: Any | None = None
+
     @property
     @abstractmethod
     def name(self) -> str:
         """Human-readable command name."""
         ...
-    
+
     @property
     def supports_undo(self) -> bool:
         """Check if this command supports undo."""
         return False
-    
-    def validate(self) -> Optional[str]:
+
+    def validate(self) -> str | None:
         """
         Validate command before execution.
-        
+
         Returns:
             Error message if invalid, None if valid
         """
         return None
-    
+
     @abstractmethod
     def execute(self) -> CommandResult:
         """
         Execute the command.
-        
+
         Returns:
             CommandResult with success status and data
         """
         ...
-    
-    def undo(self) -> Optional[CommandResult]:
+
+    def undo(self) -> CommandResult | None:
         """
         Undo the command (if supported).
-        
+
         Returns:
             CommandResult, or None if undo not supported
         """
         return None
-    
+
     def _publish_event(self, event: DomainEvent) -> None:
         """Publish an event if event bus is available."""
         if self.event_bus:
@@ -127,46 +127,45 @@ class Command(ABC):
 @dataclass
 class CommandBatch:
     """A batch of commands to execute together."""
-    
+
     commands: list[Command] = field(default_factory=list)
     stop_on_error: bool = True
     results: list[CommandResult] = field(default_factory=list)
-    
+
     def add(self, command: Command) -> "CommandBatch":
         """Add a command to the batch."""
         self.commands.append(command)
         return self
-    
+
     def execute_all(self) -> list[CommandResult]:
         """Execute all commands in order."""
         self.results = []
-        
+
         for command in self.commands:
             result = command.execute()
             self.results.append(result)
-            
+
             if not result.success and self.stop_on_error:
                 break
-        
+
         return self.results
-    
+
     @property
     def all_succeeded(self) -> bool:
         """Check if all commands succeeded."""
         return all(r.success for r in self.results)
-    
+
     @property
     def executed_count(self) -> int:
         """Count of successfully executed commands."""
         return sum(1 for r in self.results if r.success and not r.skipped)
-    
+
     @property
     def skipped_count(self) -> int:
         """Count of skipped commands."""
         return sum(1 for r in self.results if r.skipped)
-    
+
     @property
     def failed_count(self) -> int:
         """Count of failed commands."""
         return sum(1 for r in self.results if not r.success)
-

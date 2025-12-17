@@ -1,40 +1,41 @@
 """Tests for domain entities and value objects."""
 
 import pytest
+
 from spectra.core.domain import (
-    Status,
-    Priority,
-    StoryId,
-    IssueKey,
+    AcceptanceCriteria,
     CommitRef,
     Description,
-    AcceptanceCriteria,
-    UserStory,
-    Subtask,
     Epic,
+    IssueKey,
+    Priority,
+    Status,
+    StoryId,
+    Subtask,
+    UserStory,
 )
 
 
 class TestStatus:
     """Tests for Status enum."""
-    
+
     def test_from_string_done(self):
         assert Status.from_string("Done") == Status.DONE
         assert Status.from_string("resolved") == Status.DONE
         assert Status.from_string("✅ Complete") == Status.DONE
-    
+
     def test_from_string_in_progress(self):
         assert Status.from_string("In Progress") == Status.IN_PROGRESS
         assert Status.from_string("🔄 Active") == Status.IN_PROGRESS
-    
+
     def test_from_string_default(self):
         assert Status.from_string("unknown") == Status.PLANNED
-    
+
     def test_is_complete(self):
         assert Status.DONE.is_complete()
         assert Status.CANCELLED.is_complete()
         assert not Status.IN_PROGRESS.is_complete()
-    
+
     def test_emoji(self):
         assert Status.DONE.emoji == "✅"
         assert Status.IN_PROGRESS.emoji == "🔄"
@@ -42,7 +43,7 @@ class TestStatus:
 
 class TestPriority:
     """Tests for Priority enum."""
-    
+
     def test_from_string(self):
         assert Priority.from_string("High") == Priority.HIGH
         assert Priority.from_string("🔴 Critical") == Priority.CRITICAL
@@ -52,11 +53,11 @@ class TestPriority:
 
 class TestStoryId:
     """Tests for StoryId value object."""
-    
+
     def test_from_string(self):
         sid = StoryId.from_string("us-001")
         assert str(sid) == "US-001"
-    
+
     def test_number(self):
         sid = StoryId("US-042")
         assert sid.number == 42
@@ -64,12 +65,12 @@ class TestStoryId:
 
 class TestIssueKey:
     """Tests for IssueKey value object."""
-    
+
     def test_valid_key(self):
         key = IssueKey("PROJ-123")
         assert key.project == "PROJ"
         assert key.number == 123
-    
+
     def test_invalid_key(self):
         with pytest.raises(ValueError):
             IssueKey("invalid")
@@ -77,11 +78,11 @@ class TestIssueKey:
 
 class TestCommitRef:
     """Tests for CommitRef value object."""
-    
+
     def test_short_hash(self):
         commit = CommitRef(hash="abc1234567890", message="Fix bug")
         assert commit.short_hash == "abc1234"
-    
+
     def test_str(self):
         commit = CommitRef(hash="abc1234", message="Fix bug")
         assert str(commit) == "abc1234: Fix bug"
@@ -89,7 +90,7 @@ class TestCommitRef:
 
 class TestDescription:
     """Tests for Description value object."""
-    
+
     def test_from_markdown(self):
         md = """
         **As a** developer
@@ -101,7 +102,7 @@ class TestDescription:
         assert desc.role == "developer"
         assert desc.want == "tests"
         assert desc.benefit == "code works"
-    
+
     def test_to_markdown(self):
         desc = Description(role="user", want="feature", benefit="value")
         md = desc.to_markdown()
@@ -112,20 +113,14 @@ class TestDescription:
 
 class TestAcceptanceCriteria:
     """Tests for AcceptanceCriteria value object."""
-    
+
     def test_from_list(self):
-        ac = AcceptanceCriteria.from_list(
-            ["Item 1", "Item 2"],
-            [True, False]
-        )
+        ac = AcceptanceCriteria.from_list(["Item 1", "Item 2"], [True, False])
         assert len(ac) == 2
         assert ac.completion_ratio == 0.5
-    
+
     def test_to_markdown(self):
-        ac = AcceptanceCriteria.from_list(
-            ["Done", "Todo"],
-            [True, False]
-        )
+        ac = AcceptanceCriteria.from_list(["Done", "Todo"], [True, False])
         md = ac.to_markdown()
         assert "- [x] Done" in md
         assert "- [ ] Todo" in md
@@ -133,26 +128,20 @@ class TestAcceptanceCriteria:
 
 class TestUserStory:
     """Tests for UserStory entity."""
-    
+
     def test_normalize_title(self):
-        story = UserStory(
-            id=StoryId("US-001"),
-            title="GUI - State Management (Future)"
-        )
+        story = UserStory(id=StoryId("US-001"), title="GUI - State Management (Future)")
         normalized = story.normalize_title()
         assert "gui" in normalized
         assert "state" in normalized
         assert "future" not in normalized
-    
+
     def test_matches_title(self):
-        story = UserStory(
-            id=StoryId("US-001"),
-            title="GUI State Management"
-        )
+        story = UserStory(id=StoryId("US-001"), title="GUI State Management")
         assert story.matches_title("GUI - State Management")
         assert story.matches_title("gui state management")
         assert not story.matches_title("Something else")
-    
+
     def test_find_subtask(self):
         story = UserStory(
             id=StoryId("US-001"),
@@ -160,7 +149,7 @@ class TestUserStory:
             subtasks=[
                 Subtask(name="Create component"),
                 Subtask(name="Add tests"),
-            ]
+            ],
         )
         found = story.find_subtask("create component")
         assert found is not None
@@ -169,13 +158,13 @@ class TestUserStory:
 
 class TestSubtask:
     """Tests for Subtask entity."""
-    
+
     def test_normalize_name(self):
         st = Subtask(name="Create Component - Part 1")
         normalized = st.normalize_name()
         assert "create" in normalized
         assert "-" not in normalized
-    
+
     def test_matches(self):
         st1 = Subtask(name="Create React Component")
         st2 = Subtask(name="Create React component")
@@ -184,7 +173,7 @@ class TestSubtask:
 
 class TestEpic:
     """Tests for Epic entity."""
-    
+
     def test_find_story_by_title(self):
         epic = Epic(
             key=IssueKey("PROJ-1"),
@@ -192,12 +181,12 @@ class TestEpic:
             stories=[
                 UserStory(id=StoryId("US-001"), title="First Story"),
                 UserStory(id=StoryId("US-002"), title="Second Story"),
-            ]
+            ],
         )
         found = epic.find_story_by_title("First Story")
         assert found is not None
         assert str(found.id) == "US-001"
-    
+
     def test_completion_percentage(self):
         epic = Epic(
             key=IssueKey("PROJ-1"),
@@ -205,7 +194,6 @@ class TestEpic:
             stories=[
                 UserStory(id=StoryId("US-001"), title="Done", status=Status.DONE),
                 UserStory(id=StoryId("US-002"), title="Open", status=Status.OPEN),
-            ]
+            ],
         )
         assert epic.completion_percentage == 50.0
-

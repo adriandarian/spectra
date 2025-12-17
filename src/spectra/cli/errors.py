@@ -10,9 +10,8 @@ Provides user-friendly error messages with:
 
 from dataclasses import dataclass, field
 from enum import Enum
-from typing import Optional
 
-from ..core.exceptions import (
+from spectra.core.exceptions import (
     AccessDeniedError,
     AuthenticationError,
     ConfigError,
@@ -35,48 +34,48 @@ from ..core.exceptions import (
 class ErrorCode(str, Enum):
     """
     Error codes for quick reference and searchability.
-    
+
     Format: MD2J-XXX where XXX is the error number.
     Users can search for these codes in documentation.
     """
-    
+
     # Configuration errors (001-099)
     CONFIG_MISSING_URL = "MD2J-001"
     CONFIG_MISSING_EMAIL = "MD2J-002"
     CONFIG_MISSING_TOKEN = "MD2J-003"
     CONFIG_INVALID_FILE = "MD2J-004"
     CONFIG_SYNTAX_ERROR = "MD2J-005"
-    
+
     # Authentication errors (100-199)
     AUTH_INVALID_CREDENTIALS = "MD2J-100"
     AUTH_TOKEN_EXPIRED = "MD2J-101"
     AUTH_PERMISSION_DENIED = "MD2J-102"
-    
+
     # Connection errors (200-299)
     CONN_FAILED = "MD2J-200"
     CONN_TIMEOUT = "MD2J-201"
     CONN_RATE_LIMITED = "MD2J-202"
     CONN_TRANSIENT = "MD2J-203"
-    
+
     # Resource errors (300-399)
     RESOURCE_NOT_FOUND = "MD2J-300"
     RESOURCE_ISSUE_NOT_FOUND = "MD2J-301"
     RESOURCE_PROJECT_NOT_FOUND = "MD2J-302"
     RESOURCE_EPIC_NOT_FOUND = "MD2J-303"
-    
+
     # Parser errors (400-499)
     PARSER_INVALID_MARKDOWN = "MD2J-400"
     PARSER_NO_STORIES = "MD2J-401"
     PARSER_INVALID_YAML = "MD2J-402"
-    
+
     # Transition errors (500-599)
     TRANSITION_NOT_ALLOWED = "MD2J-500"
     TRANSITION_INVALID_STATUS = "MD2J-501"
-    
+
     # File errors (600-699)
     FILE_NOT_FOUND = "MD2J-600"
     FILE_PERMISSION_DENIED = "MD2J-601"
-    
+
     # General errors (900-999)
     UNKNOWN = "MD2J-999"
 
@@ -85,7 +84,7 @@ class ErrorCode(str, Enum):
 class FormattedError:
     """
     A rich, formatted error message with context and suggestions.
-    
+
     Attributes:
         code: Unique error code for reference.
         title: Short, descriptive title.
@@ -94,20 +93,20 @@ class FormattedError:
         docs_url: Optional link to relevant documentation.
         details: Optional additional technical details.
     """
-    
+
     code: ErrorCode
     title: str
     message: str
     suggestions: list[str] = field(default_factory=list)
-    docs_url: Optional[str] = None
-    details: Optional[str] = None
-    
+    docs_url: str | None = None
+    details: str | None = None
+
     def format(self, color: bool = True) -> str:
         """Format the error for terminal display."""
         from .output import Colors, Symbols
-        
+
         lines: list[str] = []
-        
+
         # Title with error code
         if color:
             title_line = (
@@ -117,14 +116,14 @@ class FormattedError:
         else:
             title_line = f"✗ {self.title} [{self.code.value}]"
         lines.append(title_line)
-        
+
         # Message
         lines.append("")
         if color:
             lines.append(f"  {Colors.RED}{self.message}{Colors.RESET}")
         else:
             lines.append(f"  {self.message}")
-        
+
         # Details (if any)
         if self.details:
             lines.append("")
@@ -132,7 +131,7 @@ class FormattedError:
                 lines.append(f"  {Colors.DIM}Details: {self.details}{Colors.RESET}")
             else:
                 lines.append(f"  Details: {self.details}")
-        
+
         # Suggestions
         if self.suggestions:
             lines.append("")
@@ -140,13 +139,13 @@ class FormattedError:
                 lines.append(f"  {Colors.CYAN}{Colors.BOLD}How to fix:{Colors.RESET}")
             else:
                 lines.append("  How to fix:")
-            
+
             for i, suggestion in enumerate(self.suggestions, 1):
                 if color:
                     lines.append(f"    {Colors.CYAN}{i}.{Colors.RESET} {suggestion}")
                 else:
                     lines.append(f"    {i}. {suggestion}")
-        
+
         # Documentation link
         if self.docs_url:
             lines.append("")
@@ -157,39 +156,39 @@ class FormattedError:
                 )
             else:
                 lines.append(f"  📖 Documentation: {self.docs_url}")
-        
+
         return "\n".join(lines)
 
 
 class ErrorFormatter:
     """
     Formats exceptions into rich, user-friendly error messages.
-    
+
     Provides context-aware formatting with actionable suggestions
     based on the exception type and content.
     """
-    
+
     # Base documentation URL
     DOCS_BASE = "https://spectra.dev"
-    
+
     def __init__(self, color: bool = True, verbose: bool = False):
         """
         Initialize the error formatter.
-        
+
         Args:
             color: Whether to use ANSI color codes.
             verbose: Whether to include technical details.
         """
         self.color = color
         self.verbose = verbose
-    
+
     def format(self, exc: Exception) -> FormattedError:
         """
         Format an exception into a rich error message.
-        
+
         Args:
             exc: The exception to format.
-            
+
         Returns:
             FormattedError with full context and suggestions.
         """
@@ -232,21 +231,21 @@ class ErrorFormatter:
             return self._format_connection_error(exc)
         if isinstance(exc, Md2JiraError):
             return self._format_generic_spectra_error(exc)
-        
+
         return self._format_unknown_error(exc)
-    
+
     def format_string(self, exc: Exception) -> str:
         """Format an exception to a string for display."""
         return self.format(exc).format(color=self.color)
-    
+
     # -------------------------------------------------------------------------
     # Authentication Errors
     # -------------------------------------------------------------------------
-    
+
     def _format_auth_error(self, exc: AuthenticationError) -> FormattedError:
         """Format authentication error."""
         message = str(exc) if str(exc) else "Failed to authenticate with the issue tracker."
-        
+
         # Check for specific patterns in the message
         suggestions = []
         if "401" in message.lower() or "unauthorized" in message.lower():
@@ -262,7 +261,7 @@ class ErrorFormatter:
                 "Verify JIRA_EMAIL matches your Atlassian account email",
                 "Ensure your API token hasn't expired",
             ]
-        
+
         return FormattedError(
             code=ErrorCode.AUTH_INVALID_CREDENTIALS,
             title="Authentication Failed",
@@ -271,21 +270,21 @@ class ErrorFormatter:
             docs_url=f"{self.DOCS_BASE}/guide/configuration#authentication",
             details=self._get_cause_details(exc) if self.verbose else None,
         )
-    
+
     def _format_permission_error(self, exc: AccessDeniedError) -> FormattedError:
         """Format permission denied error."""
         message = str(exc) if str(exc) else "Access denied - insufficient permissions."
         issue_key = getattr(exc, "issue_key", None)
-        
+
         suggestions = [
             "Verify you have the required permissions in the Jira project",
             "Check with your Jira administrator about your role and permissions",
             "Ensure the project hasn't been archived or restricted",
         ]
-        
+
         if issue_key:
             suggestions.insert(0, f"Verify you have access to issue {issue_key}")
-        
+
         return FormattedError(
             code=ErrorCode.AUTH_PERMISSION_DENIED,
             title="Permission Denied",
@@ -293,21 +292,21 @@ class ErrorFormatter:
             suggestions=suggestions,
             details=f"Issue: {issue_key}" if issue_key else None,
         )
-    
+
     # -------------------------------------------------------------------------
     # Resource Not Found Errors
     # -------------------------------------------------------------------------
-    
+
     def _format_not_found_error(self, exc: ResourceNotFoundError) -> FormattedError:
         """Format resource not found error."""
         message = str(exc) if str(exc) else "The requested resource was not found."
         issue_key = getattr(exc, "issue_key", None)
-        
+
         # Determine specific error code based on context
         code = ErrorCode.RESOURCE_NOT_FOUND
         title = "Resource Not Found"
         suggestions = []
-        
+
         if issue_key:
             code = ErrorCode.RESOURCE_ISSUE_NOT_FOUND
             title = "Issue Not Found"
@@ -339,7 +338,7 @@ class ErrorFormatter:
                 "Check that the resource hasn't been deleted",
                 "Confirm you have permission to access this resource",
             ]
-        
+
         return FormattedError(
             code=code,
             title=title,
@@ -347,25 +346,25 @@ class ErrorFormatter:
             suggestions=suggestions,
             details=f"Issue: {issue_key}" if issue_key else None,
         )
-    
+
     # -------------------------------------------------------------------------
     # Connection Errors
     # -------------------------------------------------------------------------
-    
+
     def _format_rate_limit_error(self, exc: RateLimitError) -> FormattedError:
         """Format rate limit error."""
         retry_after = getattr(exc, "retry_after", None)
         message = str(exc) if str(exc) else "API rate limit exceeded."
-        
+
         suggestions = [
             "Wait a few minutes before retrying",
             "Reduce the number of concurrent operations",
             "Consider using --incremental to sync only changed items",
         ]
-        
+
         if retry_after:
             suggestions.insert(0, f"Wait {retry_after} seconds before retrying")
-        
+
         return FormattedError(
             code=ErrorCode.CONN_RATE_LIMITED,
             title="Rate Limit Exceeded",
@@ -373,11 +372,11 @@ class ErrorFormatter:
             suggestions=suggestions,
             details=f"Retry after: {retry_after}s" if retry_after else None,
         )
-    
+
     def _format_transient_error(self, exc: TransientError) -> FormattedError:
         """Format transient server error."""
         message = str(exc) if str(exc) else "A temporary server error occurred."
-        
+
         return FormattedError(
             code=ErrorCode.CONN_TRANSIENT,
             title="Temporary Server Error",
@@ -389,11 +388,11 @@ class ErrorFormatter:
             ],
             details=self._get_cause_details(exc) if self.verbose else None,
         )
-    
+
     def _format_connection_error(self, exc: Exception) -> FormattedError:
         """Format connection error."""
         message = str(exc) if str(exc) else "Failed to connect to the server."
-        
+
         return FormattedError(
             code=ErrorCode.CONN_FAILED,
             title="Connection Failed",
@@ -406,23 +405,23 @@ class ErrorFormatter:
             ],
             docs_url=f"{self.DOCS_BASE}/guide/configuration#jira-url",
         )
-    
+
     # -------------------------------------------------------------------------
     # Transition Errors
     # -------------------------------------------------------------------------
-    
+
     def _format_transition_error(self, exc: TransitionError) -> FormattedError:
         """Format workflow transition error."""
         message = str(exc) if str(exc) else "Failed to transition issue status."
         issue_key = getattr(exc, "issue_key", None)
-        
+
         suggestions = [
             "Check that the target status exists in the workflow",
             "Verify the transition is allowed from the current status",
             "Some transitions may require specific conditions or permissions",
             "Review the project's workflow configuration in Jira",
         ]
-        
+
         return FormattedError(
             code=ErrorCode.TRANSITION_NOT_ALLOWED,
             title="Status Transition Failed",
@@ -430,35 +429,35 @@ class ErrorFormatter:
             suggestions=suggestions,
             details=f"Issue: {issue_key}" if issue_key else None,
         )
-    
+
     # -------------------------------------------------------------------------
     # Parser Errors
     # -------------------------------------------------------------------------
-    
+
     def _format_parser_error(self, exc: ParserError) -> FormattedError:
         """Format parser error."""
         message = str(exc) if str(exc) else "Failed to parse input file."
         source = getattr(exc, "source", None)
         line_number = getattr(exc, "line_number", None)
-        
+
         # Determine error type based on source
         code = ErrorCode.PARSER_INVALID_MARKDOWN
         title = "Parse Error"
-        
+
         if source and ".yaml" in str(source).lower():
             code = ErrorCode.PARSER_INVALID_YAML
             title = "Invalid YAML"
-        
+
         suggestions = [
             "Check the file syntax for errors",
             "Ensure story headings use the correct format (## Story Title)",
             "Verify subtasks are properly indented with '- [ ] Task'",
             "Use --validate to check the file before syncing",
         ]
-        
+
         if line_number:
             suggestions.insert(0, f"Check line {line_number} for syntax errors")
-        
+
         details = None
         if source or line_number:
             parts = []
@@ -467,7 +466,7 @@ class ErrorFormatter:
             if line_number:
                 parts.append(f"Line: {line_number}")
             details = ", ".join(parts)
-        
+
         return FormattedError(
             code=code,
             title=title,
@@ -476,21 +475,21 @@ class ErrorFormatter:
             docs_url=f"{self.DOCS_BASE}/guide/schema",
             details=details,
         )
-    
+
     # -------------------------------------------------------------------------
     # Configuration Errors
     # -------------------------------------------------------------------------
-    
+
     def _format_config_error(self, exc: ConfigError) -> FormattedError:
         """Format generic configuration error."""
         message = str(exc) if str(exc) else "Configuration error."
         config_path = getattr(exc, "config_path", None)
-        
+
         # Detect specific missing config patterns
         code = ErrorCode.CONFIG_SYNTAX_ERROR
         title = "Configuration Error"
         suggestions = []
-        
+
         message_lower = message.lower()
         if "url" in message_lower:
             code = ErrorCode.CONFIG_MISSING_URL
@@ -522,7 +521,7 @@ class ErrorFormatter:
                 "Verify all required settings are provided",
                 "Run with --verbose for more details",
             ]
-        
+
         return FormattedError(
             code=code,
             title=title,
@@ -531,21 +530,21 @@ class ErrorFormatter:
             docs_url=f"{self.DOCS_BASE}/guide/configuration",
             details=f"Config file: {config_path}" if config_path else None,
         )
-    
+
     def _format_config_file_error(self, exc: ConfigFileError) -> FormattedError:
         """Format config file parsing error."""
         message = str(exc) if str(exc) else "Failed to parse config file."
         config_path = getattr(exc, "config_path", None)
-        
+
         suggestions = [
             "Check the config file syntax (YAML or TOML)",
             "Ensure proper indentation (use spaces, not tabs)",
             "Validate the file with a YAML/TOML linter",
         ]
-        
+
         if config_path and str(config_path).endswith(".yaml"):
             suggestions.append("Verify all strings with colons are quoted")
-        
+
         return FormattedError(
             code=ErrorCode.CONFIG_INVALID_FILE,
             title="Invalid Config File",
@@ -554,11 +553,11 @@ class ErrorFormatter:
             docs_url=f"{self.DOCS_BASE}/guide/configuration#config-files",
             details=f"File: {config_path}" if config_path else None,
         )
-    
+
     def _format_config_validation_error(self, exc: ConfigValidationError) -> FormattedError:
         """Format config validation error."""
         message = str(exc) if str(exc) else "Configuration validation failed."
-        
+
         return FormattedError(
             code=ErrorCode.CONFIG_SYNTAX_ERROR,
             title="Invalid Configuration",
@@ -570,15 +569,15 @@ class ErrorFormatter:
             ],
             docs_url=f"{self.DOCS_BASE}/guide/configuration",
         )
-    
+
     # -------------------------------------------------------------------------
     # File Errors
     # -------------------------------------------------------------------------
-    
+
     def _format_file_not_found(self, exc: FileNotFoundError) -> FormattedError:
         """Format file not found error."""
         filename = getattr(exc, "filename", None) or str(exc)
-        
+
         return FormattedError(
             code=ErrorCode.FILE_NOT_FOUND,
             title="File Not Found",
@@ -590,11 +589,11 @@ class ErrorFormatter:
             ],
             details=f"Path: {filename}" if filename else None,
         )
-    
+
     def _format_file_permission_error(self, exc: PermissionError) -> FormattedError:
         """Format file permission error."""
         filename = getattr(exc, "filename", None) or str(exc)
-        
+
         return FormattedError(
             code=ErrorCode.FILE_PERMISSION_DENIED,
             title="Permission Denied",
@@ -606,15 +605,15 @@ class ErrorFormatter:
             ],
             details=f"Path: {filename}" if filename else None,
         )
-    
+
     # -------------------------------------------------------------------------
     # Output Errors (Confluence, etc.)
     # -------------------------------------------------------------------------
-    
+
     def _format_output_auth_error(self, exc: OutputAuthenticationError) -> FormattedError:
         """Format output system authentication error."""
         message = str(exc) if str(exc) else "Authentication failed for documentation system."
-        
+
         return FormattedError(
             code=ErrorCode.AUTH_INVALID_CREDENTIALS,
             title="Documentation Auth Failed",
@@ -625,11 +624,11 @@ class ErrorFormatter:
                 "Ensure the account has access to the target space",
             ],
         )
-    
+
     def _format_output_permission_error(self, exc: OutputAccessDeniedError) -> FormattedError:
         """Format output system permission error."""
         message = str(exc) if str(exc) else "Permission denied for documentation operation."
-        
+
         return FormattedError(
             code=ErrorCode.AUTH_PERMISSION_DENIED,
             title="Documentation Permission Denied",
@@ -640,11 +639,11 @@ class ErrorFormatter:
                 "Ensure the page/space isn't restricted",
             ],
         )
-    
+
     def _format_output_not_found_error(self, exc: OutputNotFoundError) -> FormattedError:
         """Format output system not found error."""
         message = str(exc) if str(exc) else "Documentation page or space not found."
-        
+
         return FormattedError(
             code=ErrorCode.RESOURCE_NOT_FOUND,
             title="Page Not Found",
@@ -655,16 +654,16 @@ class ErrorFormatter:
                 "Confirm you have access to view the page",
             ],
         )
-    
+
     def _format_output_rate_limit_error(self, exc: OutputRateLimitError) -> FormattedError:
         """Format output system rate limit error."""
         retry_after = getattr(exc, "retry_after", None)
         message = str(exc) if str(exc) else "Documentation API rate limit exceeded."
-        
+
         suggestions = ["Wait a few minutes before retrying"]
         if retry_after:
             suggestions[0] = f"Wait {retry_after} seconds before retrying"
-        
+
         return FormattedError(
             code=ErrorCode.CONN_RATE_LIMITED,
             title="Rate Limit Exceeded",
@@ -672,16 +671,16 @@ class ErrorFormatter:
             suggestions=suggestions,
             details=f"Retry after: {retry_after}s" if retry_after else None,
         )
-    
+
     # -------------------------------------------------------------------------
     # Generic Errors
     # -------------------------------------------------------------------------
-    
+
     def _format_tracker_error(self, exc: TrackerError) -> FormattedError:
         """Format generic tracker error."""
         message = str(exc) if str(exc) else "An issue tracker error occurred."
         issue_key = getattr(exc, "issue_key", None)
-        
+
         return FormattedError(
             code=ErrorCode.UNKNOWN,
             title="Issue Tracker Error",
@@ -693,11 +692,11 @@ class ErrorFormatter:
             ],
             details=f"Issue: {issue_key}" if issue_key else None,
         )
-    
+
     def _format_generic_spectra_error(self, exc: Md2JiraError) -> FormattedError:
         """Format generic spectra error."""
         message = str(exc) if str(exc) else "An error occurred."
-        
+
         return FormattedError(
             code=ErrorCode.UNKNOWN,
             title="Error",
@@ -710,11 +709,11 @@ class ErrorFormatter:
             docs_url=f"{self.DOCS_BASE}/reference/exit-codes",
             details=self._get_cause_details(exc) if self.verbose else None,
         )
-    
+
     def _format_unknown_error(self, exc: Exception) -> FormattedError:
         """Format unknown/unexpected error."""
         message = str(exc) if str(exc) else "An unexpected error occurred."
-        
+
         return FormattedError(
             code=ErrorCode.UNKNOWN,
             title="Unexpected Error",
@@ -726,12 +725,12 @@ class ErrorFormatter:
             ],
             details=f"Type: {type(exc).__name__}" if self.verbose else None,
         )
-    
+
     # -------------------------------------------------------------------------
     # Helpers
     # -------------------------------------------------------------------------
-    
-    def _get_cause_details(self, exc: Md2JiraError) -> Optional[str]:
+
+    def _get_cause_details(self, exc: Md2JiraError) -> str | None:
         """Get details about the exception cause."""
         cause = getattr(exc, "cause", None)
         if cause:
@@ -743,12 +742,12 @@ class ErrorFormatter:
 def format_error(exc: Exception, color: bool = True, verbose: bool = False) -> str:
     """
     Format an exception into a user-friendly error message.
-    
+
     Args:
         exc: The exception to format.
         color: Whether to use ANSI colors.
         verbose: Whether to include technical details.
-        
+
     Returns:
         Formatted error string for display.
     """
@@ -759,18 +758,18 @@ def format_error(exc: Exception, color: bool = True, verbose: bool = False) -> s
 def format_connection_error(url: str = "", color: bool = True) -> str:
     """
     Format a connection failure error with helpful suggestions.
-    
+
     Args:
         url: The Jira URL that failed to connect.
         color: Whether to use ANSI colors.
-        
+
     Returns:
         Formatted error string for display.
     """
     from .output import Colors, Symbols
-    
+
     lines: list[str] = []
-    
+
     # Title
     if color:
         title = (
@@ -781,25 +780,31 @@ def format_connection_error(url: str = "", color: bool = True) -> str:
         title = f"✗ Connection Failed [{ErrorCode.CONN_FAILED.value}]"
     lines.append(title)
     lines.append("")
-    
+
     # Message
     msg = "Failed to connect to Jira API."
     if url:
         msg = f"Failed to connect to Jira at: {url}"
-    
+
     if color:
         lines.append(f"  {Colors.RED}{msg}{Colors.RESET}")
     else:
         lines.append(f"  {msg}")
-    
+
     # Suggestions
     lines.append("")
     if color:
         lines.append(f"  {Colors.CYAN}{Colors.BOLD}How to fix:{Colors.RESET}")
-        lines.append(f"    {Colors.CYAN}1.{Colors.RESET} Verify JIRA_URL is correct (e.g., https://your-company.atlassian.net)")
-        lines.append(f"    {Colors.CYAN}2.{Colors.RESET} Check that JIRA_EMAIL and JIRA_API_TOKEN are set correctly")
+        lines.append(
+            f"    {Colors.CYAN}1.{Colors.RESET} Verify JIRA_URL is correct (e.g., https://your-company.atlassian.net)"
+        )
+        lines.append(
+            f"    {Colors.CYAN}2.{Colors.RESET} Check that JIRA_EMAIL and JIRA_API_TOKEN are set correctly"
+        )
         lines.append(f"    {Colors.CYAN}3.{Colors.RESET} Ensure your API token hasn't expired")
-        lines.append(f"    {Colors.CYAN}4.{Colors.RESET} Test the URL in your browser to confirm it's accessible")
+        lines.append(
+            f"    {Colors.CYAN}4.{Colors.RESET} Test the URL in your browser to confirm it's accessible"
+        )
         lines.append(f"    {Colors.CYAN}5.{Colors.RESET} Check for firewall or proxy issues")
     else:
         lines.append("  How to fix:")
@@ -808,7 +813,7 @@ def format_connection_error(url: str = "", color: bool = True) -> str:
         lines.append("    3. Ensure your API token hasn't expired")
         lines.append("    4. Test the URL in your browser to confirm it's accessible")
         lines.append("    5. Check for firewall or proxy issues")
-    
+
     # Generate token link
     lines.append("")
     if color:
@@ -817,26 +822,28 @@ def format_connection_error(url: str = "", color: bool = True) -> str:
             f"{Colors.BLUE}https://id.atlassian.com/manage-profile/security/api-tokens{Colors.RESET}"
         )
     else:
-        lines.append("  🔑 Generate API token: https://id.atlassian.com/manage-profile/security/api-tokens")
-    
+        lines.append(
+            "  🔑 Generate API token: https://id.atlassian.com/manage-profile/security/api-tokens"
+        )
+
     return "\n".join(lines)
 
 
 def format_config_errors(errors: list[str], color: bool = True) -> str:
     """
     Format a list of configuration errors into a user-friendly message.
-    
+
     Args:
         errors: List of error messages.
         color: Whether to use ANSI colors.
-        
+
     Returns:
         Formatted error string for display.
     """
     from .output import Colors, Symbols
-    
+
     lines: list[str] = []
-    
+
     # Title
     if color:
         title = (
@@ -847,18 +854,18 @@ def format_config_errors(errors: list[str], color: bool = True) -> str:
         title = f"✗ Configuration Error [{ErrorCode.CONFIG_SYNTAX_ERROR.value}]"
     lines.append(title)
     lines.append("")
-    
+
     # List each error
     for i, error in enumerate(errors, 1):
         # Split multi-line errors (from the config provider)
         error_lines = error.split("\n")
         main_error = error_lines[0]
-        
+
         if color:
             lines.append(f"  {Colors.RED}{i}. {main_error}{Colors.RESET}")
         else:
             lines.append(f"  {i}. {main_error}")
-        
+
         # Add sub-lines with indentation
         for sub_line in error_lines[1:]:
             if sub_line.strip():
@@ -866,20 +873,24 @@ def format_config_errors(errors: list[str], color: bool = True) -> str:
                     lines.append(f"     {Colors.DIM}{sub_line}{Colors.RESET}")
                 else:
                     lines.append(f"     {sub_line}")
-    
+
     # General suggestions
     lines.append("")
     if color:
         lines.append(f"  {Colors.CYAN}{Colors.BOLD}Getting started:{Colors.RESET}")
-        lines.append(f"    {Colors.CYAN}1.{Colors.RESET} Copy .env.example to .env and fill in your credentials")
-        lines.append(f"    {Colors.CYAN}2.{Colors.RESET} Or set environment variables: JIRA_URL, JIRA_EMAIL, JIRA_API_TOKEN")
+        lines.append(
+            f"    {Colors.CYAN}1.{Colors.RESET} Copy .env.example to .env and fill in your credentials"
+        )
+        lines.append(
+            f"    {Colors.CYAN}2.{Colors.RESET} Or set environment variables: JIRA_URL, JIRA_EMAIL, JIRA_API_TOKEN"
+        )
         lines.append(f"    {Colors.CYAN}3.{Colors.RESET} Or create a config file: .spectra.yaml")
     else:
         lines.append("  Getting started:")
         lines.append("    1. Copy .env.example to .env and fill in your credentials")
         lines.append("    2. Or set environment variables: JIRA_URL, JIRA_EMAIL, JIRA_API_TOKEN")
         lines.append("    3. Or create a config file: .spectra.yaml")
-    
+
     lines.append("")
     if color:
         lines.append(
@@ -888,6 +899,5 @@ def format_config_errors(errors: list[str], color: bool = True) -> str:
         )
     else:
         lines.append("  📖 Documentation: https://spectra.dev/guide/configuration")
-    
-    return "\n".join(lines)
 
+    return "\n".join(lines)

@@ -2,138 +2,139 @@
 Sync Module - Orchestration of synchronization between markdown and issue tracker.
 """
 
-from .orchestrator import SyncOrchestrator, SyncResult, FailedOperation
-from .state import SyncState, StateStore, SyncPhase, OperationRecord
-from .audit import AuditTrail, AuditEntry, AuditTrailRecorder, create_audit_trail
+from .audit import AuditEntry, AuditTrail, AuditTrailRecorder, create_audit_trail
 from .backup import (
     Backup,
     BackupManager,
     IssueSnapshot,
-    RestoreResult,
     RestoreOperation,
+    RestoreResult,
     create_pre_sync_backup,
     restore_from_backup,
 )
-from .diff import (
-    DiffResult,
-    DiffCalculator,
-    DiffFormatter,
-    IssueDiff,
-    FieldDiff,
-    compare_backup_to_current,
-)
-from .reverse_sync import (
-    ReverseSyncOrchestrator,
-    PullResult,
-    PullChanges,
-    ChangeDetail,
-)
 from .conflict import (
-    ConflictType,
-    ResolutionStrategy,
     Conflict,
+    ConflictDetector,
     ConflictReport,
     ConflictResolution,
-    ConflictDetector,
     ConflictResolver,
-    SyncSnapshot,
-    StorySnapshot,
+    ConflictType,
     FieldSnapshot,
+    ResolutionStrategy,
     SnapshotStore,
+    StorySnapshot,
+    SyncSnapshot,
     create_snapshot_from_sync,
 )
-from .multi_epic import (
-    MultiEpicSyncOrchestrator,
-    MultiEpicSyncResult,
-    EpicSyncResult,
-)
-from .links import (
-    LinkSyncOrchestrator,
-    LinkSyncResult,
-    LinkChange,
+from .diff import (
+    DiffCalculator,
+    DiffFormatter,
+    DiffResult,
+    FieldDiff,
+    IssueDiff,
+    compare_backup_to_current,
 )
 from .incremental import (
-    StoryFingerprint,
     ChangeDetectionResult,
     ChangeTracker,
     IncrementalSyncStats,
+    StoryFingerprint,
     compute_story_hash,
     stories_differ,
 )
+from .links import (
+    LinkChange,
+    LinkSyncOrchestrator,
+    LinkSyncResult,
+)
+from .multi_epic import (
+    EpicSyncResult,
+    MultiEpicSyncOrchestrator,
+    MultiEpicSyncResult,
+)
+from .orchestrator import FailedOperation, SyncOrchestrator, SyncResult
+from .reverse_sync import (
+    ChangeDetail,
+    PullChanges,
+    PullResult,
+    ReverseSyncOrchestrator,
+)
+from .state import OperationRecord, StateStore, SyncPhase, SyncState
+
 
 # Parallel operations (optional, requires aiohttp)
 try:
-    from .parallel import (  # noqa: F401
+    from .parallel import (
         ParallelSyncOperations,
         ParallelSyncResult,
         is_parallel_available,
     )
+
     PARALLEL_AVAILABLE = True
 except ImportError:
     PARALLEL_AVAILABLE = False
 
 __all__ = [
-    "SyncOrchestrator",
-    "SyncResult",
-    "FailedOperation",
-    "SyncState",
-    "StateStore",
-    "SyncPhase",
-    "OperationRecord",
+    # Parallel Operations
+    "PARALLEL_AVAILABLE",
+    "AuditEntry",
     # Audit trail
     "AuditTrail",
-    "AuditEntry",
     "AuditTrailRecorder",
-    "create_audit_trail",
     # Backup & Restore
     "Backup",
     "BackupManager",
-    "IssueSnapshot",
-    "RestoreResult",
-    "RestoreOperation",
-    "create_pre_sync_backup",
-    "restore_from_backup",
-    # Diff
-    "DiffResult",
-    "DiffCalculator",
-    "DiffFormatter",
-    "IssueDiff",
-    "FieldDiff",
-    "compare_backup_to_current",
-    # Reverse Sync (Pull)
-    "ReverseSyncOrchestrator",
-    "PullResult",
-    "PullChanges",
     "ChangeDetail",
-    # Conflict Detection
-    "ConflictType",
-    "ResolutionStrategy",
+    "ChangeDetectionResult",
+    "ChangeTracker",
     "Conflict",
+    "ConflictDetector",
     "ConflictReport",
     "ConflictResolution",
-    "ConflictDetector",
     "ConflictResolver",
-    "SyncSnapshot",
-    "StorySnapshot",
-    "FieldSnapshot",
-    "SnapshotStore",
-    "create_snapshot_from_sync",
-    # Multi-Epic Sync
-    "MultiEpicSyncOrchestrator",
-    "MultiEpicSyncResult",
+    # Conflict Detection
+    "ConflictType",
+    "DiffCalculator",
+    "DiffFormatter",
+    # Diff
+    "DiffResult",
     "EpicSyncResult",
+    "FailedOperation",
+    "FieldDiff",
+    "FieldSnapshot",
+    "IncrementalSyncStats",
+    "IssueDiff",
+    "IssueSnapshot",
+    "LinkChange",
     # Link Sync
     "LinkSyncOrchestrator",
     "LinkSyncResult",
-    "LinkChange",
+    # Multi-Epic Sync
+    "MultiEpicSyncOrchestrator",
+    "MultiEpicSyncResult",
+    "OperationRecord",
+    "PullChanges",
+    "PullResult",
+    "ResolutionStrategy",
+    "RestoreOperation",
+    "RestoreResult",
+    # Reverse Sync (Pull)
+    "ReverseSyncOrchestrator",
+    "SnapshotStore",
+    "StateStore",
     # Incremental Sync
     "StoryFingerprint",
-    "ChangeDetectionResult",
-    "ChangeTracker",
-    "IncrementalSyncStats",
+    "StorySnapshot",
+    "SyncOrchestrator",
+    "SyncPhase",
+    "SyncResult",
+    "SyncSnapshot",
+    "SyncState",
+    "compare_backup_to_current",
     "compute_story_hash",
+    "create_audit_trail",
+    "create_pre_sync_backup",
+    "create_snapshot_from_sync",
+    "restore_from_backup",
     "stories_differ",
-    # Parallel Operations
-    "PARALLEL_AVAILABLE",
 ]
-

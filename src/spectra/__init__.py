@@ -19,4 +19,5 @@ __author__ = "Adrian Darian"
 # Re-export main entry points for convenience
 from .cli.app import main, run
 
-__all__ = ["main", "run", "__version__"]
+
+__all__ = ["__version__", "main", "run"]

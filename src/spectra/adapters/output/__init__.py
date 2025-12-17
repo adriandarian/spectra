@@ -5,8 +5,8 @@ from spectra.adapters.formatters import (
     MarkdownWriter,
 )
 
+
 __all__ = [
     "ADFFormatter",
     "MarkdownWriter",
 ]
-

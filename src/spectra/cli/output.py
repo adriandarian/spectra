@@ -5,18 +5,17 @@ Provides pretty-printed output with colors and formatting.
 """
 
 import sys
-from typing import Optional
 
-from ..application.sync import SyncResult
+from spectra.application.sync import SyncResult
 
 
 class Colors:
     """
     ANSI color codes for terminal output.
-    
+
     Provides constants for text colors, background colors, and text styles
     that can be used to format terminal output.
-    
+
     Attributes:
         RESET: Reset all formatting to default.
         BOLD: Make text bold.
@@ -33,11 +32,11 @@ class Colors:
         BG_YELLOW: Yellow background color.
         BG_BLUE: Blue background color.
     """
-    
+
     RESET = "\033[0m"
     BOLD = "\033[1m"
     DIM = "\033[2m"
-    
+
     RED = "\033[31m"
     GREEN = "\033[32m"
     YELLOW = "\033[33m"
@@ -45,7 +44,7 @@ class Colors:
     MAGENTA = "\033[35m"
     CYAN = "\033[36m"
     WHITE = "\033[37m"
-    
+
     BG_RED = "\033[41m"
     BG_GREEN = "\033[42m"
     BG_YELLOW = "\033[43m"
@@ -55,10 +54,10 @@ class Colors:
 class Symbols:
     """
     Unicode symbols for terminal output.
-    
+
     Provides constants for commonly used symbols in CLI output,
     including status indicators, navigation arrows, and box drawing characters.
-    
+
     Attributes:
         CHECK: Checkmark symbol for success.
         CROSS: Cross symbol for failure.
@@ -78,7 +77,7 @@ class Symbols:
         BOX_H: Box drawing horizontal line.
         BOX_V: Box drawing vertical line.
     """
-    
+
     CHECK = "✓"
     CROSS = "✗"
     ARROW = "→"
@@ -90,7 +89,7 @@ class Symbols:
     FILE = "📄"
     FOLDER = "📁"
     LINK = "🔗"
-    
+
     # Box drawing
     BOX_TL = "╭"
     BOX_TR = "╮"
@@ -103,18 +102,18 @@ class Symbols:
 class Console:
     """
     Console output helper with colors and formatting.
-    
+
     Provides methods for printing formatted, colorized output to the terminal.
     Supports headers, sections, status messages, tables, progress bars, and
     interactive prompts.
-    
+
     Attributes:
         color: Whether to use ANSI color codes.
         verbose: Whether to print debug messages.
         quiet: Whether to suppress most output (for CI/scripting).
         json_mode: Whether to output JSON format for programmatic use.
     """
-    
+
     def __init__(
         self,
         color: bool = True,
@@ -124,7 +123,7 @@ class Console:
     ):
         """
         Initialize the console output helper.
-        
+
         Args:
             color: Enable colored output. Automatically disabled if stdout is not a TTY.
             verbose: Enable verbose debug output.
@@ -135,34 +134,34 @@ class Console:
         self.color = color and sys.stdout.isatty() and not json_mode
         self.verbose = verbose
         self.quiet = quiet or json_mode  # JSON mode implies quiet for intermediate output
-        
+
         # JSON mode collects messages for final output
         self._json_messages: list[dict] = []
         self._json_errors: list[str] = []
-        
+
         # Quiet mode overrides verbose
         if self.quiet:
             self.verbose = False
-    
+
     def _c(self, text: str, *codes: str) -> str:
         """
         Apply color codes to text.
-        
+
         Args:
             text: The text to colorize.
             *codes: ANSI color codes to apply.
-            
+
         Returns:
             Colorized text with reset code appended, or plain text if color is disabled.
         """
         if not self.color:
             return text
         return "".join(codes) + text + Colors.RESET
-    
+
     def print(self, text: str = "", force: bool = False) -> None:
         """
         Print text to stdout.
-        
+
         Args:
             text: Text to print. Defaults to empty string for blank line.
             force: Print even in quiet mode.
@@ -170,11 +169,11 @@ class Console:
         if self.quiet and not force:
             return
         print(text)
-    
+
     def header(self, text: str) -> None:
         """
         Print a prominent header with borders.
-        
+
         Args:
             text: Header text to display.
         """
@@ -182,17 +181,17 @@ class Console:
             return
         width = max(len(text) + 4, 50)
         border = Colors.CYAN + Symbols.BOX_H * width + Colors.RESET if self.color else "-" * width
-        
+
         self.print()
         self.print(border)
         self.print(self._c(f"  {text}", Colors.BOLD, Colors.CYAN))
         self.print(border)
         self.print()
-    
+
     def section(self, text: str) -> None:
         """
         Print a section header.
-        
+
         Args:
             text: Section title to display.
         """
@@ -200,24 +199,24 @@ class Console:
             return
         self.print()
         self.print(self._c(f"{Symbols.ARROW} {text}", Colors.BOLD, Colors.BLUE))
-    
+
     def success(self, text: str) -> None:
         """
         Print a success message with checkmark.
-        
+
         Args:
             text: Success message to display.
         """
         if self.quiet:
             return
         self.print(self._c(f"  {Symbols.CHECK} {text}", Colors.GREEN))
-    
+
     def error(self, text: str) -> None:
         """
         Print an error message with cross symbol.
-        
+
         Always prints, even in quiet mode. Collected in JSON mode.
-        
+
         Args:
             text: Error message to display.
         """
@@ -226,111 +225,111 @@ class Console:
             return
         # Errors always print, even in quiet mode
         print(self._c(f"  {Symbols.CROSS} {text}", Colors.RED))
-    
+
     def error_rich(self, exc: Exception) -> None:
         """
         Print a rich, formatted error message from an exception.
-        
+
         Provides actionable suggestions and context based on the error type.
         Always prints, even in quiet mode.
-        
+
         Args:
             exc: Exception to format and display.
         """
         from .errors import format_error
-        
+
         if self.json_mode:
             self._json_errors.append(str(exc))
             return
-        
+
         formatted = format_error(exc, color=self.color, verbose=self.verbose)
         print(formatted)
-    
+
     def config_errors(self, errors: list[str]) -> None:
         """
         Print formatted configuration errors with suggestions.
-        
+
         Provides helpful guidance on how to fix configuration issues.
         Always prints, even in quiet mode.
-        
+
         Args:
             errors: List of configuration error messages.
         """
         from .errors import format_config_errors
-        
+
         if self.json_mode:
             self._json_errors.extend(errors)
             return
-        
+
         formatted = format_config_errors(errors, color=self.color)
         print(formatted)
-    
+
     def connection_error(self, url: str = "") -> None:
         """
         Print a formatted connection error with suggestions.
-        
+
         Provides helpful guidance on how to fix connection/auth issues.
         Always prints, even in quiet mode.
-        
+
         Args:
             url: The Jira URL that failed to connect (optional).
         """
         from .errors import format_connection_error
-        
+
         if self.json_mode:
             self._json_errors.append(f"Connection failed: {url}" if url else "Connection failed")
             return
-        
+
         formatted = format_connection_error(url, color=self.color)
         print(formatted)
-    
+
     def warning(self, text: str) -> None:
         """
         Print a warning message with warning symbol.
-        
+
         Args:
             text: Warning message to display.
         """
         if self.quiet:
             return
         self.print(self._c(f"  {Symbols.WARN} {text}", Colors.YELLOW))
-    
+
     def info(self, text: str) -> None:
         """
         Print an info message with info symbol.
-        
+
         Args:
             text: Info message to display.
         """
         if self.quiet:
             return
         self.print(self._c(f"  {Symbols.INFO} {text}", Colors.CYAN))
-    
+
     def detail(self, text: str) -> None:
         """
         Print detail text in dimmed color with extra indentation.
-        
+
         Args:
             text: Detail text to display.
         """
         if self.quiet:
             return
         self.print(self._c(f"    {text}", Colors.DIM))
-    
+
     def debug(self, text: str) -> None:
         """
         Print debug message (only visible in verbose mode).
-        
+
         Args:
             text: Debug message to display.
         """
         if self.verbose:
             self.print(self._c(f"  [DEBUG] {text}", Colors.DIM))
-    
-    def item(self, text: str, status: Optional[str] = None) -> None:
+
+    def item(self, text: str, status: str | None = None) -> None:
         """
         Print a list item with optional status indicator.
-        
+
         Args:
             text: Item text to display.
             status: Optional status string. Special values:
@@ -350,15 +349,15 @@ class Console:
             status_str = self._c(f" [{Symbols.CROSS}]", Colors.RED)
         elif status:
             status_str = self._c(f" [{status}]", Colors.DIM)
-        
+
         self.print(f"    {Symbols.DOT} {text}{status_str}")
-    
+
     def table(self, headers: list[str], rows: list[list[str]]) -> None:
         """
         Print a formatted table with headers.
-        
+
         Automatically calculates column widths based on content.
-        
+
         Args:
             headers: List of column header strings.
             rows: List of rows, where each row is a list of cell values.
@@ -371,15 +370,14 @@ class Console:
             for i, cell in enumerate(row):
                 if i < len(widths):
                     widths[i] = max(widths[i], len(str(cell)))
-        
+
         # Print header
         header_line = "  " + "  ".join(
-            self._c(h.ljust(widths[i]), Colors.BOLD)
-            for i, h in enumerate(headers)
+            self._c(h.ljust(widths[i]), Colors.BOLD) for i, h in enumerate(headers)
         )
         self.print(header_line)
         self.print("  " + "  ".join("-" * w for w in widths))
-        
+
         # Print rows
         for row in rows:
             row_line = "  " + "  ".join(
@@ -387,13 +385,13 @@ class Console:
                 for i, cell in enumerate(row)
             )
             self.print(row_line)
-    
+
     def progress(self, current: int, total: int, message: str = "") -> None:
         """
         Print an updating progress bar.
-        
+
         Uses carriage return to update in place. Prints newline when complete.
-        
+
         Args:
             current: Current progress value.
             total: Total/maximum progress value.
@@ -405,18 +403,18 @@ class Console:
         filled = int(width * current / total)
         bar = "█" * filled + "░" * (width - filled)
         pct = int(100 * current / total)
-        
+
         line = f"\r  [{bar}] {pct}% {message}"
         sys.stdout.write(line)
         sys.stdout.flush()
-        
+
         if current >= total:
             self.print()
-    
+
     def dry_run_banner(self) -> None:
         """
         Print a prominent dry-run mode banner.
-        
+
         Displays a highlighted banner indicating that no changes will be made.
         """
         if self.quiet:
@@ -428,30 +426,30 @@ class Console:
         else:
             self.print(f"*** {banner} ***")
         self.print()
-    
+
     def sync_result(self, result: SyncResult) -> None:
         """
         Print a formatted sync result summary.
-        
+
         Displays statistics, warnings, errors, and final status.
         In JSON mode, outputs a structured JSON object.
         In quiet mode, prints a single line summary suitable for CI/scripting.
-        
+
         Args:
             result: SyncResult object containing sync operation details.
         """
         import json
-        
+
         # JSON mode: structured output for programmatic use
         if self.json_mode:
             output = {
                 "success": result.success,
                 "dry_run": result.dry_run,
-                "incremental": getattr(result, 'incremental', False),
+                "incremental": getattr(result, "incremental", False),
                 "stats": {
                     "stories_matched": result.stories_matched,
                     "stories_updated": result.stories_updated,
-                    "stories_skipped": getattr(result, 'stories_skipped', 0),
+                    "stories_skipped": getattr(result, "stories_skipped", 0),
                     "subtasks_created": result.subtasks_created,
                     "subtasks_updated": result.subtasks_updated,
                     "comments_added": result.comments_added,
@@ -462,9 +460,9 @@ class Console:
                 "errors": result.errors + self._json_errors,
                 "warnings": result.warnings,
             }
-            
+
             # Include failed operations if present
-            if hasattr(result, 'failed_operations') and result.failed_operations:
+            if hasattr(result, "failed_operations") and result.failed_operations:
                 output["failed_operations"] = [
                     {
                         "operation": op.operation,
@@ -474,10 +472,10 @@ class Console:
                     }
                     for op in result.failed_operations
                 ]
-            
+
             print(json.dumps(output, indent=2))
             return
-        
+
         # Quiet mode: compact one-line output for CI/scripting
         if self.quiet:
             status = "OK" if result.success else "FAILED"
@@ -493,22 +491,22 @@ class Console:
             if result.errors:
                 parts.append(f"errors={len(result.errors)}")
             print(" ".join(parts))
-            
+
             # Still print errors even in quiet mode
             for e in result.errors:
                 print(f"ERROR: {e}")
             return
-        
+
         self.section("Sync Summary")
         self.print()
-        
+
         if result.dry_run:
             self.info("Mode: DRY-RUN (no changes made)")
         else:
             self.info("Mode: LIVE EXECUTION")
-        
+
         self.print()
-        
+
         # Stats table
         stats = [
             ["Stories Matched", str(result.stories_matched)],
@@ -518,13 +516,13 @@ class Console:
             ["Comments Added", str(result.comments_added)],
             ["Statuses Updated", str(result.statuses_updated)],
         ]
-        
+
         # Add incremental stats if applicable
-        if getattr(result, 'incremental', False):
+        if getattr(result, "incremental", False):
             stats.insert(2, ["Stories Skipped (unchanged)", str(result.stories_skipped)])
-        
+
         self.table(["Metric", "Count"], stats)
-        
+
         # Warnings
         if result.warnings:
             self.print()
@@ -533,7 +531,7 @@ class Console:
                 self.detail(w)
             if len(result.warnings) > 5:
                 self.detail(f"... and {len(result.warnings) - 5} more")
-        
+
         # Errors
         if result.errors:
             self.print()
@@ -542,23 +540,23 @@ class Console:
                 self.detail(e)
             if len(result.errors) > 5:
                 self.detail(f"... and {len(result.errors) - 5} more")
-        
+
         # Final status
         self.print()
         if result.success:
             self.success("Sync completed successfully!")
         else:
             self.error("Sync completed with errors")
-    
+
     def confirm(self, message: str) -> bool:
         """
         Ask the user for confirmation.
-        
+
         Displays a yes/no prompt and waits for user input.
-        
+
         Args:
             message: Confirmation message to display.
-            
+
         Returns:
             True if user confirmed (y/yes), False otherwise or on interrupt.
         """
@@ -569,4 +567,3 @@ class Console:
         except (EOFError, KeyboardInterrupt):
             self.print()
             return False
-

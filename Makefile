@@ -25,7 +25,7 @@ help:
 	@echo ""
 	@echo "Code Quality:"
 	@echo "  make lint         Run linter (ruff)"
-	@echo "  make format       Format code (ruff + black)"
+	@echo "  make format       Format code (ruff)"
 	@echo "  make typecheck    Run type checker (mypy)"
 	@echo "  make check        Run all checks (lint + typecheck + test)"
 	@echo ""
