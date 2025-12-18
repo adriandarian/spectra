@@ -64,6 +64,7 @@ export default defineConfig({
             { text: 'Architecture', link: '/guide/architecture' },
             { text: 'Plugins', link: '/guide/plugins' },
             { text: 'Docker', link: '/guide/docker' },
+            { text: 'AI Agents', link: '/guide/agents' },
           ]
         }
       ],

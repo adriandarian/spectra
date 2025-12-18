@@ -230,6 +230,7 @@ Separate stories with ---
 ## Related Documentation
 
 - [AI Fix Guide](/guide/ai-fix) – Fix formatting issues in existing documents
+- [AI Agents Guide](/guide/agents) – Context for AI coding assistants working on spectra
 - [Validation Reference](/reference/cli#validation-options) – CLI validation options
 - [Format Schema](/guide/schema) – Complete markdown format specification
 

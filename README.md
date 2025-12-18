@@ -372,6 +372,7 @@ Visit our **[documentation site](docs/index.md)** for comprehensive guides:
 - [Installation](docs/guide/installation.md) - All installation options
 - [AI Fix Guide](docs/guide/ai-fix.md) - Fix formatting issues with AI assistance
 - [AI Prompts](docs/guide/ai-prompts.md) - Generate new epics with AI
+- [AI Agents](docs/guide/agents.md) - Guide for AI coding assistants (Cursor, Copilot, Claude)
 - [Configuration](docs/guide/configuration.md) - Configuration file format and options
 - [CLI Reference](docs/reference/cli.md) - Complete CLI documentation
 - [Architecture](docs/guide/architecture.md) - System architecture overview

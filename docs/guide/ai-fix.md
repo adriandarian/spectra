@@ -347,6 +347,7 @@ Search for similar issues before creating a new one:
 
 - [Validation Reference](/reference/cli#validation-options) – Complete validation CLI options
 - [AI Prompts Guide](/guide/ai-prompts) – Prompts for generating new epic documents
+- [AI Agents Guide](/guide/agents) – Context for AI coding assistants working on spectra
 - [Exit Codes](/reference/exit-codes) – Understanding spectra exit codes
 - [Configuration](/guide/configuration) – Configure spectra behavior
 
