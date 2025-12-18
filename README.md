@@ -15,6 +15,7 @@
 [Features](#features) •
 [Installation](#installation) •
 [Quick Start](#quick-start) •
+[AI Fix](#ai-assisted-fixing) •
 [Architecture](#architecture) •
 [Documentation](#documentation)
 
@@ -27,6 +28,8 @@
 🚀 **Multi-Platform Sync** - Sync to Jira, GitHub Issues, Azure DevOps, Linear, and Confluence
 
 📝 **Markdown & YAML Native** - Write specs in markdown or YAML, sync to any issue tracker
+
+🤖 **AI-Assisted Fixing** - Fix formatting issues with AI tools (Claude, Ollama, Aider, and more)
 
 🔄 **Smart Matching** - Fuzzy title matching between specs and existing issues
 
@@ -154,7 +157,25 @@ JIRA_API_TOKEN=your-api-token
 | 2 | Implement JWT auth | Add JWT token handling | 3 | ✅ Done |
 ```
 
-### 3. Sync to Jira
+### 3. Validate & Fix with AI
+
+```bash
+# Validate your markdown format
+spectra --validate --markdown EPIC.md
+
+# If there are issues, use AI to fix them:
+
+# Option 1: View the format guide
+spectra --validate --markdown EPIC.md --show-guide
+
+# Option 2: Get a prompt to copy-paste into ChatGPT/Claude
+spectra --validate --markdown EPIC.md --suggest-fix
+
+# Option 3: Auto-fix with AI CLI tools (Claude, Ollama, Aider, etc.)
+spectra --validate --markdown EPIC.md --auto-fix
+```
+
+### 4. Sync to Jira
 
 ```bash
 # Preview changes (dry-run)
@@ -166,6 +187,45 @@ spectra --markdown EPIC.md --epic PROJ-123 --execute
 # Sync specific phase only
 spectra --markdown EPIC.md --epic PROJ-123 --execute --phase descriptions
 ```
+
+## AI-Assisted Fixing
+
+spectra includes powerful AI integration to help you fix markdown formatting issues automatically.
+
+### Three Ways to Fix
+
+| Method | Command | Best For |
+|--------|---------|----------|
+| **Format Guide** | `--show-guide` | Learning the format, manual fixes |
+| **AI Prompt** | `--suggest-fix` | Copy-paste to ChatGPT, Claude web, etc. |
+| **Auto-Fix** | `--auto-fix` | One-command automatic fixing |
+
+### Supported AI CLI Tools
+
+spectra auto-detects these AI tools on your system:
+
+- **Claude CLI** - `pip install anthropic` → [setup guide](https://docs.anthropic.com/en/docs/claude-cli)
+- **Ollama** - Free, local models → [ollama.ai](https://ollama.ai)
+- **Aider** - AI coding assistant → `pip install aider-chat`
+- **GitHub Copilot** - `gh extension install github/gh-copilot`
+- **LLM CLI** - Multi-provider support → `pip install llm`
+- **Shell GPT** - `pip install shell-gpt`
+- **Mods** - Charmbracelet → [github.com/charmbracelet/mods](https://github.com/charmbracelet/mods)
+
+### Example: Auto-Fix Workflow
+
+```bash
+# Check which AI tools are available
+spectra --list-ai-tools
+
+# Validate and auto-fix with your preferred tool
+spectra --validate --markdown EPIC.md --auto-fix --ai-tool claude
+
+# Or let spectra prompt you to choose
+spectra --validate --markdown EPIC.md --auto-fix
+```
+
+For detailed usage, see the [AI Fix Guide](docs/guide/ai-fix.md).
 
 ## Architecture
 
@@ -266,13 +326,32 @@ spectra --help
 | `--export` | Export results to JSON |
 | `--validate` | Validate markdown only |
 
+### AI Fix Options
+
+| Option | Description |
+|--------|-------------|
+| `--show-guide` | Display the markdown format guide |
+| `--suggest-fix` | Generate AI prompt for copy-paste fixing |
+| `--auto-fix` | Automatically fix with AI CLI tool |
+| `--ai-tool` | Specify AI tool (claude, ollama, aider, llm, mods, sgpt) |
+| `--list-ai-tools` | List detected AI CLI tools |
+
 ### Examples
 
 ```bash
 # Validate markdown format
-spectra -m EPIC.md -e PROJ-123 --validate
+spectra --validate --markdown EPIC.md
 
-# Preview all changes
+# Fix issues with AI (interactive tool selection)
+spectra --validate --markdown EPIC.md --auto-fix
+
+# Fix with a specific AI tool
+spectra --validate --markdown EPIC.md --auto-fix --ai-tool claude
+
+# Get copy-paste prompt for ChatGPT/Claude web
+spectra --validate --markdown EPIC.md --suggest-fix
+
+# Preview all sync changes
 spectra -m EPIC.md -e PROJ-123 -v
 
 # Sync descriptions only
@@ -291,6 +370,8 @@ Visit our **[documentation site](docs/index.md)** for comprehensive guides:
 
 - [Getting Started](docs/guide/getting-started.md) - Quick start guide
 - [Installation](docs/guide/installation.md) - All installation options
+- [AI Fix Guide](docs/guide/ai-fix.md) - Fix formatting issues with AI assistance
+- [AI Prompts](docs/guide/ai-prompts.md) - Generate new epics with AI
 - [Configuration](docs/guide/configuration.md) - Configuration file format and options
 - [CLI Reference](docs/reference/cli.md) - Complete CLI documentation
 - [Architecture](docs/guide/architecture.md) - System architecture overview

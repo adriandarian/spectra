@@ -95,5 +95,10 @@ spectra --markdown EPIC.md --epic PROJ-123 --execute
 <span style="opacity: 0.7">Complete markdown format guide</span>
 </a>
 
+<a href="/guide/ai-fix" style="display: block; padding: 1rem; border: 1px solid var(--vp-c-divider); border-radius: 8px; text-decoration: none;">
+<strong>🤖 AI Fix</strong><br/>
+<span style="opacity: 0.7">Fix formatting issues with AI assistance</span>
+</a>
+
 </div>
 

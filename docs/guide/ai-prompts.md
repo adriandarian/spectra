@@ -2,6 +2,10 @@
 
 Use these prompts with AI assistants (Claude, ChatGPT, etc.) to generate properly formatted epic documentation.
 
+::: tip Already Have a Document?
+If you have an existing markdown file with formatting issues, see the [AI Fix Guide](/guide/ai-fix) for help correcting it. This page covers generating **new** documents from scratch.
+:::
+
 ## The Prompt
 
 Copy and paste this prompt, replacing the `[PLACEHOLDERS]` with your project details:
@@ -222,4 +226,10 @@ Use this format for each story:
 | # | Subtask | Description | SP | Status |
 Separate stories with ---
 ```
+
+## Related Documentation
+
+- [AI Fix Guide](/guide/ai-fix) – Fix formatting issues in existing documents
+- [Validation Reference](/reference/cli#validation-options) – CLI validation options
+- [Format Schema](/guide/schema) – Complete markdown format specification
 

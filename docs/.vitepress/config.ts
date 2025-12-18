@@ -55,6 +55,7 @@ export default defineConfig({
           items: [
             { text: 'Schema Reference', link: '/guide/schema' },
             { text: 'AI Prompts', link: '/guide/ai-prompts' },
+            { text: 'AI Fix', link: '/guide/ai-fix' },
           ]
         },
         {

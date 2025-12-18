@@ -58,6 +58,18 @@ spectra [OPTIONS]
 |--------|-------------|
 | `--validate` | Validate markdown only (no sync) |
 
+## AI Fix Options
+
+| Option | Description |
+|--------|-------------|
+| `--show-guide` | Display the spectra markdown format guide |
+| `--suggest-fix` | Generate AI prompt for copy-paste fixing |
+| `--auto-fix` | Automatically fix using AI CLI tool |
+| `--ai-tool TOOL` | Specify AI tool for auto-fix (claude, ollama, aider, llm, mods, sgpt) |
+| `--list-ai-tools` | List detected AI CLI tools available for auto-fix |
+
+See [AI Fix Guide](/guide/ai-fix) for detailed usage.
+
 ## Interactive Mode
 
 | Option | Description |
@@ -189,8 +201,32 @@ spectra -m EPIC.md -e PROJ-123 --resume
 
 ```bash
 # Validate markdown format only
-spectra -m EPIC.md -e PROJ-123 --validate
+spectra --validate --markdown EPIC.md
+
+# Validate with epic context
+spectra --validate --markdown EPIC.md --epic PROJ-123
 ```
+
+### AI Fix
+
+```bash
+# View the format guide
+spectra --validate --markdown EPIC.md --show-guide
+
+# Get AI prompt for copy-paste
+spectra --validate --markdown EPIC.md --suggest-fix
+
+# Auto-fix interactively (select AI tool)
+spectra --validate --markdown EPIC.md --auto-fix
+
+# Auto-fix with specific AI tool
+spectra --validate --markdown EPIC.md --auto-fix --ai-tool claude
+
+# List available AI tools
+spectra --list-ai-tools
+```
+
+See [AI Fix Guide](/guide/ai-fix) for detailed usage and troubleshooting.
 
 ### Configuration
 

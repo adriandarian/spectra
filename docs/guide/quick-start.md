@@ -92,7 +92,32 @@ Create `EPIC.md` with your user stories:
 ---
 ```
 
-## Step 3: Preview Changes
+## Step 3: Validate Your Markdown
+
+Before syncing, validate your markdown format:
+
+```bash
+spectra --validate --markdown EPIC.md
+```
+
+If there are formatting issues, spectra will suggest fixes:
+
+```bash
+# View the format guide
+spectra --validate --markdown EPIC.md --show-guide
+
+# Get an AI prompt to fix issues (copy-paste to ChatGPT/Claude)
+spectra --validate --markdown EPIC.md --suggest-fix
+
+# Auto-fix with AI CLI tools (if installed)
+spectra --validate --markdown EPIC.md --auto-fix
+```
+
+::: tip AI Fix
+See the [AI Fix Guide](/guide/ai-fix) for detailed help with fixing formatting issues using AI tools.
+:::
+
+## Step 4: Preview Changes
 
 Run spectra in dry-run mode (default) to see what would change:
 
@@ -130,7 +155,7 @@ Mode: DRY RUN (no changes will be made)
 Summary: 2 stories, 6 subtasks to create
 ```
 
-## Step 4: Execute Sync
+## Step 5: Execute Sync
 
 When you're happy with the preview, execute the sync:
 
@@ -145,7 +170,7 @@ This will modify 2 stories and create 6 subtasks in Jira.
 Proceed? [y/N]: y
 ```
 
-## Step 5: Verify in Jira
+## Step 6: Verify in Jira
 
 Check your Jira epic to see the synced issues:
 
@@ -194,6 +219,7 @@ spectra --rollback --epic PROJ-123 --execute
 ## Next Steps
 
 - [Markdown Schema](/guide/schema) - Complete format reference
+- [AI Fix](/guide/ai-fix) - Fix formatting issues with AI assistance
 - [Configuration](/guide/configuration) - Config file options
 - [CLI Reference](/reference/cli) - All command options
 
