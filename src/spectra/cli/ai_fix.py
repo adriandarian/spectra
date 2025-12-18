@@ -161,7 +161,7 @@ REQUIRED STRUCTURE
 
 1. STORY HEADER (Required)
    Format: ### [emoji] US-XXX: Story Title
-   
+
    Examples:
      ### 🔧 US-001: Implement User Authentication
      ### 🚀 US-002: Add Dashboard Feature
@@ -169,7 +169,7 @@ REQUIRED STRUCTURE
 
 2. METADATA (Required after each story header)
    Use inline format with bold labels:
-   
+
    **Priority**: P0|P1|P2|High|Medium|Low
    **Story Points**: [number]
    **Status**: ✅ Done|🔄 In Progress|📋 Planned|To Do
@@ -181,14 +181,14 @@ REQUIRED STRUCTURE
 
 3. USER STORY DESCRIPTION (Required)
    Format with bold markers:
-   
+
    > **As a** [role],
    > **I want** [feature],
    > **So that** [benefit]
 
 4. ACCEPTANCE CRITERIA (Optional but recommended)
    Use checkbox format:
-   
+
    #### Acceptance Criteria
    - [ ] First criterion
    - [ ] Second criterion
@@ -196,7 +196,7 @@ REQUIRED STRUCTURE
 
 5. SUBTASKS TABLE (Optional)
    Format with 5 columns:
-   
+
    #### Subtasks
    | # | Subtask | Description | SP | Status |
    |---|---------|-------------|:--:|--------|
