@@ -283,26 +283,49 @@ class JiraAdapter(IssueTrackerPort):
         story_points: int | None = None,
         assignee: str | None = None,
     ) -> bool:
-        if self._dry_run:
-            self.logger.info(f"[DRY-RUN] Would update subtask {issue_key}")
-            return True
+        # Get current values to compare
+        current = self.get_subtask_details(issue_key)
+        current_points = current.get("story_points")
 
+        # Determine what actually needs updating
+        changes: list[str] = []
         fields: dict[str, Any] = {}
 
         if description is not None:
             if isinstance(description, str):
                 description = self.formatter.format_text(description)
+            # Always update description (hard to compare ADF)
             fields["description"] = description
+            changes.append("description")
 
         if story_points is not None:
-            fields[self.STORY_POINTS_FIELD] = float(story_points)
+            # Compare story points
+            if current_points != story_points:
+                fields[self.STORY_POINTS_FIELD] = float(story_points)
+                changes.append(f"points {current_points or 0}→{story_points}")
 
         if assignee is not None:
-            fields["assignee"] = {"accountId": assignee}
+            current_assignee = current.get("assignee")
+            current_assignee_id = (
+                current_assignee.get("accountId") if current_assignee else None
+            )
+            if current_assignee_id != assignee:
+                fields["assignee"] = {"accountId": assignee}
+                changes.append("assignee")
 
-        if fields:
-            self._client.put(f"issue/{issue_key}", json={"fields": fields})
-            self.logger.info(f"Updated subtask {issue_key}")
+        if self._dry_run:
+            if changes:
+                self.logger.info(f"[DRY-RUN] Would update {issue_key}: {', '.join(changes)}")
+            else:
+                self.logger.debug(f"[DRY-RUN] {issue_key} already up-to-date")
+            return True
+
+        if not fields:
+            self.logger.debug(f"Skipped {issue_key} - no changes needed")
+            return True
+
+        self._client.put(f"issue/{issue_key}", json={"fields": fields})
+        self.logger.info(f"Updated {issue_key}: {', '.join(changes)}")
 
         return True
 
