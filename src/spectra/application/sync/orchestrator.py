@@ -579,7 +579,7 @@ class SyncOrchestrator:
         created_count = 0
         for md_story in self._md_stories:
             story_id = str(md_story.id)
-            if story_id not in [s for s in result.unmatched_stories]:
+            if story_id not in list(result.unmatched_stories):
                 continue  # Already matched
 
             # Format description
@@ -599,7 +599,7 @@ class SyncOrchestrator:
                 project_key=project_key,
                 epic_key=epic_key,
                 story_points=md_story.story_points,
-                priority=md_story.priority.value if md_story.priority else None,
+                priority=md_story.priority.jira_name if md_story.priority else None,
             )
 
             # Count as created (even in dry-run where new_key is None)
@@ -668,16 +668,10 @@ class SyncOrchestrator:
         if epic.description:
             description = epic.description
         if epic.summary:
-            if description:
-                description = f"{epic.summary}\n\n{description}"
-            else:
-                description = epic.summary
+            description = f"{epic.summary}\n\n{description}" if description else epic.summary
 
         # Format as ADF if needed
-        if description:
-            adf_description = self.formatter.format_text(description)
-        else:
-            adf_description = None
+        adf_description = self.formatter.format_text(description) if description else None
 
         # Update the epic issue
         if self.config.dry_run:
