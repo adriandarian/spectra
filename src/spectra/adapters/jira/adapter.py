@@ -138,7 +138,10 @@ class JiraAdapter(IssueTrackerPort):
 
     def update_issue_type(self, issue_key: str, issue_type: str) -> bool:
         """
-        Change an issue's type.
+        Change an issue's type using the move operation.
+
+        Some Jira configurations require a "move" operation to change issue types
+        rather than a simple field update.
 
         Args:
             issue_key: The issue key (e.g., 'PROJ-123').
@@ -151,12 +154,51 @@ class JiraAdapter(IssueTrackerPort):
             self.logger.info(f"[DRY-RUN] Would change {issue_key} type to '{issue_type}'")
             return True
 
-        self._client.put(
-            f"issue/{issue_key}",
-            json={JiraField.FIELDS: {JiraField.ISSUETYPE: {JiraField.NAME: issue_type}}},
-        )
-        self.logger.info(f"Changed {issue_key} type to '{issue_type}'")
-        return True
+        # Get issue type ID
+        issue_type_id = self._get_issue_type_id(issue_key, issue_type)
+        if not issue_type_id:
+            self.logger.warning(f"Issue type '{issue_type}' not found for {issue_key}")
+            return False
+
+        try:
+            # Try the move operation first (works for most Jira configurations)
+            self._client.post(
+                f"issue/{issue_key}/move",
+                json={"targetIssueType": issue_type_id},
+            )
+            self.logger.info(f"Moved {issue_key} to type '{issue_type}'")
+            return True
+        except Exception as move_error:
+            self.logger.debug(f"Move operation failed: {move_error}, trying direct update")
+            # Fallback to direct update
+            try:
+                self._client.put(
+                    f"issue/{issue_key}",
+                    json={JiraField.FIELDS: {JiraField.ISSUETYPE: {JiraField.NAME: issue_type}}},
+                )
+                self.logger.info(f"Changed {issue_key} type to '{issue_type}'")
+                return True
+            except Exception as update_error:
+                self.logger.error(f"Failed to change {issue_key} type: {update_error}")
+                return False
+
+    def _get_issue_type_id(self, issue_key: str, issue_type_name: str) -> str | None:
+        """Get issue type ID by name for the project of the given issue."""
+        project_key = issue_key.split("-")[0] if "-" in issue_key else None
+        if not project_key:
+            return None
+
+        try:
+            issue_types = self.get_project_issue_types(project_key)
+            # issue_types is a list of names, we need IDs
+            # Fetch from project endpoint
+            data = self._client.get(f"project/{project_key}")
+            for it in data.get("issueTypes", []):
+                if it.get("name", "").lower() == issue_type_name.lower():
+                    return it.get("id")
+        except Exception as e:
+            self.logger.debug(f"Failed to get issue type ID: {e}")
+        return None
 
     def create_story(
         self,
