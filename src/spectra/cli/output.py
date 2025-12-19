@@ -510,6 +510,7 @@ class Console:
         # Stats table
         stats = [
             ["Stories Matched", str(result.stories_matched)],
+            ["Stories Created", str(getattr(result, "stories_created", 0))],
             ["Stories Updated", str(result.stories_updated)],
             ["Subtasks Created", str(result.subtasks_created)],
             ["Subtasks Updated", str(result.subtasks_updated)],
@@ -519,7 +520,7 @@ class Console:
 
         # Add incremental stats if applicable
         if getattr(result, "incremental", False):
-            stats.insert(2, ["Stories Skipped (unchanged)", str(result.stories_skipped)])
+            stats.insert(3, ["Stories Skipped (unchanged)", str(result.stories_skipped)])
 
         self.table(["Metric", "Count"], stats)
 

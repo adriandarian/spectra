@@ -136,6 +136,70 @@ class JiraAdapter(IssueTrackerPort):
         self.logger.info(f"Updated description for {issue_key}")
         return True
 
+    def create_story(
+        self,
+        summary: str,
+        description: Any,
+        project_key: str,
+        epic_key: str | None = None,
+        story_points: int | None = None,
+        priority: str | None = None,
+        assignee: str | None = None,
+        issue_type: str = "Story",
+    ) -> str | None:
+        """
+        Create a new story issue in Jira.
+
+        Args:
+            summary: Story title/summary.
+            description: Story description (can be string or ADF).
+            project_key: Project key (e.g., 'PROJ').
+            epic_key: Epic key to link to (e.g., 'PROJ-123').
+            story_points: Optional story points.
+            priority: Optional priority name.
+            assignee: Optional assignee account ID.
+            issue_type: Issue type name (default: 'Story').
+
+        Returns:
+            New issue key (e.g., 'PROJ-456') or None if dry-run.
+        """
+        if self._dry_run:
+            self.logger.info(f"[DRY-RUN] Would create {issue_type} '{summary[:50]}...'")
+            return None
+
+        # Convert description to ADF if string
+        if isinstance(description, str):
+            description = self.formatter.format_text(description)
+
+        fields: dict[str, Any] = {
+            JiraField.PROJECT: {JiraField.KEY: project_key},
+            JiraField.SUMMARY: summary[:255],
+            JiraField.DESCRIPTION: description,
+            JiraField.ISSUETYPE: {JiraField.NAME: issue_type},
+        }
+
+        # Link to epic (using parent field for next-gen projects, or epic link for classic)
+        if epic_key:
+            # Try parent field first (next-gen/team-managed projects)
+            fields[JiraField.PARENT] = {JiraField.KEY: epic_key}
+
+        if story_points is not None:
+            fields[self.STORY_POINTS_FIELD] = float(story_points)
+
+        if priority:
+            fields[JiraField.PRIORITY] = {JiraField.NAME: priority}
+
+        if assignee:
+            fields[JiraField.ASSIGNEE] = {JiraField.ACCOUNT_ID: assignee}
+
+        result = self._client.post("issue", json={"fields": fields})
+        new_key = result.get("key")
+
+        if new_key:
+            self.logger.info(f"Created {issue_type} {new_key}: {summary[:50]}")
+
+        return new_key
+
     def create_subtask(
         self,
         parent_key: str,

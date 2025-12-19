@@ -88,6 +88,7 @@ class SyncResult:
 
     # Counts
     stories_matched: int = 0
+    stories_created: int = 0
     stories_updated: int = 0
     subtasks_created: int = 0
     subtasks_updated: int = 0
@@ -377,13 +378,22 @@ class SyncOrchestrator:
                 result.add_warning(f"Backup failed: {e}")
 
         # Phase 1: Analyze
-        total_phases = 6 if self.config.backup_enabled else 5
+        total_phases = 7 if self.config.backup_enabled else 6
         self._report_progress(progress_callback, "Analyzing", 1, total_phases)
-        self.analyze(markdown_path, epic_key)
+        analyze_result = self.analyze(markdown_path, epic_key)
         result.stories_matched = len(self._matches)
         result.matched_stories = list(self._matches.items())
+        result.unmatched_stories = analyze_result.unmatched_stories
 
-        # Phase 1b: Detect changes (incremental sync)
+        # Phase 1b: Create unmatched stories
+        if self.config.create_stories and result.unmatched_stories:
+            self._report_progress(progress_callback, "Creating stories", 2, total_phases)
+            self._create_unmatched_stories(epic_key, result)
+            # Update matched count after creation
+            result.stories_matched = len(self._matches)
+            result.matched_stories = list(self._matches.items())
+
+        # Phase 1c: Detect changes (incremental sync)
         if self.config.incremental and self._change_tracker and not self.config.force_full_sync:
             self._change_tracker.load(epic_key, markdown_path)
             changes = self._change_tracker.detect_changes(self._md_stories)
@@ -544,6 +554,74 @@ class SyncOrchestrator:
                 result.add_warning(f"Could not match story: {md_story.id} - {md_story.title}")
 
         result.stories_matched = len(self._matches)
+
+    def _create_unmatched_stories(self, epic_key: str, result: SyncResult) -> None:
+        """
+        Create stories in Jira for unmatched markdown stories.
+
+        Args:
+            epic_key: The epic key to link new stories to.
+            result: SyncResult to update with creation results.
+        """
+        if not hasattr(self.tracker, "create_story"):
+            self.logger.warning("Tracker does not support story creation")
+            return
+
+        # Get project key from epic key
+        project_key = epic_key.split("-")[0] if "-" in epic_key else epic_key
+
+        created_count = 0
+        for md_story in self._md_stories:
+            story_id = str(md_story.id)
+            if story_id not in [s for s in result.unmatched_stories]:
+                continue  # Already matched
+
+            # Format description
+            description = ""
+            if md_story.description:
+                description = md_story.description.to_markdown()
+
+            # Add acceptance criteria
+            if md_story.acceptance_criteria:
+                description += "\n\n## Acceptance Criteria\n"
+                description += md_story.acceptance_criteria.to_markdown()
+
+            # Create the story
+            new_key = self.tracker.create_story(
+                summary=md_story.title,
+                description=description,
+                project_key=project_key,
+                epic_key=epic_key,
+                story_points=md_story.story_points,
+                priority=md_story.priority.value if md_story.priority else None,
+            )
+
+            if new_key:
+                # Add to matches so subsequent phases can sync to it
+                self._matches[story_id] = new_key
+                result.matched_stories.append((story_id, new_key))
+                created_count += 1
+                self.logger.info(f"Created story {new_key} for {story_id}: {md_story.title}")
+
+                # Also add to jira_issues for subtask/description sync
+                from spectra.core.domain.entities import IssueKey
+
+                # Create a minimal issue representation
+                class CreatedIssue:
+                    def __init__(self, key: str, summary: str) -> None:
+                        self.key = key
+                        self.summary = summary
+
+                self._jira_issues.append(CreatedIssue(new_key, md_story.title))
+
+        # Remove created stories from unmatched list
+        result.unmatched_stories = [
+            s for s in result.unmatched_stories if s not in self._matches
+        ]
+
+        if created_count > 0:
+            result.stories_created = created_count
+            self.logger.info(f"Created {created_count} new stories in Jira")
 
     # -------------------------------------------------------------------------
     # Sync Phases

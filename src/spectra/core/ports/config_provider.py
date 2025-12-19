@@ -110,6 +110,7 @@ class SyncConfig:
     verbose: bool = False
 
     # Phase control
+    create_stories: bool = True  # Create new stories in tracker if they don't exist
     sync_descriptions: bool = True
     sync_subtasks: bool = True
     sync_comments: bool = True
