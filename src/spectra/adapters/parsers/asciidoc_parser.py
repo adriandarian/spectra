@@ -29,13 +29,13 @@ class AsciiDocParser(DocumentParserPort):
 
     Supports AsciiDoc format with structured sections for stories.
 
-    Example AsciiDoc format:
+    Example AsciiDoc format (story IDs can use any PREFIX-NUMBER format):
 
     ```asciidoc
     = Epic Title
     :epic-key: PROJ-123
 
-    == US-001: Story Title
+    == PROJ-001: Story Title
 
     [cols="1,1"]
     |===
@@ -84,7 +84,9 @@ class AsciiDocParser(DocumentParserPort):
     """
 
     # Patterns for AsciiDoc parsing
-    STORY_PATTERN = r"^==\s+(?:.*?)?(US-\d+):\s*([^\n]+)"
+    # Generic story ID pattern: PREFIX-NUMBER (e.g., US-001, EU-042, PROJ-123)
+    STORY_ID_PATTERN = r"[A-Z]+-\d+"
+    STORY_PATTERN = rf"^==\s+(?:.*?)?({STORY_ID_PATTERN}):\s*([^\n]+)"
     EPIC_TITLE_PATTERN = r"^=\s+([^\n]+)"
     EPIC_KEY_PATTERN = r":epic-key:\s*([A-Z]+-\d+)"
 

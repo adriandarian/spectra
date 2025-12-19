@@ -231,10 +231,13 @@ class CsvParser(DocumentParserPort):
         return normalized
 
     def _parse_row(self, row: dict[str, str], index: int) -> UserStory | None:
-        """Parse a single CSV row into a UserStory."""
-        story_id = row.get("id", f"US-{index + 1:03d}")
-        if not story_id.upper().startswith(("US-", "STORY-")):
-            story_id = f"US-{story_id}"
+        """Parse a single CSV row into a UserStory.
+
+        Accepts any PREFIX-NUMBER format for story IDs (e.g., US-001, EU-042, PROJ-123).
+        """
+        story_id = row.get("id", "")
+        if not story_id:
+            story_id = f"STORY-{index + 1:03d}"
 
         title = row.get("title", "").strip()
         if not title:

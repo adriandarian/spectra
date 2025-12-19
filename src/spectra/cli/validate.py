@@ -207,18 +207,15 @@ class MarkdownValidator:
     }
 
     # Story pattern - matches various header levels with story IDs
-    # ### [emoji] US-001: Title (h3) - most common format
-    # ### [emoji] PROJ-123: Title (h3) - for project-prefixed stories
-    # ## [emoji] US-001: Title (h2)
-    # # US-001: Title [emoji] (h1, standalone files - ONLY US-XXX format)
-    #
-    # Note: h1 headers like "# PROJ-100: Epic Title" are NOT matched (epics use project keys)
-    # Only h1 with US- prefix are matched (standalone story files)
+    # Accepts any PREFIX-NUMBER format (e.g., US-001, EU-042, PROJ-123, FEAT-001)
+    # ### [emoji] PROJ-001: Title (h3) - most common format
+    # ## [emoji] PROJ-001: Title (h2)
+    # # PROJ-001: Title [emoji] (h1, standalone files)
     STORY_PATTERN = re.compile(
         r"^(?:"
-        r"#{2,3}\s+(?:[^\s:]+\s+)?(?P<id1>US-\d+|[A-Z]+-\d+)"  # h2/h3: any format
+        r"#{2,3}\s+(?:[^\s:]+\s+)?(?P<id1>[A-Z]+-\d+)"  # h2/h3: any PREFIX-NUMBER
         r"|"
-        r"#\s+(?:[^\s:]+\s+)?(?P<id2>US-\d+)"  # h1: ONLY US-XXX format
+        r"#\s+(?:[^\s:]+\s+)?(?P<id2>[A-Z]+-\d+)"  # h1: any PREFIX-NUMBER
         r"):\s*(?P<title>.+?)(?:\s*[✅🔲🟡⏸️]+)?$",
         re.MULTILINE,
     )
@@ -315,7 +312,7 @@ class MarkdownValidator:
             result.add_error(
                 "E100",
                 "No user stories found",
-                suggestion="Add stories with format: ### US-001: Story Title",
+                suggestion="Add stories with format: ### PREFIX-001: Story Title (e.g., US-001, PROJ-123)",
             )
             return
 

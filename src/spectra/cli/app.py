@@ -2494,9 +2494,7 @@ def main() -> int:
         if tools:
             print(format_ai_tools_list(tools, color=console.color))
             console.print()
-            console.info(
-                "Use with: spectra --validate --input FILE.md --auto-fix --ai-tool <name>"
-            )
+            console.info("Use with: spectra --validate --input FILE.md --auto-fix --ai-tool <name>")
         else:
             console.warning("No AI CLI tools detected on your system.")
             console.print()

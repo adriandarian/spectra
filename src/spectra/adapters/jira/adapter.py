@@ -357,9 +357,7 @@ class JiraAdapter(IssueTrackerPort):
 
         if assignee is not None:
             current_assignee = current.get("assignee")
-            current_assignee_id = (
-                current_assignee.get("accountId") if current_assignee else None
-            )
+            current_assignee_id = current_assignee.get("accountId") if current_assignee else None
             if current_assignee_id != assignee:
                 fields["assignee"] = {"accountId": assignee}
                 changes.append("assignee")
@@ -618,7 +616,9 @@ class JiraAdapter(IssueTrackerPort):
         """Get full details of a subtask."""
         data = self._client.get(
             f"issue/{issue_key}",
-            params={"fields": f"summary,description,assignee,status,priority,{self.STORY_POINTS_FIELD}"},
+            params={
+                "fields": f"summary,description,assignee,status,priority,{self.STORY_POINTS_FIELD}"
+            },
         )
 
         fields = data.get("fields", {})

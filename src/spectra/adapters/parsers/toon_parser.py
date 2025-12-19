@@ -402,11 +402,14 @@ class ToonParser(DocumentParserPort):
     # -------------------------------------------------------------------------
 
     def _parse_story(self, data: dict[str, Any]) -> UserStory | None:
-        """Parse a single story from TOON data."""
+        """Parse a single story from TOON data.
+
+        Accepts any PREFIX-NUMBER format for story IDs (e.g., US-001, EU-042, PROJ-123).
+        """
         if not isinstance(data, dict):
             return None
 
-        story_id = data.get("id", "US-000")
+        story_id = data.get("id", "STORY-000")
         title = data.get("title", "Untitled Story")
 
         description = self._parse_description(data.get("description"))

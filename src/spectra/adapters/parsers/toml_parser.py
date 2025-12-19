@@ -224,8 +224,11 @@ class TomlParser(DocumentParserPort):
         return bool(re.match(r"^[A-Z]+-\d+$", str(key).upper()))
 
     def _parse_story(self, data: dict[str, Any]) -> UserStory | None:
-        """Parse a single story from TOML data."""
-        story_id = data.get("id", "US-000")
+        """Parse a single story from TOML data.
+
+        Accepts any PREFIX-NUMBER format for story IDs (e.g., US-001, EU-042, PROJ-123).
+        """
+        story_id = data.get("id", "STORY-000")
         title = data.get("title", "Untitled Story")
 
         description = self._parse_description(data.get("description"))

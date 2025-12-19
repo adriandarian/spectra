@@ -577,9 +577,7 @@ class SyncOrchestrator:
                 current_type = getattr(matched_issue, "issue_type", "") or ""
                 self.logger.debug(f"Issue {matched_issue.key} type: '{current_type}'")
                 if current_type and current_type not in valid_types:
-                    result.wrong_type_issues.append(
-                        (matched_issue.key, current_type, "Story")
-                    )
+                    result.wrong_type_issues.append((matched_issue.key, current_type, "Story"))
                     self.logger.info(
                         f"Issue {matched_issue.key} has unexpected type: '{current_type}'"
                     )
@@ -674,7 +672,9 @@ class SyncOrchestrator:
         # Always set count (for dry-run display)
         result.stories_created = created_count
         if created_count > 0:
-            self.logger.debug(f"{'Would create' if self.config.dry_run else 'Created'} {created_count} stories")
+            self.logger.debug(
+                f"{'Would create' if self.config.dry_run else 'Created'} {created_count} stories"
+            )
 
     def _fix_issue_types(self, result: SyncResult) -> None:
         """
@@ -693,9 +693,7 @@ class SyncOrchestrator:
                 success = self.tracker.update_issue_type(issue_key, expected_type)
                 if success:
                     fixed_count += 1
-                    self.logger.debug(
-                        f"Fixed {issue_key} type: {current_type} -> {expected_type}"
-                    )
+                    self.logger.debug(f"Fixed {issue_key} type: {current_type} -> {expected_type}")
             except Exception as e:
                 result.add_failed_operation(
                     operation="fix_issue_type",
@@ -840,9 +838,7 @@ class SyncOrchestrator:
                 f"{'Would update' if self.config.dry_run else 'Updated'} {updated_count} story metadata"
             )
 
-    def _build_priority_map(
-        self, available_priorities: list[dict[str, str]]
-    ) -> dict[str, str]:
+    def _build_priority_map(self, available_priorities: list[dict[str, str]]) -> dict[str, str]:
         """
         Build a mapping from our Priority enum names to Jira priority IDs.
 

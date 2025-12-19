@@ -25,11 +25,12 @@ class MarkdownParser(DocumentParserPort):
     """
     Parser for markdown epic files.
 
-    Supports multiple markdown formats with auto-detection:
+    Supports multiple markdown formats with auto-detection.
+    Story IDs can use any PREFIX-NUMBER format (e.g., US-001, EU-042, PROJ-123, FEAT-001).
 
     FORMAT A (Table-based metadata):
     --------------------------------
-    ### [emoji] US-XXX: Title
+    ### [emoji] PROJ-001: Title
 
     | Field | Value |
     |-------|-------|
@@ -44,7 +45,7 @@ class MarkdownParser(DocumentParserPort):
 
     FORMAT B (Inline metadata):
     ---------------------------
-    ### US-XXX: Title
+    ### PROJ-001: Title
 
     **Priority**: P0
     **Story Points**: 5
@@ -57,9 +58,9 @@ class MarkdownParser(DocumentParserPort):
 
     FORMAT C (Standalone file with h1 header and blockquote metadata):
     ------------------------------------------------------------------
-    # US-XXX: Title [emoji]
+    # PROJ-001: Title [emoji]
 
-    > **Story ID**: US-XXX
+    > **Story ID**: PROJ-001
     > **Status**: ✅ Done
     > **Points**: 8
     > **Priority**: P0 - Critical
@@ -74,14 +75,14 @@ class MarkdownParser(DocumentParserPort):
     # Project: Project Title
 
     ## Epic: PROJ-100 - Epic Title 1
-    ### US-XXX: Title
+    ### PROJ-001: Title
     ...
 
     Multi-File Format:
     ------------------
     A directory containing:
     - EPIC.md (optional, with epic metadata)
-    - US-001-*.md, US-002-*.md, etc. (individual story files)
+    - PROJ-001-*.md, PROJ-002-*.md, etc. (individual story files)
 
     Common sections (all formats):
     - #### Acceptance Criteria / ## Acceptance Criteria
@@ -97,13 +98,17 @@ class MarkdownParser(DocumentParserPort):
     FORMAT_BLOCKQUOTE = "blockquote"  # Blockquote metadata (> **Field**: Value)
     FORMAT_STANDALONE = "standalone"  # Standalone file with h1 header
 
-    # Story patterns - flexible to match multiple header levels and formats
-    # Matches: ### ✅ US-001: Title  OR  ### US-001: Title (h3)
-    STORY_PATTERN = r"### (?:[^\n]+ )?(US-\d+): ([^\n]+)\n"
-    STORY_PATTERN_FLEXIBLE = r"### (?:.*?)?(US-\d+):\s*([^\n]+)\n"
+    # Generic story ID pattern: PREFIX-NUMBER (e.g., US-001, EU-042, PROJ-123, FEAT-001)
+    # Allows any alphanumeric prefix followed by hyphen and digits
+    STORY_ID_PATTERN = r"[A-Z]+-\d+"
 
-    # Standalone story pattern for h1 headers: # US-001: Title [emoji] or # US-001: Title
-    STORY_PATTERN_H1 = r"^#\s+(?:.*?)?(US-\d+):\s*([^\n]+?)(?:\s*[✅🔲🟡⏸️]+)?\s*$"
+    # Story patterns - flexible to match multiple header levels and formats
+    # Matches: ### ✅ PROJ-001: Title  OR  ### US-001: Title (h3)
+    STORY_PATTERN = rf"### (?:[^\n]+ )?({STORY_ID_PATTERN}): ([^\n]+)\n"
+    STORY_PATTERN_FLEXIBLE = rf"### (?:.*?)?({STORY_ID_PATTERN}):\s*([^\n]+)\n"
+
+    # Standalone story pattern for h1 headers: # PROJ-001: Title [emoji] or # US-001: Title
+    STORY_PATTERN_H1 = rf"^#\s+(?:.*?)?({STORY_ID_PATTERN}):\s*([^\n]+?)(?:\s*[✅🔲🟡⏸️]+)?\s*$"
 
     EPIC_TITLE_PATTERN = r"^#\s+[^\n]+\s+([^\n]+)$"
     # Multi-epic pattern: ## Epic: PROJ-100 - Epic Title or ## Epic: PROJ-100
@@ -159,7 +164,7 @@ class MarkdownParser(DocumentParserPort):
         Returns:
             FORMAT_TABLE, FORMAT_INLINE, FORMAT_BLOCKQUOTE, or FORMAT_STANDALONE
         """
-        # Check for standalone file format (h1 header with US-XXX)
+        # Check for standalone file format (h1 header with PREFIX-NUMBER story ID)
         has_h1_story = bool(re.search(self.STORY_PATTERN_H1, content, re.MULTILINE))
 
         # Look for blockquote metadata (> **Field**: Value)
@@ -236,8 +241,9 @@ class MarkdownParser(DocumentParserPort):
         if name_lower in skip_patterns:
             return False
 
-        # Filename pattern match (fast path)
-        if name_lower.startswith("us-") or name_lower.startswith("story-"):
+        # Filename pattern match (fast path) - any PREFIX-NUMBER format
+        # Matches: us-001.md, eu-042.md, proj-123.md, story-001.md, etc.
+        if re.match(r"^[a-z]+-\d+", name_lower):
             return True
 
         # Content-based detection (slower but more reliable)
@@ -560,7 +566,8 @@ class MarkdownParser(DocumentParserPort):
 
         if not story_matches:
             errors.append(
-                "No user stories found matching pattern '### [emoji] US-XXX: Title' or '### US-XXX: Title'"
+                "No user stories found matching pattern '### [emoji] PREFIX-001: Title' "
+                "(e.g., US-001, EU-042, PROJ-123)"
             )
 
         # Validate each story
