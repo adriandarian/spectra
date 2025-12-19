@@ -417,16 +417,51 @@ class JiraAdapter(IssueTrackerPort):
     # Extended Methods (Jira-specific)
     # -------------------------------------------------------------------------
 
-    def get_priorities(self) -> list[str]:
+    def get_priorities(self, project_key: str | None = None) -> list[dict[str, str]]:
         """
-        Get available priority names from Jira.
+        Get available priorities from Jira with IDs.
+
+        Args:
+            project_key: Optional project key to get project-specific priorities.
 
         Returns:
-            List of priority names (e.g., ['Highest', 'High', 'Medium', 'Low', 'Lowest'])
+            List of dicts with 'id' and 'name' keys.
         """
+        # Try project-specific priorities first (via createmeta)
+        if project_key:
+            try:
+                # Get createmeta for Story issue type to find valid priorities
+                data = self._client.get(
+                    "issue/createmeta",
+                    params={
+                        "projectKeys": project_key,
+                        "issuetypeNames": "Story",
+                        "expand": "projects.issuetypes.fields",
+                    },
+                )
+                projects = data.get("projects", [])
+                if projects:
+                    issue_types = projects[0].get("issuetypes", [])
+                    if issue_types:
+                        fields = issue_types[0].get("fields", {})
+                        priority_field = fields.get("priority", {})
+                        allowed = priority_field.get("allowedValues", [])
+                        if allowed:
+                            self.logger.debug(
+                                f"Using project-specific priorities: {[p.get('name') for p in allowed]}"
+                            )
+                            return [
+                                {"id": p.get("id", ""), "name": p.get("name", "")}
+                                for p in allowed
+                                if p.get("id")
+                            ]
+            except Exception as e:
+                self.logger.debug(f"Could not get project priorities: {e}")
+
+        # Fallback to global priorities
         try:
             data = self._client.get("priority")
-            return [p.get("name", "") for p in data if p.get("name")]
+            return [{"id": p.get("id", ""), "name": p.get("name", "")} for p in data if p.get("id")]
         except Exception as e:
             self.logger.warning(f"Failed to fetch priorities: {e}")
             return []
@@ -452,7 +487,7 @@ class JiraAdapter(IssueTrackerPort):
     def update_issue_fields(
         self,
         issue_key: str,
-        priority: str | None = None,
+        priority_id: str | None = None,
         assignee: str | None = None,
     ) -> bool:
         """
@@ -460,7 +495,7 @@ class JiraAdapter(IssueTrackerPort):
 
         Args:
             issue_key: The issue key.
-            priority: Priority name to set.
+            priority_id: Priority ID to set (not name).
             assignee: Assignee account ID.
 
         Returns:
@@ -468,8 +503,8 @@ class JiraAdapter(IssueTrackerPort):
         """
         if self._dry_run:
             updates = []
-            if priority:
-                updates.append(f"priority={priority}")
+            if priority_id:
+                updates.append(f"priority_id={priority_id}")
             if assignee:
                 updates.append(f"assignee={assignee}")
             if updates:
@@ -477,8 +512,8 @@ class JiraAdapter(IssueTrackerPort):
             return True
 
         fields: dict[str, Any] = {}
-        if priority:
-            fields[JiraField.PRIORITY] = {JiraField.NAME: priority}
+        if priority_id:
+            fields[JiraField.PRIORITY] = {"id": priority_id}
         if assignee:
             fields[JiraField.ASSIGNEE] = {JiraField.ACCOUNT_ID: assignee}
 

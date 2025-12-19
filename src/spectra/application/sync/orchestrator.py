@@ -785,12 +785,18 @@ class SyncOrchestrator:
             return
 
         # Get available priorities from Jira (cache for efficiency)
-        available_priorities: list[str] = []
-        if hasattr(self.tracker, "get_priorities"):
-            available_priorities = self.tracker.get_priorities()
-            self.logger.debug(f"Available priorities: {available_priorities}")
+        # Extract project key from first matched issue
+        project_key = None
+        if self._matches:
+            first_issue = next(iter(self._matches.values()))
+            project_key = first_issue.split("-")[0] if "-" in first_issue else None
 
-        # Map our priority names to Jira priority names
+        available_priorities: list[dict[str, str]] = []
+        if hasattr(self.tracker, "get_priorities"):
+            available_priorities = self.tracker.get_priorities(project_key)
+            self.logger.debug(f"Available priorities: {[p['name'] for p in available_priorities]}")
+
+        # Map our priority names to Jira priority IDs
         priority_map = self._build_priority_map(available_priorities)
 
         # Get current user for assignee
@@ -809,19 +815,19 @@ class SyncOrchestrator:
 
             issue_key = self._matches[story_id]
 
-            # Determine priority
-            jira_priority = None
+            # Determine priority ID
+            jira_priority_id = None
             if md_story.priority and priority_map:
-                jira_priority = priority_map.get(md_story.priority.name)
+                jira_priority_id = priority_map.get(md_story.priority.name)
 
             # Use current user as assignee if none specified
             assignee = md_story.assignee or current_user
 
-            if jira_priority or assignee:
+            if jira_priority_id or assignee:
                 try:
                     self.tracker.update_issue_fields(
                         issue_key,
-                        priority=jira_priority,
+                        priority_id=jira_priority_id,
                         assignee=assignee,
                     )
                     updated_count += 1
@@ -834,21 +840,23 @@ class SyncOrchestrator:
                 f"{'Would update' if self.config.dry_run else 'Updated'} {updated_count} story metadata"
             )
 
-    def _build_priority_map(self, available_priorities: list[str]) -> dict[str, str]:
+    def _build_priority_map(
+        self, available_priorities: list[dict[str, str]]
+    ) -> dict[str, str]:
         """
-        Build a mapping from our Priority enum names to Jira priority names.
+        Build a mapping from our Priority enum names to Jira priority IDs.
 
         Args:
-            available_priorities: List of priority names from Jira.
+            available_priorities: List of dicts with 'id' and 'name' keys.
 
         Returns:
-            Dict mapping Priority enum names to Jira priority names.
+            Dict mapping Priority enum names to Jira priority IDs.
         """
         if not available_priorities:
             return {}
 
-        # Lowercase lookup for matching
-        priority_lookup = {p.lower(): p for p in available_priorities}
+        # Lowercase lookup for matching (name -> id)
+        priority_lookup = {p["name"].lower(): p["id"] for p in available_priorities}
 
         # Map our enum names to common Jira priority names
         mappings = {
