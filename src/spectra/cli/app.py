@@ -40,120 +40,120 @@ Examples:
   # Preview generated template before writing
   spectra --generate --epic PROJ-123 --preview
 
-  # Validate markdown file format
-  spectra --validate --markdown EPIC.md
+  # Validate file format
+  spectra --validate --input EPIC.md
 
   # Strict validation (warnings are errors)
-  spectra --validate --markdown EPIC.md --strict
+  spectra --validate -f EPIC.md --strict
 
-  # Show the expected markdown format guide
-  spectra --validate --markdown EPIC.md --show-guide
+  # Show the expected format guide
+  spectra --validate -f EPIC.md --show-guide
 
   # Get an AI prompt to fix validation errors (copy to ChatGPT/Claude)
-  spectra --validate --markdown EPIC.md --suggest-fix
+  spectra --validate -f EPIC.md --suggest-fix
 
   # Auto-fix using an AI CLI tool (detects available tools)
-  spectra --validate --markdown EPIC.md --auto-fix
+  spectra --validate -f EPIC.md --auto-fix
 
   # Auto-fix with a specific AI tool
-  spectra --validate --markdown EPIC.md --auto-fix --ai-tool claude
+  spectra --validate -f EPIC.md --auto-fix --ai-tool claude
 
   # List detected AI CLI tools for auto-fix
   spectra --list-ai-tools
 
   # Show status dashboard
-  spectra --dashboard --markdown EPIC.md --epic PROJ-123
+  spectra --dashboard -f EPIC.md --epic PROJ-123
 
   # Enable OpenTelemetry tracing
-  spectra --otel-enable --otel-endpoint http://localhost:4317 --markdown EPIC.md --epic PROJ-123
+  spectra --otel-enable --otel-endpoint http://localhost:4317 -f EPIC.md -e PROJ-123
 
   # Enable Prometheus metrics (exposed on :9090/metrics)
-  spectra --prometheus --prometheus-port 9090 --markdown EPIC.md --epic PROJ-123
+  spectra --prometheus --prometheus-port 9090 -f EPIC.md -e PROJ-123
 
   # Enable health check endpoint (for Kubernetes/Docker)
-  spectra --health --health-port 8080 --markdown EPIC.md --epic PROJ-123
+  spectra --health --health-port 8080 -f EPIC.md -e PROJ-123
 
   # Enable anonymous usage analytics (opt-in)
-  spectra --analytics --markdown EPIC.md --epic PROJ-123
+  spectra --analytics -f EPIC.md -e PROJ-123
 
   # Show/clear analytics data
   spectra --analytics-show
   spectra --analytics-clear
 
   # Preview changes without executing (dry-run is default)
-  spectra --markdown EPIC.md --epic PROJ-123 --dry-run
+  spectra -f EPIC.md -e PROJ-123 --dry-run
 
   # Analyze without making changes (same as above, --dry-run is optional)
-  spectra --markdown EPIC.md --epic PROJ-123
+  spectra -f EPIC.md -e PROJ-123
 
   # Execute sync with confirmations
-  spectra --markdown EPIC.md --epic PROJ-123 --execute
+  spectra -f EPIC.md -e PROJ-123 --execute
 
   # Full sync without prompts
-  spectra --markdown EPIC.md --epic PROJ-123 --execute --no-confirm
+  spectra -f EPIC.md -e PROJ-123 --execute --no-confirm
 
   # Interactive mode - step-by-step guided sync
-  spectra --markdown EPIC.md --epic PROJ-123 --interactive
+  spectra -f EPIC.md -e PROJ-123 --interactive
 
   # Sync only descriptions
-  spectra --markdown EPIC.md --epic PROJ-123 --execute --phase descriptions
+  spectra -f EPIC.md -e PROJ-123 --execute --phase descriptions
 
   # Verbose output for debugging
-  spectra --markdown EPIC.md --epic PROJ-123 -v
+  spectra -f EPIC.md -e PROJ-123 -v
 
-  # Pull from Jira to markdown (reverse sync)
-  spectra --pull --epic PROJ-123 --pull-output EPIC.md --execute
+  # Pull from Jira to file (reverse sync)
+  spectra --pull -e PROJ-123 --pull-output EPIC.md --execute
 
   # Preview what would be pulled from Jira
-  spectra --pull --epic PROJ-123 --preview
+  spectra --pull -e PROJ-123 --preview
 
-  # Update existing markdown from Jira
-  spectra --pull --epic PROJ-123 --markdown EPIC.md --update-existing --execute
+  # Update existing file from Jira
+  spectra --pull -e PROJ-123 -f EPIC.md --update-existing --execute
 
   # Watch mode - auto-sync on file changes
-  spectra --watch --markdown EPIC.md --epic PROJ-123 --execute
+  spectra --watch -f EPIC.md -e PROJ-123 --execute
 
   # Watch mode with custom debounce (5 seconds between syncs)
-  spectra --watch --markdown EPIC.md --epic PROJ-123 --execute --debounce 5
+  spectra --watch -f EPIC.md -e PROJ-123 --execute --debounce 5
 
   # Scheduled sync - every 5 minutes
-  spectra --schedule 5m --markdown EPIC.md --epic PROJ-123 --execute
+  spectra --schedule 5m -f EPIC.md -e PROJ-123 --execute
 
   # Scheduled sync - daily at 9:00 AM
-  spectra --schedule daily:09:00 --markdown EPIC.md --epic PROJ-123 --execute
+  spectra --schedule daily:09:00 -f EPIC.md -e PROJ-123 --execute
 
   # Scheduled sync - run immediately, then every hour
-  spectra --schedule 1h --markdown EPIC.md --epic PROJ-123 --execute --run-now
+  spectra --schedule 1h -f EPIC.md -e PROJ-123 --execute --run-now
 
   # Webhook server - receive Jira webhooks for auto reverse sync
-  spectra --webhook --epic PROJ-123 --pull-output EPIC.md --execute
+  spectra --webhook -e PROJ-123 --pull-output EPIC.md --execute
 
   # Webhook server on custom port with secret
-  spectra --webhook --webhook-port 9000 --webhook-secret mysecret --epic PROJ-123 --pull-output EPIC.md --execute
+  spectra --webhook --webhook-port 9000 --webhook-secret mysecret -e PROJ-123 --pull-output EPIC.md --execute
 
   # Multi-epic sync - sync all epics from one file
-  spectra --multi-epic --markdown ROADMAP.md --execute
+  spectra --multi-epic -f ROADMAP.md --execute
 
   # Multi-epic with filter - sync only specific epics
-  spectra --multi-epic --markdown ROADMAP.md --epic-filter PROJ-100,PROJ-200 --execute
+  spectra --multi-epic -f ROADMAP.md --epic-filter PROJ-100,PROJ-200 --execute
 
   # List epics in a multi-epic file
-  spectra --list-epics --markdown ROADMAP.md
+  spectra --list-epics -f ROADMAP.md
 
-  # Sync cross-project links from markdown
-  spectra --sync-links --markdown EPIC.md --epic PROJ-123 --execute
+  # Sync cross-project links
+  spectra --sync-links -f EPIC.md -e PROJ-123 --execute
 
   # Analyze links without syncing
-  spectra --analyze-links --markdown EPIC.md --epic PROJ-123
+  spectra --analyze-links -f EPIC.md -e PROJ-123
 
   # Directory mode - sync all story files from a directory
-  spectra --input-dir ./docs/plan --epic PROJ-123 --dry-run
+  spectra -d ./docs/plan -e PROJ-123 --dry-run
 
   # Preview which files would be processed from a directory
-  spectra --input-dir ./docs/plan --list-files
+  spectra -d ./docs/plan --list-files
 
   # Execute directory sync
-  spectra --input-dir ./docs/plan --epic PROJ-123 --execute
+  spectra -d ./docs/plan -e PROJ-123 --execute
 
 Environment Variables:
   JIRA_URL         Jira instance URL (e.g., https://company.atlassian.net)
@@ -163,21 +163,17 @@ Environment Variables:
     )
 
     # Input arguments - supports multiple file types (markdown, yaml, json, csv, etc.)
-    # Note: -m kept for backward compatibility, -i conflicts with --interactive
     parser.add_argument(
         "--input",
-        "--markdown",
-        "-m",
+        "-f",
         type=str,
-        dest="input",
         help="Path to input file (markdown, yaml, json, csv, asciidoc, excel, toml)",
     )
     parser.add_argument(
         "--input-dir",
-        "--markdown-dir",
+        "-d",
         type=str,
         metavar="DIR",
-        dest="input_dir",
         help="Path to directory containing story files (auto-detects file types)",
     )
     parser.add_argument(
