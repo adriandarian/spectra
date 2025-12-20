@@ -242,6 +242,7 @@ class AsanaAdapter(IssueTrackerPort):
         project_key: str,
         story_points: int | None = None,
         assignee: str | None = None,
+        priority: str | None = None,
     ) -> str | None:
         if self._dry_run:
             self.logger.debug("Dry run: skipping Asana subtask creation")
@@ -266,6 +267,7 @@ class AsanaAdapter(IssueTrackerPort):
         description: Any | None = None,
         story_points: int | None = None,
         assignee: str | None = None,
+        priority_id: str | None = None,
     ) -> bool:
         if self._dry_run:
             return True

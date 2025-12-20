@@ -638,9 +638,7 @@ def format_fix_suggestion(
             lines.append(
                 f"  Run: spectra --validate --input {file_path} --auto-fix --ai-tool {first_tool.tool.value}"
             )
-            lines.append(
-                f"  Or interactively: spectra --validate --input {file_path} --auto-fix"
-            )
+            lines.append(f"  Or interactively: spectra --validate --input {file_path} --auto-fix")
     # No tools detected, suggest installing one
     elif color:
         lines.append(f"{Colors.BOLD}Option 3: Install an AI CLI tool for auto-fix{Colors.RESET}")
