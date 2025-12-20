@@ -106,3 +106,48 @@ def test_missing_issue_raises_not_found(tracker_config: TrackerConfig) -> None:
 
     with pytest.raises(ResourceNotFoundError):
         adapter.get_issue("missing")
+
+
+def test_get_epic_children_paginates(tracker_config: TrackerConfig) -> None:
+    """Verify that get_epic_children follows next_page cursors."""
+    session = MagicMock()
+
+    # First page with next_page cursor
+    page1 = FakeResponse(
+        200,
+        {
+            "data": [
+                {"gid": "1", "name": "Task 1", "completed": False},
+                {"gid": "2", "name": "Task 2", "completed": True},
+            ],
+            "next_page": {"offset": "cursor123"},
+        },
+    )
+    # Second page with no next_page (end of results)
+    page2 = FakeResponse(
+        200,
+        {
+            "data": [
+                {"gid": "3", "name": "Task 3", "completed": False},
+            ],
+            "next_page": None,
+        },
+    )
+
+    session.request.side_effect = [page1, page2]
+
+    adapter = AsanaAdapter(config=tracker_config, session=session)
+    children = adapter.get_epic_children("12345")
+
+    # Should have fetched all 3 tasks across 2 pages
+    assert len(children) == 3
+    assert children[0].key == "1"
+    assert children[1].key == "2"
+    assert children[2].key == "3"
+
+    # Should have made 2 requests
+    assert session.request.call_count == 2
+
+    # Second request should include offset parameter
+    second_call_params = session.request.call_args_list[1].kwargs.get("params", {})
+    assert second_call_params.get("offset") == "cursor123"

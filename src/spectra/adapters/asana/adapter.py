@@ -106,6 +106,67 @@ class AsanaAdapter(IssueTrackerPort):
 
         return payload.get("data", payload)
 
+    def _request_paginated(
+        self,
+        path: str,
+        *,
+        params: dict[str, Any] | None = None,
+        limit: int | None = None,
+    ) -> list[Any]:
+        """
+        Make a paginated GET request, following next_page cursors.
+
+        Args:
+            path: API endpoint path.
+            params: Query parameters.
+            limit: Optional maximum number of results to return.
+
+        Returns:
+            List of all items across all pages.
+        """
+        all_items: list[Any] = []
+        request_params = dict(params) if params else {}
+        offset: str | None = None
+
+        while True:
+            if offset:
+                request_params["offset"] = offset
+
+            url = self._build_url(path)
+            response = self._session.request(
+                "GET",
+                url,
+                headers=self._headers,
+                params=request_params,
+                timeout=self.timeout,
+            )
+
+            if response.status_code >= 400:
+                self._handle_error(response)
+
+            try:
+                payload = response.json()
+            except ValueError as exc:  # pragma: no cover - defensive
+                raise TrackerError("Invalid response from Asana API") from exc
+
+            data = payload.get("data", [])
+            all_items.extend(data)
+
+            # Check if we've hit the limit
+            if limit and len(all_items) >= limit:
+                return all_items[:limit]
+
+            # Check for next page
+            next_page = payload.get("next_page")
+            if not next_page:
+                break
+
+            offset = next_page.get("offset")
+            if not offset:
+                break
+
+        return all_items
+
     def _handle_error(self, response: requests.Response) -> None:
         status = response.status_code
         message = "Asana API request failed"
@@ -192,8 +253,7 @@ class AsanaAdapter(IssueTrackerPort):
 
     def get_epic_children(self, epic_key: str) -> list[IssueData]:
         project = self._ensure_project(epic_key)
-        tasks = self._request(
-            "GET",
+        tasks = self._request_paginated(
             f"/projects/{project}/tasks",
             params={"opt_fields": "name,notes,completed,resource_subtype,assignee,custom_fields"},
         )
@@ -209,8 +269,9 @@ class AsanaAdapter(IssueTrackerPort):
 
     def search_issues(self, query: str, max_results: int = 50) -> list[IssueData]:
         project = self._ensure_project(None)
-        tasks = self._request(
-            "GET",
+        # Fetch all tasks (paginated), then filter client-side
+        # Note: Asana doesn't support server-side text search on project tasks
+        tasks = self._request_paginated(
             f"/projects/{project}/tasks",
             params={"opt_fields": "name,notes,completed,resource_subtype,assignee,custom_fields"},
         )
