@@ -196,3 +196,47 @@ For quick starts, use this minimal structure:
 ---
 ```
 
+## Story ID Prefixes
+
+Spectra supports flexible story ID prefixes. Use any uppercase letters followed by a dash and numbers:
+
+### Common Prefixes
+
+| Prefix | Example | Use Case |
+|--------|---------|----------|
+| `US-` | `US-001` | User Stories (default) |
+| `STORY-` | `STORY-123` | Alternative story format |
+| `FEAT-` | `FEAT-001` | Feature requests |
+| `BUG-` | `BUG-042` | Bug tracking |
+| `TASK-` | `TASK-001` | General tasks |
+| `SPIKE-` | `SPIKE-003` | Technical spikes |
+
+### Project-Based Prefixes
+
+Match your issue tracker's project key:
+
+| Prefix | Example | Use Case |
+|--------|---------|----------|
+| `PROJ-` | `PROJ-789` | Project-based |
+| `ENG-` | `ENG-123` | Engineering team |
+| `MOBILE-` | `MOBILE-456` | Mobile team |
+| `API-` | `API-100` | API team |
+| `INFRA-` | `INFRA-050` | Infrastructure |
+
+### Example with Mixed Prefixes
+
+```markdown
+# Q4 Sprint Planning
+
+## User Stories
+
+### 🚀 FEAT-001: New Dashboard
+**As a** user **I want** a dashboard **So that** I can see metrics
+
+### 🐛 BUG-123: Fix Memory Leak
+**As a** developer **I want** this fixed **So that** app is stable
+
+### 🔧 INFRA-050: Upgrade Database
+**As a** ops team **I want** newer version **So that** we get patches
+```
+

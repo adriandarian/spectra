@@ -49,20 +49,49 @@ Spectra identifies sections by the exact `#### Header Name` format. Use the exac
 ## Story Header (Required)
 
 ```markdown
-### [emoji] US-XXX: [Title]
+### [emoji] PREFIX-XXX: [Title]
 ```
 
-**Pattern**: `### [^\n]+ (US-\d+): ([^\n]+)\n`
+**Pattern**: `### [^\n]+ (US-\d+|[A-Z]+-\d+): ([^\n]+)\n`
 
-**Examples**:
+::: tip Flexible Prefixes
+Spectra supports any uppercase letter prefix followed by a dash and numbers. Use prefixes that match your team's conventions or your issue tracker's project keys.
+:::
+
+### Standard Prefixes
 
 ```markdown
 ### 🔧 US-001: Migrate to TypeScript
-### 🚀 US-002: Add Authentication
-### 🎨 US-003: Redesign Dashboard
-### 🐛 US-004: Fix Login Bug
-### 📚 US-005: Update Documentation
+### 🚀 STORY-002: Add Authentication
+### 🎨 FEAT-003: Redesign Dashboard
+### 🐛 BUG-004: Fix Login Bug
+### 📚 TASK-005: Update Documentation
 ```
+
+### Project-Based Prefixes
+
+Match your issue tracker's project keys:
+
+```markdown
+### 🔧 PROJ-001: Setup Project
+### 🚀 ENG-123: Engineering Feature
+### 🎨 MOBILE-456: Mobile UI Update
+### 🐛 API-789: API Bug Fix
+### 📚 INFRA-050: Infrastructure Update
+```
+
+### All Supported Prefix Formats
+
+| Prefix Type | Examples | Use Case |
+|-------------|----------|----------|
+| `US-` | `US-001` | User Stories (default) |
+| `STORY-` | `STORY-123` | Alternative story format |
+| `FEAT-` | `FEAT-001` | Features |
+| `BUG-` | `BUG-042` | Bugs |
+| `TASK-` | `TASK-001` | Tasks |
+| `SPIKE-` | `SPIKE-003` | Technical spikes |
+| `PROJ-` | `PROJ-789` | Project-based (Jira-style) |
+| `[A-Z]+-` | `ANY-001` | Any uppercase letters work |
 
 ### Story Type Emojis
 
@@ -135,7 +164,7 @@ Use Fibonacci numbers: `1, 2, 3, 5, 8, 13`
 **I want** automated code formatting on save
 **So that** I can focus on logic instead of style
 
-This feature will integrate with VS Code and other IDEs 
+This feature will integrate with VS Code and other IDEs
 that support format-on-save.
 ```
 

@@ -54,6 +54,64 @@ Create `EPIC.md`:
 ---
 ```
 
+## Flexible Story ID Prefixes
+
+Spectra supports various story ID prefixes to match your team's conventions:
+
+### Standard Prefixes
+
+```markdown
+### US-001: User Story with US prefix
+### STORY-001: Using STORY prefix
+### FEAT-001: Feature with FEAT prefix
+### TASK-001: Task with TASK prefix
+```
+
+### Project-Based Prefixes
+
+Match your Jira project key:
+
+```markdown
+### PROJ-001: Project-prefixed story
+### ENG-123: Engineering project story
+### MOBILE-456: Mobile team story
+### API-789: API team story
+```
+
+### Custom Prefixes
+
+Any uppercase letters followed by a dash and numbers work:
+
+```markdown
+### BUG-001: Bug tracking
+### SPIKE-001: Technical spike
+### CHORE-001: Maintenance task
+### DOC-001: Documentation task
+### TEST-001: Test automation task
+```
+
+### Mixed Prefixes in One File
+
+You can use multiple prefix styles in a single file:
+
+```markdown
+# Q4 Planning
+
+## User Stories
+
+### US-001: Core Feature Implementation
+**As a** user...
+
+### BUG-042: Fix Login Timeout Issue
+**As a** user...
+
+### SPIKE-003: Evaluate New Framework
+**As a** developer...
+
+### PROJ-789: Integration with External API
+**As a** developer...
+```
+
 ### 3. Preview Changes
 
 ```bash

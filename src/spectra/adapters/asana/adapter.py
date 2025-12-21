@@ -8,9 +8,13 @@ output platform alongside Jira.
 from __future__ import annotations
 
 import logging
-from typing import Any
+from typing import TYPE_CHECKING, Any
 
 import requests
+
+
+if TYPE_CHECKING:
+    from .batch import AsanaBatchClient
 
 from spectra.core.exceptions import (
     AccessDeniedError,
@@ -26,6 +30,10 @@ from spectra.core.ports.issue_tracker import IssueData, IssueLink, IssueTrackerP
 
 DEFAULT_BASE_URL = "https://app.asana.com/api/1.0"
 
+# Standard custom field names
+STORY_POINTS_FIELD = "Story Points"
+PRIORITY_FIELD = "Priority"
+
 
 class AsanaAdapter(IssueTrackerPort):
     """Asana implementation of the IssueTrackerPort."""
@@ -38,6 +46,7 @@ class AsanaAdapter(IssueTrackerPort):
         session: requests.Session | None = None,
         base_url: str | None = None,
         timeout: int = 30,
+        custom_field_mappings: dict[str, str] | None = None,
     ) -> None:
         """
         Initialize the Asana adapter.
@@ -48,6 +57,7 @@ class AsanaAdapter(IssueTrackerPort):
             session: Optional custom requests session for testing.
             base_url: Optional override for Asana API URL.
             timeout: Request timeout in seconds.
+            custom_field_mappings: Mapping of field names to Asana custom field GIDs.
         """
         self.config = config
         self._dry_run = dry_run
@@ -56,6 +66,11 @@ class AsanaAdapter(IssueTrackerPort):
         self.timeout = timeout
         self._connected = False
         self.logger = logging.getLogger("AsanaAdapter")
+
+        # Custom field mappings: name -> GID
+        self._custom_field_mappings = custom_field_mappings or {}
+        self._custom_fields_cache: dict[str, dict[str, Any]] | None = None
+        self._batch_client: AsanaBatchClient | None = None
 
     # ------------------------------------------------------------------
     # Properties
@@ -400,3 +415,153 @@ class AsanaAdapter(IssueTrackerPort):
     def get_issue_links(self, issue_key: str) -> list[IssueLink]:
         self.logger.debug("Asana issue links not supported for %s", issue_key)
         return []
+
+    # ------------------------------------------------------------------
+    # Batch operations
+    # ------------------------------------------------------------------
+    @property
+    def batch_client(self) -> AsanaBatchClient:
+        """Get the batch client for bulk operations."""
+        if self._batch_client is None:
+            from .batch import AsanaBatchClient
+
+            self._batch_client = AsanaBatchClient(
+                session=self._session,
+                base_url=self.base_url,
+                api_token=self.config.api_token,
+                dry_run=self._dry_run,
+                timeout=self.timeout,
+            )
+        return self._batch_client
+
+    # ------------------------------------------------------------------
+    # Custom fields
+    # ------------------------------------------------------------------
+    def get_project_custom_fields(self, project_key: str | None = None) -> list[dict[str, Any]]:
+        """
+        Get custom fields available for a project.
+
+        Args:
+            project_key: Project GID. Uses config if not provided.
+
+        Returns:
+            List of custom field definitions with gid, name, type, etc.
+        """
+        project = self._ensure_project(project_key)
+        result = self._request(
+            "GET",
+            f"/projects/{project}/custom_field_settings",
+            params={"opt_fields": "custom_field,custom_field.name,custom_field.type"},
+        )
+
+        fields = []
+        for setting in result if isinstance(result, list) else []:
+            cf = setting.get("custom_field", {})
+            if cf:
+                fields.append(cf)
+        return fields
+
+    def get_custom_field_gid(self, field_name: str) -> str | None:
+        """
+        Get the GID for a custom field by name.
+
+        Uses cached field mappings when available.
+
+        Args:
+            field_name: Custom field name (case-insensitive).
+
+        Returns:
+            Field GID or None if not found.
+        """
+        # Check explicit mappings first
+        if field_name in self._custom_field_mappings:
+            return self._custom_field_mappings[field_name]
+
+        # Load and cache fields if needed
+        if self._custom_fields_cache is None:
+            self._custom_fields_cache = {}
+            try:
+                fields = self.get_project_custom_fields()
+                for field in fields:
+                    name = field.get("name", "")
+                    gid = field.get("gid", "")
+                    if name and gid:
+                        self._custom_fields_cache[name.lower()] = field
+            except TrackerError:
+                pass
+
+        # Look up by name (case-insensitive)
+        cache = self._custom_fields_cache
+        if cache is None:
+            return None
+        cached_field: dict[str, Any] | None = cache.get(field_name.lower())
+        return cached_field.get("gid") if cached_field else None
+
+    def set_custom_field(
+        self,
+        issue_key: str,
+        field_name: str,
+        value: Any,
+    ) -> bool:
+        """
+        Set a custom field value on a task.
+
+        Args:
+            issue_key: Task GID.
+            field_name: Custom field name.
+            value: Value to set (type depends on field type).
+
+        Returns:
+            True if successful.
+        """
+        if self._dry_run:
+            self.logger.debug("Dry run: would set %s=%s on task %s", field_name, value, issue_key)
+            return True
+
+        field_gid = self.get_custom_field_gid(field_name)
+        if not field_gid:
+            self.logger.warning("Custom field not found: %s", field_name)
+            return False
+
+        self._request(
+            "PUT",
+            f"/tasks/{issue_key}",
+            json={"data": {"custom_fields": {field_gid: value}}},
+        )
+        return True
+
+    def get_custom_field_value(
+        self,
+        issue_key: str,
+        field_name: str,
+    ) -> Any:
+        """
+        Get a custom field value from a task.
+
+        Args:
+            issue_key: Task GID.
+            field_name: Custom field name.
+
+        Returns:
+            Field value or None if not found.
+        """
+        data = self._request(
+            "GET",
+            f"/tasks/{issue_key}",
+            params={"opt_fields": "custom_fields"},
+        )
+
+        for field in data.get("custom_fields", []):
+            if field.get("name", "").lower() == field_name.lower():
+                # Return appropriate value based on field type
+                if "number_value" in field:
+                    return field["number_value"]
+                if "text_value" in field:
+                    return field["text_value"]
+                if "enum_value" in field:
+                    return field.get("enum_value", {}).get("name")
+                if "multi_enum_values" in field:
+                    return [v.get("name") for v in field.get("multi_enum_values", [])]
+                return field.get("display_value")
+
+        return None
