@@ -289,3 +289,141 @@ stories:
         assert len(ac.items) == 2
         assert "Criterion 1" in ac.items
         assert "Criterion 2" in ac.items
+
+    def test_parse_compact_style(self, parser: ToonParser) -> None:
+        """Test parsing compact brace-style TOON content."""
+        content = """epic{key:PROJ-123 title:Epic Title}
+stories[
+  {id:STORY-001 title:Story Title story_points:5 priority:high}
+  {id:STORY-002 title:Another Story story_points:3}
+]"""
+        stories = parser.parse_stories(content)
+
+        assert len(stories) == 2
+        assert str(stories[0].id) == "STORY-001"
+        assert stories[0].title == "Story Title"
+        assert stories[0].story_points == 5
+        assert str(stories[1].id) == "STORY-002"
+        assert stories[1].story_points == 3
+
+    def test_parse_compact_epic(self, parser: ToonParser) -> None:
+        """Test parsing epic from compact format."""
+        content = """epic{key:PROJ-100 title:Test Epic description:Epic description}
+stories[
+  {id:US-001 title:Story 1}
+]"""
+        epic = parser.parse_epic(content)
+
+        assert epic is not None
+        assert str(epic.key) == "PROJ-100"
+        assert epic.title == "Test Epic"
+        assert epic.description == "Epic description"
+
+    def test_parse_value_types(self, parser: ToonParser) -> None:
+        """Test parsing various value types in compact format."""
+        content = """stories[
+  {id:US-001 title:Test story_points:5}
+  {id:US-002 title:Float story_points:3}
+]"""
+        stories = parser.parse_stories(content)
+
+        assert len(stories) == 2
+        assert stories[0].story_points == 5
+
+    def test_parse_empty_content(self, parser: ToonParser) -> None:
+        """Test parsing empty content."""
+        content = ""
+        stories = parser.parse_stories(content)
+        assert len(stories) == 0
+
+    def test_parse_empty_whitespace(self, parser: ToonParser) -> None:
+        """Test parsing whitespace-only content."""
+        content = "   \n\t  \n  "
+        stories = parser.parse_stories(content)
+        assert len(stories) == 0
+
+    def test_parse_invalid_content_returns_empty(self, parser: ToonParser) -> None:
+        """Test that invalid content returns empty list (graceful handling)."""
+        content = "{{{{invalid}}}}"
+        # The parser handles invalid content gracefully
+        stories = parser.parse_stories(content)
+        assert len(stories) == 0
+
+    def test_parse_nested_brackets(self, parser: ToonParser) -> None:
+        """Test parsing nested bracket structures."""
+        content = """epic{key:PROJ-123 title:Nested Test}
+stories[
+  {id:US-001 title:Story with nested}
+]"""
+        stories = parser.parse_stories(content)
+        assert len(stories) == 1
+
+    def test_parse_quoted_strings(self, parser: ToonParser) -> None:
+        """Test parsing quoted string values."""
+        content = """stories:
+  - id: US-001
+    title: "Quoted Title with: colon"
+    description: 'Single quoted'
+"""
+        stories = parser.parse_stories(content)
+        assert len(stories) == 1
+        assert stories[0].title == "Quoted Title with: colon"
+
+    def test_validate_invalid_status(self, parser: ToonParser) -> None:
+        """Test validation catches invalid status."""
+        content = """
+stories:
+  - id: US-001
+    title: Test
+    status: invalid_status
+"""
+        errors = parser.validate(content)
+        assert any("status" in e for e in errors)
+
+    def test_validate_story_points_string(self, parser: ToonParser) -> None:
+        """Test validation catches non-numeric story points."""
+        content = """
+stories:
+  - id: US-001
+    title: Test
+    story_points: invalid
+"""
+        errors = parser.validate(content)
+        assert any("story_points" in e for e in errors)
+
+    def test_can_parse_non_toon_file(self, parser: ToonParser, tmp_path: Path) -> None:
+        """Test can_parse returns False for non-TOON file."""
+        json_file = tmp_path / "test.json"
+        json_file.write_text('{"key": "value"}')
+        assert parser.can_parse(json_file) is False
+
+    def test_parse_unmatched_bracket_error(self, parser: ToonParser) -> None:
+        """Test that unmatched brackets raise error."""
+        from spectra.core.ports.document_parser import ParserError
+
+        content = "epic{key:PROJ-123 title:Test"
+        with pytest.raises(ParserError, match="Unable to parse"):
+            parser.parse_stories(content)
+
+    def test_parse_string_in_braces(self, parser: ToonParser) -> None:
+        """Test parsing strings containing brace characters."""
+        content = """stories:
+  - id: US-001
+    title: Test with '{braces}'
+"""
+        stories = parser.parse_stories(content)
+        assert len(stories) == 1
+
+    def test_parse_epic_without_stories(self, parser: ToonParser) -> None:
+        """Test parsing epic without any stories."""
+        content = """
+epic:
+  key: PROJ-100
+  title: Empty Epic
+  description: No stories yet
+"""
+        epic = parser.parse_epic(content)
+
+        assert epic is not None
+        assert str(epic.key) == "PROJ-100"
+        assert len(epic.stories) == 0

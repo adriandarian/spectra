@@ -5,13 +5,16 @@ from unittest.mock import Mock
 import pytest
 
 from spectra.application.commands import (
+    AddCommentCommand,
     CommandBatch,
     CommandResult,
     CreateSubtaskCommand,
     TransitionStatusCommand,
     UpdateDescriptionCommand,
+    UpdateSubtaskCommand,
 )
-from spectra.core.ports.issue_tracker import IssueData
+from spectra.core.domain.events import EventBus
+from spectra.core.ports.issue_tracker import IssueData, IssueTrackerError
 
 
 class TestCommandResult:
@@ -82,6 +85,90 @@ class TestUpdateDescriptionCommand:
         assert result.success
         mock_tracker.update_issue_description.assert_called_once()
 
+    def test_name_property(self, mock_tracker):
+        cmd = UpdateDescriptionCommand(
+            tracker=mock_tracker, issue_key="PROJ-123", description="New description"
+        )
+        assert "PROJ-123" in cmd.name
+
+    def test_supports_undo(self, mock_tracker):
+        cmd = UpdateDescriptionCommand(
+            tracker=mock_tracker, issue_key="PROJ-123", description="New description"
+        )
+        assert cmd.supports_undo is True
+
+    def test_undo(self, mock_tracker):
+        cmd = UpdateDescriptionCommand(
+            tracker=mock_tracker, issue_key="PROJ-123", description="New description", dry_run=False
+        )
+        # Execute to capture undo data
+        cmd.execute()
+
+        # Undo
+        undo_result = cmd.undo()
+
+        assert undo_result is not None
+        assert undo_result.success
+        # Should restore to "Old description"
+        mock_tracker.update_issue_description.assert_called_with("PROJ-123", "Old description")
+
+    def test_undo_without_execute(self, mock_tracker):
+        cmd = UpdateDescriptionCommand(
+            tracker=mock_tracker, issue_key="PROJ-123", description="New"
+        )
+        # Undo without execute returns None
+        assert cmd.undo() is None
+
+    def test_execute_with_tracker_error(self, mock_tracker):
+        mock_tracker.get_issue.return_value = IssueData(
+            key="PROJ-123", summary="Test", description="Old"
+        )
+        mock_tracker.update_issue_description.side_effect = IssueTrackerError("Update failed")
+
+        cmd = UpdateDescriptionCommand(
+            tracker=mock_tracker, issue_key="PROJ-123", description="New", dry_run=False
+        )
+
+        result = cmd.execute()
+
+        assert not result.success
+        assert "Update failed" in result.error
+
+    def test_undo_with_tracker_error(self, mock_tracker):
+        cmd = UpdateDescriptionCommand(
+            tracker=mock_tracker, issue_key="PROJ-123", description="New", dry_run=False
+        )
+        cmd.execute()
+
+        # Make undo fail
+        mock_tracker.update_issue_description.side_effect = IssueTrackerError("Undo failed")
+        undo_result = cmd.undo()
+
+        assert not undo_result.success
+        assert "Undo failed" in undo_result.error
+
+    def test_execute_with_event_bus(self, mock_tracker):
+        from spectra.core.domain.events import DomainEvent, StoryUpdated
+
+        event_bus = EventBus()
+        events: list[DomainEvent] = []
+        event_bus.subscribe(DomainEvent, lambda e: events.append(e))
+
+        cmd = UpdateDescriptionCommand(
+            tracker=mock_tracker,
+            issue_key="PROJ-123",
+            description="New",
+            event_bus=event_bus,
+            dry_run=False,
+        )
+
+        cmd.execute()
+
+        assert len(events) == 1
+        assert isinstance(events[0], StoryUpdated)
+        assert events[0].issue_key == "PROJ-123"
+        assert events[0].field_name == "description"
+
 
 class TestCreateSubtaskCommand:
     """Tests for CreateSubtaskCommand."""
@@ -97,6 +184,20 @@ class TestCreateSubtaskCommand:
             tracker=mock_tracker, parent_key="", project_key="PROJ", summary="Subtask"
         )
         assert cmd.validate() is not None
+
+    def test_validate_missing_project(self, mock_tracker):
+        cmd = CreateSubtaskCommand(
+            tracker=mock_tracker, parent_key="PROJ-123", project_key="", summary="Subtask"
+        )
+        assert cmd.validate() is not None
+        assert "project" in cmd.validate().lower()
+
+    def test_validate_missing_summary(self, mock_tracker):
+        cmd = CreateSubtaskCommand(
+            tracker=mock_tracker, parent_key="PROJ-123", project_key="PROJ", summary=""
+        )
+        assert cmd.validate() is not None
+        assert "summary" in cmd.validate().lower()
 
     def test_execute_dry_run(self, mock_tracker):
         cmd = CreateSubtaskCommand(
@@ -126,6 +227,99 @@ class TestCreateSubtaskCommand:
 
         assert result.success
         assert result.data == "PROJ-456"
+
+    def test_name_property(self, mock_tracker):
+        cmd = CreateSubtaskCommand(
+            tracker=mock_tracker,
+            parent_key="PROJ-123",
+            project_key="PROJ",
+            summary="New subtask with a long name that gets truncated",
+        )
+        assert "PROJ-123" in cmd.name
+        assert "New subtask" in cmd.name
+
+    def test_execute_with_all_options(self, mock_tracker):
+        cmd = CreateSubtaskCommand(
+            tracker=mock_tracker,
+            parent_key="PROJ-123",
+            project_key="PROJ",
+            summary="Full subtask",
+            description="Detailed description",
+            story_points=3,
+            assignee="user@example.com",
+            priority="high",
+            dry_run=False,
+        )
+
+        result = cmd.execute()
+
+        assert result.success
+        mock_tracker.create_subtask.assert_called_once_with(
+            parent_key="PROJ-123",
+            summary="Full subtask",
+            description="Detailed description",
+            project_key="PROJ",
+            story_points=3,
+            assignee="user@example.com",
+            priority="high",
+        )
+
+    def test_execute_with_tracker_error(self, mock_tracker):
+        mock_tracker.create_subtask.side_effect = IssueTrackerError("Creation failed")
+
+        cmd = CreateSubtaskCommand(
+            tracker=mock_tracker,
+            parent_key="PROJ-123",
+            project_key="PROJ",
+            summary="Subtask",
+            dry_run=False,
+        )
+
+        result = cmd.execute()
+
+        assert not result.success
+        assert "Creation failed" in result.error
+
+    def test_execute_returns_none_key(self, mock_tracker):
+        mock_tracker.create_subtask.return_value = None
+
+        cmd = CreateSubtaskCommand(
+            tracker=mock_tracker,
+            parent_key="PROJ-123",
+            project_key="PROJ",
+            summary="Subtask",
+            dry_run=False,
+        )
+
+        result = cmd.execute()
+
+        assert not result.success
+        assert "Failed" in result.error
+
+    def test_execute_with_event_bus(self, mock_tracker):
+        from spectra.core.domain.events import DomainEvent, SubtaskCreated
+
+        event_bus = EventBus()
+        events: list[DomainEvent] = []
+        event_bus.subscribe(DomainEvent, lambda e: events.append(e))
+
+        cmd = CreateSubtaskCommand(
+            tracker=mock_tracker,
+            parent_key="PROJ-123",
+            project_key="PROJ",
+            summary="Subtask",
+            story_points=3,
+            event_bus=event_bus,
+            dry_run=False,
+        )
+
+        cmd.execute()
+
+        assert len(events) == 1
+        assert isinstance(events[0], SubtaskCreated)
+        assert events[0].parent_key == "PROJ-123"
+        assert events[0].subtask_key == "PROJ-456"
+        assert events[0].subtask_name == "Subtask"
 
 
 class TestTransitionStatusCommand:
@@ -157,6 +351,239 @@ class TestTransitionStatusCommand:
 
         assert result.success
         mock_tracker.transition_issue.assert_called_with("PROJ-123", "Resolved")
+
+    def test_validate_missing_key(self, mock_tracker):
+        cmd = TransitionStatusCommand(tracker=mock_tracker, issue_key="", target_status="Done")
+        assert cmd.validate() is not None
+        assert "key" in cmd.validate().lower()
+
+    def test_validate_missing_status(self, mock_tracker):
+        cmd = TransitionStatusCommand(tracker=mock_tracker, issue_key="PROJ-123", target_status="")
+        assert cmd.validate() is not None
+        assert "status" in cmd.validate().lower()
+
+    def test_name_property(self, mock_tracker):
+        cmd = TransitionStatusCommand(
+            tracker=mock_tracker, issue_key="PROJ-123", target_status="Done"
+        )
+        assert "PROJ-123" in cmd.name
+        assert "Done" in cmd.name
+
+    def test_supports_undo(self, mock_tracker):
+        cmd = TransitionStatusCommand(
+            tracker=mock_tracker, issue_key="PROJ-123", target_status="Done"
+        )
+        assert cmd.supports_undo is True
+
+    def test_undo(self, mock_tracker):
+        cmd = TransitionStatusCommand(
+            tracker=mock_tracker, issue_key="PROJ-123", target_status="Done", dry_run=False
+        )
+        # Execute to capture undo data
+        cmd.execute()
+
+        # Undo
+        undo_result = cmd.undo()
+
+        assert undo_result is not None
+        assert undo_result.success
+        mock_tracker.transition_issue.assert_called_with("PROJ-123", "Open")
+
+    def test_undo_without_execute(self, mock_tracker):
+        cmd = TransitionStatusCommand(
+            tracker=mock_tracker, issue_key="PROJ-123", target_status="Done"
+        )
+        # Undo without execute returns None
+        assert cmd.undo() is None
+
+    def test_execute_with_tracker_error(self, mock_tracker):
+        mock_tracker.get_issue_status.side_effect = IssueTrackerError("API error")
+
+        cmd = TransitionStatusCommand(
+            tracker=mock_tracker, issue_key="PROJ-123", target_status="Done", dry_run=False
+        )
+
+        result = cmd.execute()
+
+        assert not result.success
+        assert "API error" in result.error
+
+    def test_undo_with_tracker_error(self, mock_tracker):
+        cmd = TransitionStatusCommand(
+            tracker=mock_tracker, issue_key="PROJ-123", target_status="Done", dry_run=False
+        )
+        cmd.execute()
+
+        # Make undo fail
+        mock_tracker.transition_issue.side_effect = IssueTrackerError("Undo failed")
+        undo_result = cmd.undo()
+
+        assert not undo_result.success
+        assert "Undo failed" in undo_result.error
+
+
+class TestAddCommentCommand:
+    """Tests for AddCommentCommand."""
+
+    @pytest.fixture
+    def mock_tracker(self):
+        tracker = Mock()
+        tracker.add_comment.return_value = True
+        return tracker
+
+    def test_execute_dry_run(self, mock_tracker):
+        cmd = AddCommentCommand(
+            tracker=mock_tracker, issue_key="PROJ-123", body="Test comment", dry_run=True
+        )
+
+        result = cmd.execute()
+
+        assert result.success
+        assert result.dry_run
+        mock_tracker.add_comment.assert_not_called()
+
+    def test_execute_success(self, mock_tracker):
+        cmd = AddCommentCommand(
+            tracker=mock_tracker, issue_key="PROJ-123", body="Test comment", dry_run=False
+        )
+
+        result = cmd.execute()
+
+        assert result.success
+        mock_tracker.add_comment.assert_called_once_with("PROJ-123", "Test comment")
+
+    def test_validate_missing_key(self, mock_tracker):
+        cmd = AddCommentCommand(tracker=mock_tracker, issue_key="", body="Comment")
+        assert cmd.validate() is not None
+        assert "key" in cmd.validate().lower()
+
+    def test_validate_missing_body(self, mock_tracker):
+        cmd = AddCommentCommand(tracker=mock_tracker, issue_key="PROJ-123", body="")
+        assert cmd.validate() is not None
+        assert "body" in cmd.validate().lower()
+
+    def test_name_property(self, mock_tracker):
+        cmd = AddCommentCommand(tracker=mock_tracker, issue_key="PROJ-123", body="Test")
+        assert "PROJ-123" in cmd.name
+
+    def test_execute_with_tracker_error(self, mock_tracker):
+        mock_tracker.add_comment.side_effect = IssueTrackerError("Comment failed")
+
+        cmd = AddCommentCommand(
+            tracker=mock_tracker, issue_key="PROJ-123", body="Test", dry_run=False
+        )
+
+        result = cmd.execute()
+
+        assert not result.success
+        assert "Comment failed" in result.error
+
+    def test_execute_with_event_bus(self, mock_tracker):
+        from spectra.core.domain.events import CommentAdded, DomainEvent
+
+        event_bus = EventBus()
+        events: list[DomainEvent] = []
+        event_bus.subscribe(DomainEvent, lambda e: events.append(e))
+
+        cmd = AddCommentCommand(
+            tracker=mock_tracker,
+            issue_key="PROJ-123",
+            body="Test",
+            event_bus=event_bus,
+            dry_run=False,
+        )
+
+        cmd.execute()
+
+        assert len(events) == 1
+        assert isinstance(events[0], CommentAdded)
+        assert events[0].issue_key == "PROJ-123"
+
+
+class TestUpdateSubtaskCommand:
+    """Tests for UpdateSubtaskCommand."""
+
+    @pytest.fixture
+    def mock_tracker(self):
+        tracker = Mock()
+        tracker.update_subtask.return_value = True
+        return tracker
+
+    def test_execute_with_description(self, mock_tracker):
+        cmd = UpdateSubtaskCommand(
+            tracker=mock_tracker,
+            issue_key="PROJ-456",
+            description="Updated description",
+            dry_run=False,
+        )
+
+        result = cmd.execute()
+
+        assert result.success
+        mock_tracker.update_subtask.assert_called_once()
+
+    def test_execute_with_story_points(self, mock_tracker):
+        cmd = UpdateSubtaskCommand(
+            tracker=mock_tracker,
+            issue_key="PROJ-456",
+            story_points=5,
+            dry_run=False,
+        )
+
+        result = cmd.execute()
+
+        assert result.success
+
+    def test_validate_missing_key(self, mock_tracker):
+        cmd = UpdateSubtaskCommand(tracker=mock_tracker, issue_key="", description="Desc")
+        assert cmd.validate() is not None
+        assert "key" in cmd.validate().lower()
+
+    def test_validate_no_fields_to_update(self, mock_tracker):
+        cmd = UpdateSubtaskCommand(tracker=mock_tracker, issue_key="PROJ-123")
+        assert cmd.validate() is not None
+        assert "field" in cmd.validate().lower()
+
+    def test_name_property(self, mock_tracker):
+        cmd = UpdateSubtaskCommand(tracker=mock_tracker, issue_key="PROJ-456", description="Desc")
+        assert "PROJ-456" in cmd.name
+
+    def test_execute_with_tracker_error(self, mock_tracker):
+        mock_tracker.update_subtask.side_effect = IssueTrackerError("Update failed")
+
+        cmd = UpdateSubtaskCommand(
+            tracker=mock_tracker,
+            issue_key="PROJ-456",
+            description="Desc",
+            dry_run=False,
+        )
+
+        result = cmd.execute()
+
+        assert not result.success
+        assert "Update failed" in result.error
+
+    def test_execute_with_multiple_fields(self, mock_tracker):
+        cmd = UpdateSubtaskCommand(
+            tracker=mock_tracker,
+            issue_key="PROJ-456",
+            description="Desc",
+            story_points=3,
+            assignee="user@example.com",
+            priority_id="high",
+            dry_run=False,
+        )
+
+        result = cmd.execute()
+
+        assert result.success
+        mock_tracker.update_subtask.assert_called_once_with(
+            issue_key="PROJ-456",
+            description="Desc",
+            story_points=3,
+            assignee="user@example.com",
+            priority_id="high",
+        )
 
 
 class TestCommandBatch:
