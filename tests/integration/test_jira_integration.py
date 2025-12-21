@@ -19,8 +19,9 @@ from unittest.mock import Mock, patch
 
 import pytest
 
+from spectra.adapters.async_base import JiraRateLimiter, calculate_delay, get_retry_after
 from spectra.adapters.jira.adapter import JiraAdapter
-from spectra.adapters.jira.client import JiraApiClient, RateLimiter
+from spectra.adapters.jira.client import JiraApiClient
 from spectra.core.ports.issue_tracker import (
     AuthenticationError,
     IssueTrackerError,
@@ -496,77 +497,60 @@ class TestRetryLogic:
 
     def test_exponential_backoff_delay_calculation(self, jira_config):
         """Test that delay calculation uses exponential backoff."""
-        client = JiraApiClient(
-            base_url=jira_config.url,
-            email=jira_config.email,
-            api_token=jira_config.api_token,
-            dry_run=False,
-            max_retries=5,
-            initial_delay=1.0,
-            max_delay=60.0,
-            backoff_factor=2.0,
-            jitter=0,  # Disable jitter for predictable testing
+        # Test exponential growth using the shared utility function
+        assert (
+            calculate_delay(0, initial_delay=1.0, max_delay=60.0, backoff_factor=2.0, jitter=0)
+            == 1.0
         )
-
-        # Test exponential growth
-        assert client._calculate_delay(0) == 1.0  # 1 * 2^0 = 1
-        assert client._calculate_delay(1) == 2.0  # 1 * 2^1 = 2
-        assert client._calculate_delay(2) == 4.0  # 1 * 2^2 = 4
-        assert client._calculate_delay(3) == 8.0  # 1 * 2^3 = 8
-        assert client._calculate_delay(4) == 16.0  # 1 * 2^4 = 16
+        assert (
+            calculate_delay(1, initial_delay=1.0, max_delay=60.0, backoff_factor=2.0, jitter=0)
+            == 2.0
+        )
+        assert (
+            calculate_delay(2, initial_delay=1.0, max_delay=60.0, backoff_factor=2.0, jitter=0)
+            == 4.0
+        )
+        assert (
+            calculate_delay(3, initial_delay=1.0, max_delay=60.0, backoff_factor=2.0, jitter=0)
+            == 8.0
+        )
+        assert (
+            calculate_delay(4, initial_delay=1.0, max_delay=60.0, backoff_factor=2.0, jitter=0)
+            == 16.0
+        )
 
     def test_delay_respects_max_delay(self, jira_config):
         """Test that delay is capped at max_delay."""
-        client = JiraApiClient(
-            base_url=jira_config.url,
-            email=jira_config.email,
-            api_token=jira_config.api_token,
-            dry_run=False,
-            initial_delay=1.0,
-            max_delay=10.0,
-            backoff_factor=2.0,
-            jitter=0,
-        )
-
         # 1 * 2^10 = 1024, but should be capped at 10
-        assert client._calculate_delay(10) == 10.0
+        assert (
+            calculate_delay(10, initial_delay=1.0, max_delay=10.0, backoff_factor=2.0, jitter=0)
+            == 10.0
+        )
 
     def test_delay_uses_retry_after_header(self, jira_config):
         """Test that Retry-After header value is used when present."""
-        client = JiraApiClient(
-            base_url=jira_config.url,
-            email=jira_config.email,
-            api_token=jira_config.api_token,
-            dry_run=False,
-            initial_delay=1.0,
-            max_delay=120.0,
-            jitter=0,
+        # Should use retry_after value
+        assert (
+            calculate_delay(0, initial_delay=1.0, max_delay=120.0, jitter=0, retry_after=30) == 30.0
         )
 
-        # Should use retry_after value
-        assert client._calculate_delay(0, retry_after=30) == 30.0
-
         # Should cap at max_delay even with retry_after
-        assert client._calculate_delay(0, retry_after=200) == 120.0
+        assert (
+            calculate_delay(0, initial_delay=1.0, max_delay=120.0, jitter=0, retry_after=200)
+            == 120.0
+        )
 
     def test_retry_after_header_parsing(self, jira_config):
         """Test Retry-After header is correctly parsed from response."""
-        client = JiraApiClient(
-            base_url=jira_config.url,
-            email=jira_config.email,
-            api_token=jira_config.api_token,
-            dry_run=False,
-        )
-
         mock_response = Mock()
         mock_response.headers = {"Retry-After": "45"}
-        assert client._get_retry_after(mock_response) == 45
+        assert get_retry_after(mock_response) == 45
 
         mock_response.headers = {}
-        assert client._get_retry_after(mock_response) is None
+        assert get_retry_after(mock_response) is None
 
         mock_response.headers = {"Retry-After": "invalid"}
-        assert client._get_retry_after(mock_response) is None
+        assert get_retry_after(mock_response) is None
 
 
 # =============================================================================
@@ -574,12 +558,12 @@ class TestRetryLogic:
 # =============================================================================
 
 
-class TestRateLimiter:
-    """Tests for the RateLimiter class."""
+class TestJiraRateLimiter:
+    """Tests for the JiraRateLimiter class."""
 
     def test_initial_burst_capacity(self):
         """Test that rate limiter starts with full burst capacity."""
-        limiter = RateLimiter(requests_per_second=10.0, burst_size=5)
+        limiter = JiraRateLimiter(requests_per_second=10.0, burst_size=5)
 
         # Should be able to acquire burst_size tokens immediately
         for _ in range(5):
@@ -590,7 +574,7 @@ class TestRateLimiter:
 
     def test_token_refill(self):
         """Test that tokens refill over time."""
-        limiter = RateLimiter(requests_per_second=100.0, burst_size=1)
+        limiter = JiraRateLimiter(requests_per_second=100.0, burst_size=1)
 
         # Use the token
         assert limiter.try_acquire() is True
@@ -606,7 +590,7 @@ class TestRateLimiter:
 
     def test_acquire_blocks_and_succeeds(self):
         """Test that acquire() blocks until token is available."""
-        limiter = RateLimiter(requests_per_second=100.0, burst_size=1)
+        limiter = JiraRateLimiter(requests_per_second=100.0, burst_size=1)
 
         # Use the token
         limiter.try_acquire()
@@ -623,7 +607,7 @@ class TestRateLimiter:
 
     def test_acquire_timeout(self):
         """Test that acquire() respects timeout."""
-        limiter = RateLimiter(requests_per_second=0.5, burst_size=1)  # Very slow: 1 req/2s
+        limiter = JiraRateLimiter(requests_per_second=0.5, burst_size=1)  # Very slow: 1 req/2s
 
         # Use the token
         limiter.try_acquire()
@@ -640,7 +624,7 @@ class TestRateLimiter:
 
     def test_burst_capacity(self):
         """Test that burst allows multiple quick requests."""
-        limiter = RateLimiter(requests_per_second=1.0, burst_size=10)
+        limiter = JiraRateLimiter(requests_per_second=1.0, burst_size=10)
 
         # Should be able to burst 10 requests instantly
         successes = sum(1 for _ in range(15) if limiter.try_acquire())
@@ -648,7 +632,7 @@ class TestRateLimiter:
 
     def test_stats_tracking(self):
         """Test that statistics are tracked correctly."""
-        limiter = RateLimiter(requests_per_second=100.0, burst_size=5)
+        limiter = JiraRateLimiter(requests_per_second=100.0, burst_size=5)
 
         # Make some requests
         for _ in range(3):
@@ -661,7 +645,7 @@ class TestRateLimiter:
 
     def test_reset(self):
         """Test that reset restores initial state."""
-        limiter = RateLimiter(requests_per_second=10.0, burst_size=5)
+        limiter = JiraRateLimiter(requests_per_second=10.0, burst_size=5)
 
         # Use all tokens
         for _ in range(5):
@@ -679,7 +663,7 @@ class TestRateLimiter:
 
     def test_update_from_429_response(self):
         """Test that 429 response reduces rate."""
-        limiter = RateLimiter(requests_per_second=10.0, burst_size=5)
+        limiter = JiraRateLimiter(requests_per_second=10.0, burst_size=5)
 
         original_rate = limiter.requests_per_second
 
@@ -696,7 +680,7 @@ class TestRateLimiter:
         """Test that rate limiter is thread-safe."""
         import threading
 
-        limiter = RateLimiter(requests_per_second=1000.0, burst_size=100)
+        limiter = JiraRateLimiter(requests_per_second=1000.0, burst_size=100)
         results = []
 
         def worker():

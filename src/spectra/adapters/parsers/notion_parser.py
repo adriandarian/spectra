@@ -11,7 +11,6 @@ Notion exports markdown files with specific formatting:
 - Nested page structure
 """
 
-import contextlib
 import csv
 import logging
 import re
@@ -26,6 +25,8 @@ from spectra.core.domain.value_objects import (
     StoryId,
 )
 from spectra.core.ports.document_parser import DocumentParserPort
+
+from .parser_utils import parse_blockquote_comments
 
 
 class NotionParser(DocumentParserPort):
@@ -578,11 +579,7 @@ class NotionParser(DocumentParserPort):
         Returns:
             List of Comment objects
         """
-        from datetime import datetime
-
-        comments: list[Comment] = []
-
-        # Find Comments section
+        # Find Comments section (try multiple heading names)
         section = self._extract_section(content, "Comments")
         if not section:
             section = self._extract_section(content, "Discussion")
@@ -590,68 +587,10 @@ class NotionParser(DocumentParserPort):
             section = self._extract_section(content, "Notes")
 
         if not section:
-            return comments
+            return []
 
-        # Split into individual comment blocks (blockquotes or paragraphs)
-        # Pattern: blockquote blocks starting with >
-        comment_blocks = re.split(r"\n\s*\n(?=>)", section.strip())
-
-        for block in comment_blocks:
-            if not block.strip():
-                continue
-
-            # Extract blockquote content (remove > prefixes)
-            lines = []
-            for line in block.strip().split("\n"):
-                # Remove leading > and optional space
-                cleaned = re.sub(r"^>\s?", "", line)
-                lines.append(cleaned)
-
-            if not lines:
-                continue
-
-            full_text = "\n".join(lines).strip()
-            if not full_text:
-                continue
-
-            # Try to extract author and date
-            # Format: **@username** (YYYY-MM-DD): or @username (date):
-            author = None
-            created_at = None
-            body = full_text
-
-            # Try structured format: **@username** (YYYY-MM-DD):
-            header_match = re.match(
-                r"\*\*@([^*]+)\*\*\s*(?:\((\d{4}-\d{2}-\d{2})\))?:?\s*(.*)",
-                full_text,
-                re.DOTALL,
-            )
-
-            if header_match:
-                author = header_match.group(1).strip()
-                date_str = header_match.group(2)
-                if date_str:
-                    with contextlib.suppress(ValueError):
-                        created_at = datetime.strptime(date_str, "%Y-%m-%d")
-                body = header_match.group(3).strip()
-            else:
-                # Check for simpler format: @username: comment
-                simple_match = re.match(r"@([^\s:]+):?\s*(.*)", full_text, re.DOTALL)
-                if simple_match:
-                    author = simple_match.group(1).strip()
-                    body = simple_match.group(2).strip()
-
-            if body:
-                comments.append(
-                    Comment(
-                        body=body,
-                        author=author,
-                        created_at=created_at,
-                        comment_type="text",
-                    )
-                )
-
-        return comments
+        # Use shared utility for parsing blockquote comments
+        return parse_blockquote_comments(section)
 
     def _extract_links(self, content: str, properties: dict[str, str]) -> list[tuple[str, str]]:
         """

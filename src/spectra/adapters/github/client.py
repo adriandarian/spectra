@@ -5,16 +5,19 @@ This handles the raw HTTP communication with GitHub.
 The GitHubAdapter uses this to implement the IssueTrackerPort.
 """
 
-import contextlib
 import logging
-import random
-import threading
 import time
 from typing import Any
 
 import requests
 from requests.adapters import HTTPAdapter
 
+from spectra.adapters.async_base import (
+    RETRYABLE_STATUS_CODES,
+    GitHubRateLimiter,
+    calculate_delay,
+    get_retry_after,
+)
 from spectra.core.ports.issue_tracker import (
     AuthenticationError,
     IssueTrackerError,
@@ -23,194 +26,6 @@ from spectra.core.ports.issue_tracker import (
     RateLimitError,
     TransientError,
 )
-
-
-# HTTP status codes that should trigger retry
-RETRYABLE_STATUS_CODES = frozenset({429, 500, 502, 503, 504})
-
-
-class GitHubRateLimiter:
-    """
-    Rate limiter specifically designed for GitHub API.
-
-    GitHub has different rate limits:
-    - Authenticated: 5,000 requests/hour
-    - With GitHub App installation token: 15,000 requests/hour
-
-    This implementation uses a simple token bucket with awareness of
-    GitHub's X-RateLimit-* headers.
-    """
-
-    def __init__(
-        self,
-        requests_per_second: float = 10.0,
-        burst_size: int = 20,
-    ):
-        """
-        Initialize the rate limiter.
-
-        Args:
-            requests_per_second: Maximum sustained request rate.
-            burst_size: Maximum tokens in bucket (allows short bursts).
-        """
-        self.requests_per_second = requests_per_second
-        self.burst_size = max(1, burst_size)
-
-        # Token bucket state
-        self._tokens = float(burst_size)
-        self._last_update = time.monotonic()
-        self._lock = threading.Lock()
-
-        # GitHub rate limit headers tracking
-        self._rate_limit_remaining: int | None = None
-        self._rate_limit_reset: float | None = None
-
-        # Statistics
-        self._total_requests = 0
-        self._total_wait_time = 0.0
-
-        self.logger = logging.getLogger("GitHubRateLimiter")
-
-    def acquire(self, timeout: float | None = None) -> bool:
-        """
-        Acquire a token, waiting if necessary.
-
-        Args:
-            timeout: Maximum time to wait in seconds.
-
-        Returns:
-            True if token was acquired, False if timeout was reached.
-        """
-        start_time = time.monotonic()
-
-        while True:
-            with self._lock:
-                self._refill_tokens()
-
-                # Check GitHub rate limit headers
-                if self._should_wait_for_github_limit():
-                    wait_time = self._github_wait_time()
-                    if wait_time > 0:
-                        self.logger.warning(
-                            f"GitHub rate limit exhausted, waiting {wait_time:.1f}s"
-                        )
-                        self._total_wait_time += wait_time
-                        # Release lock during wait
-                        self._lock.release()
-                        try:
-                            time.sleep(wait_time)
-                        finally:
-                            self._lock.acquire()
-                        continue
-
-                if self._tokens >= 1.0:
-                    self._tokens -= 1.0
-                    self._total_requests += 1
-                    return True
-
-                # Calculate wait time until next token
-                tokens_needed = 1.0 - self._tokens
-                wait_time = tokens_needed / self.requests_per_second
-
-            # Check timeout
-            if timeout is not None:
-                elapsed = time.monotonic() - start_time
-                if elapsed >= timeout:
-                    return False
-                wait_time = min(wait_time, timeout - elapsed)
-
-            if wait_time > 0.01:
-                self.logger.debug(f"Rate limit: waiting {wait_time:.3f}s for token")
-
-            self._total_wait_time += wait_time
-            time.sleep(wait_time)
-
-    def _refill_tokens(self) -> None:
-        """Refill tokens based on elapsed time. Must be called with lock held."""
-        now = time.monotonic()
-        elapsed = now - self._last_update
-        self._last_update = now
-
-        new_tokens = elapsed * self.requests_per_second
-        self._tokens = min(self.burst_size, self._tokens + new_tokens)
-
-    def _should_wait_for_github_limit(self) -> bool:
-        """Check if we should wait based on GitHub rate limit headers."""
-        if self._rate_limit_remaining is None:
-            return False
-        return self._rate_limit_remaining <= 5
-
-    def _github_wait_time(self) -> float:
-        """Calculate wait time until GitHub rate limit resets."""
-        if self._rate_limit_reset is None:
-            return 60.0  # Default wait if no reset time
-
-        wait_time = self._rate_limit_reset - time.time()
-        return max(0, wait_time)
-
-    def update_from_response(self, response: requests.Response) -> None:
-        """
-        Update rate limiter based on GitHub API response headers.
-
-        GitHub provides:
-        - X-RateLimit-Limit: Total allowed requests
-        - X-RateLimit-Remaining: Remaining requests
-        - X-RateLimit-Reset: Unix timestamp when limit resets
-        """
-        with self._lock:
-            remaining = response.headers.get("X-RateLimit-Remaining")
-            if remaining is not None:
-                with contextlib.suppress(ValueError):
-                    self._rate_limit_remaining = int(remaining)
-
-            reset = response.headers.get("X-RateLimit-Reset")
-            if reset is not None:
-                with contextlib.suppress(ValueError):
-                    self._rate_limit_reset = float(reset)
-
-            # Warn if running low
-            if self._rate_limit_remaining is not None:
-                if self._rate_limit_remaining <= 100:
-                    self.logger.warning(
-                        f"GitHub rate limit low: {self._rate_limit_remaining} remaining"
-                    )
-
-            # Adjust rate on 429
-            if response.status_code == 429:
-                old_rate = self.requests_per_second
-                self.requests_per_second = max(0.5, self.requests_per_second * 0.5)
-                self.logger.warning(
-                    f"Rate limited by GitHub, reducing rate from "
-                    f"{old_rate:.1f} to {self.requests_per_second:.1f} req/s"
-                )
-
-    @property
-    def stats(self) -> dict[str, Any]:
-        """Get rate limiter statistics."""
-        with self._lock:
-            return {
-                "total_requests": self._total_requests,
-                "total_wait_time": self._total_wait_time,
-                "average_wait_time": (
-                    self._total_wait_time / self._total_requests
-                    if self._total_requests > 0
-                    else 0.0
-                ),
-                "available_tokens": self._tokens,
-                "requests_per_second": self.requests_per_second,
-                "github_remaining": self._rate_limit_remaining,
-                "github_reset": self._rate_limit_reset,
-            }
-
-    def reset(self) -> None:
-        """Reset the rate limiter to initial state."""
-        with self._lock:
-            self._tokens = float(self.burst_size)
-            self._last_update = time.monotonic()
-            self._total_requests = 0
-            self._total_wait_time = 0.0
-            self._rate_limit_remaining = None
-            self._rate_limit_reset = None
 
 
 class GitHubApiClient:
@@ -371,8 +186,15 @@ class GitHubApiClient:
 
                 # Check for retryable status codes
                 if response.status_code in RETRYABLE_STATUS_CODES:
-                    retry_after = self._get_retry_after(response)
-                    delay = self._calculate_delay(attempt, retry_after)
+                    retry_after = get_retry_after(response)
+                    delay = calculate_delay(
+                        attempt,
+                        initial_delay=self.initial_delay,
+                        max_delay=self.max_delay,
+                        backoff_factor=self.backoff_factor,
+                        jitter=self.jitter,
+                        retry_after=retry_after,
+                    )
 
                     if attempt < self.max_retries:
                         self.logger.warning(
@@ -399,7 +221,13 @@ class GitHubApiClient:
             except requests.exceptions.ConnectionError as e:
                 last_exception = e
                 if attempt < self.max_retries:
-                    delay = self._calculate_delay(attempt)
+                    delay = calculate_delay(
+                        attempt,
+                        initial_delay=self.initial_delay,
+                        max_delay=self.max_delay,
+                        backoff_factor=self.backoff_factor,
+                        jitter=self.jitter,
+                    )
                     self.logger.warning(
                         f"Connection error on {method} {endpoint}, retrying in {delay:.2f}s"
                     )
@@ -410,7 +238,13 @@ class GitHubApiClient:
             except requests.exceptions.Timeout as e:
                 last_exception = e
                 if attempt < self.max_retries:
-                    delay = self._calculate_delay(attempt)
+                    delay = calculate_delay(
+                        attempt,
+                        initial_delay=self.initial_delay,
+                        max_delay=self.max_delay,
+                        backoff_factor=self.backoff_factor,
+                        jitter=self.jitter,
+                    )
                     self.logger.warning(f"Timeout on {method} {endpoint}, retrying in {delay:.2f}s")
                     time.sleep(delay)
                     continue
@@ -419,29 +253,6 @@ class GitHubApiClient:
         raise IssueTrackerError(
             f"Request failed after {self.max_retries + 1} attempts", cause=last_exception
         )
-
-    def _calculate_delay(self, attempt: int, retry_after: int | None = None) -> float:
-        """Calculate delay before next retry using exponential backoff."""
-        if retry_after is not None:
-            base_delay = min(retry_after, self.max_delay)
-        else:
-            base_delay = self.initial_delay * (self.backoff_factor**attempt)
-            base_delay = min(base_delay, self.max_delay)
-
-        jitter_range = base_delay * self.jitter
-        jitter_value = random.uniform(-jitter_range, jitter_range)
-
-        return max(0, base_delay + jitter_value)
-
-    def _get_retry_after(self, response: requests.Response) -> int | None:
-        """Extract Retry-After header value."""
-        retry_after = response.headers.get("Retry-After")
-        if retry_after is not None:
-            try:
-                return int(retry_after)
-            except ValueError:
-                return None
-        return None
 
     def get(self, endpoint: str, **kwargs: Any) -> dict[str, Any] | list[Any]:
         """Perform a GET request."""

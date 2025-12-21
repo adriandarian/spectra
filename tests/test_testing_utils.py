@@ -111,7 +111,6 @@ class TestCreateMockParser:
 
     # Skipping tests for create_mock_parser as the testing.py module has
     # incorrect method names in the mock setup (parse vs parse_stories)
-    pass
 
 
 class TestCreateMockFormatter:
@@ -119,7 +118,6 @@ class TestCreateMockFormatter:
 
     # Skipping tests for create_mock_formatter as the testing.py module has
     # incorrect method names in the mock setup
-    pass
 
 
 class TestCreateTestConfig:
@@ -193,5 +191,5 @@ class TestPytestPluginFixtures:
         fixtures = pytest_plugin_fixtures()
 
         # All fixtures should be functions/callables
-        for name, fixture in fixtures.items():
+        for _name, fixture in fixtures.items():
             assert callable(fixture)

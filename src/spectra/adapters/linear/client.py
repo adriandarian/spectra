@@ -7,16 +7,18 @@ The LinearAdapter uses this to implement the IssueTrackerPort.
 Linear API Documentation: https://developers.linear.app/docs/graphql/working-with-the-graphql-api
 """
 
-import contextlib
 import logging
-import random
-import threading
 import time
 from typing import Any
 
 import requests
 from requests.adapters import HTTPAdapter
 
+from spectra.adapters.async_base import (
+    RETRYABLE_STATUS_CODES,
+    LinearRateLimiter,
+    calculate_delay,
+)
 from spectra.core.ports.issue_tracker import (
     AuthenticationError,
     IssueTrackerError,
@@ -25,156 +27,6 @@ from spectra.core.ports.issue_tracker import (
     RateLimitError,
     TransientError,
 )
-
-
-# HTTP status codes that should trigger retry
-RETRYABLE_STATUS_CODES = frozenset({429, 500, 502, 503, 504})
-
-
-class LinearRateLimiter:
-    """
-    Rate limiter for Linear API.
-
-    Linear has a rate limit of 1,500 requests per hour for the GraphQL API.
-    This works out to about 0.4 requests per second sustained.
-    We use a conservative default with burst capacity.
-    """
-
-    def __init__(
-        self,
-        requests_per_second: float = 1.0,
-        burst_size: int = 10,
-    ):
-        """
-        Initialize the rate limiter.
-
-        Args:
-            requests_per_second: Maximum sustained request rate.
-            burst_size: Maximum tokens in bucket (allows short bursts).
-        """
-        self.requests_per_second = requests_per_second
-        self.burst_size = max(1, burst_size)
-
-        # Token bucket state
-        self._tokens = float(burst_size)
-        self._last_update = time.monotonic()
-        self._lock = threading.Lock()
-
-        # Linear rate limit tracking
-        self._requests_remaining: int | None = None
-        self._reset_at: float | None = None
-
-        # Statistics
-        self._total_requests = 0
-        self._total_wait_time = 0.0
-
-        self.logger = logging.getLogger("LinearRateLimiter")
-
-    def acquire(self, timeout: float | None = None) -> bool:
-        """
-        Acquire a token, waiting if necessary.
-
-        Args:
-            timeout: Maximum time to wait in seconds.
-
-        Returns:
-            True if token was acquired, False if timeout was reached.
-        """
-        start_time = time.monotonic()
-
-        while True:
-            with self._lock:
-                self._refill_tokens()
-
-                if self._tokens >= 1.0:
-                    self._tokens -= 1.0
-                    self._total_requests += 1
-                    return True
-
-                tokens_needed = 1.0 - self._tokens
-                wait_time = tokens_needed / self.requests_per_second
-
-            if timeout is not None:
-                elapsed = time.monotonic() - start_time
-                if elapsed >= timeout:
-                    return False
-                wait_time = min(wait_time, timeout - elapsed)
-
-            if wait_time > 0.01:
-                self.logger.debug(f"Rate limit: waiting {wait_time:.3f}s for token")
-
-            self._total_wait_time += wait_time
-            time.sleep(wait_time)
-
-    def _refill_tokens(self) -> None:
-        """Refill tokens based on elapsed time. Must be called with lock held."""
-        now = time.monotonic()
-        elapsed = now - self._last_update
-        self._last_update = now
-
-        new_tokens = elapsed * self.requests_per_second
-        self._tokens = min(self.burst_size, self._tokens + new_tokens)
-
-    def update_from_response(self, response: requests.Response) -> None:
-        """
-        Update rate limiter based on Linear API response headers.
-
-        Linear provides:
-        - X-RateLimit-Requests-Remaining: Remaining requests
-        - X-RateLimit-Requests-Reset: Unix timestamp when limit resets
-        """
-        with self._lock:
-            remaining = response.headers.get("X-RateLimit-Requests-Remaining")
-            if remaining is not None:
-                try:
-                    self._requests_remaining = int(remaining)
-                    if self._requests_remaining <= 50:
-                        self.logger.warning(
-                            f"Linear rate limit low: {self._requests_remaining} remaining"
-                        )
-                except ValueError:
-                    pass
-
-            reset = response.headers.get("X-RateLimit-Requests-Reset")
-            if reset is not None:
-                with contextlib.suppress(ValueError):
-                    self._reset_at = float(reset)
-
-            if response.status_code == 429:
-                old_rate = self.requests_per_second
-                self.requests_per_second = max(0.1, self.requests_per_second * 0.5)
-                self.logger.warning(
-                    f"Rate limited by Linear, reducing rate from "
-                    f"{old_rate:.2f} to {self.requests_per_second:.2f} req/s"
-                )
-
-    @property
-    def stats(self) -> dict[str, Any]:
-        """Get rate limiter statistics."""
-        with self._lock:
-            return {
-                "total_requests": self._total_requests,
-                "total_wait_time": self._total_wait_time,
-                "average_wait_time": (
-                    self._total_wait_time / self._total_requests
-                    if self._total_requests > 0
-                    else 0.0
-                ),
-                "available_tokens": self._tokens,
-                "requests_per_second": self.requests_per_second,
-                "linear_remaining": self._requests_remaining,
-                "linear_reset_at": self._reset_at,
-            }
-
-    def reset(self) -> None:
-        """Reset the rate limiter to initial state."""
-        with self._lock:
-            self._tokens = float(self.burst_size)
-            self._last_update = time.monotonic()
-            self._total_requests = 0
-            self._total_wait_time = 0.0
-            self._requests_remaining = None
-            self._reset_at = None
 
 
 class LinearApiClient:
@@ -323,7 +175,13 @@ class LinearApiClient:
                     self._rate_limiter.update_from_response(response)
 
                 if response.status_code in RETRYABLE_STATUS_CODES:
-                    delay = self._calculate_delay(attempt)
+                    delay = calculate_delay(
+                        attempt,
+                        initial_delay=self.initial_delay,
+                        max_delay=self.max_delay,
+                        backoff_factor=self.backoff_factor,
+                        jitter=self.jitter,
+                    )
 
                     if attempt < self.max_retries:
                         self.logger.warning(
@@ -346,7 +204,13 @@ class LinearApiClient:
             except requests.exceptions.ConnectionError as e:
                 last_exception = e
                 if attempt < self.max_retries:
-                    delay = self._calculate_delay(attempt)
+                    delay = calculate_delay(
+                        attempt,
+                        initial_delay=self.initial_delay,
+                        max_delay=self.max_delay,
+                        backoff_factor=self.backoff_factor,
+                        jitter=self.jitter,
+                    )
                     self.logger.warning(f"Connection error, retrying in {delay:.2f}s")
                     time.sleep(delay)
                     continue
@@ -355,7 +219,13 @@ class LinearApiClient:
             except requests.exceptions.Timeout as e:
                 last_exception = e
                 if attempt < self.max_retries:
-                    delay = self._calculate_delay(attempt)
+                    delay = calculate_delay(
+                        attempt,
+                        initial_delay=self.initial_delay,
+                        max_delay=self.max_delay,
+                        backoff_factor=self.backoff_factor,
+                        jitter=self.jitter,
+                    )
                     self.logger.warning(f"Timeout, retrying in {delay:.2f}s")
                     time.sleep(delay)
                     continue
@@ -387,16 +257,6 @@ class LinearApiClient:
             self.logger.info("[DRY-RUN] Would execute mutation")
             return {}
         return self.execute(mutation, variables)
-
-    def _calculate_delay(self, attempt: int) -> float:
-        """Calculate delay before next retry using exponential backoff."""
-        base_delay = self.initial_delay * (self.backoff_factor**attempt)
-        base_delay = min(base_delay, self.max_delay)
-
-        jitter_range = base_delay * self.jitter
-        jitter_value = random.uniform(-jitter_range, jitter_range)
-
-        return max(0, base_delay + jitter_value)
 
     def _handle_response(self, response: requests.Response) -> dict[str, Any]:
         """Handle GraphQL response and convert errors."""

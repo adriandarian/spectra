@@ -5,7 +5,6 @@ Implements the DocumentParserPort interface.
 Supports both single-epic and multi-epic formats.
 """
 
-import contextlib
 import logging
 import re
 from datetime import datetime
@@ -21,6 +20,8 @@ from spectra.core.domain.value_objects import (
     StoryId,
 )
 from spectra.core.ports.document_parser import DocumentParserPort
+
+from .parser_utils import parse_blockquote_comments
 
 
 class MarkdownParser(DocumentParserPort):
@@ -1073,74 +1074,13 @@ class MarkdownParser(DocumentParserPort):
         Returns:
             List of Comment objects
         """
-        from spectra.core.domain.entities import Comment
-
-        comments = []
-
         section = re.search(r"#### Comments\n([\s\S]*?)(?=####|\n---|\Z)", content)
 
         if not section:
-            return comments
+            return []
 
-        section_content = section.group(1)
-
-        # Split into individual comment blocks (separated by blank lines or new blockquotes)
-        # Pattern: blockquote blocks starting with >
-        comment_blocks = re.split(r"\n\s*\n(?=>)", section_content.strip())
-
-        for block in comment_blocks:
-            if not block.strip():
-                continue
-
-            # Extract blockquote content (remove > prefixes)
-            lines = []
-            for line in block.strip().split("\n"):
-                # Remove leading > and optional space
-                cleaned = re.sub(r"^>\s?", "", line)
-                lines.append(cleaned)
-
-            if not lines:
-                continue
-
-            full_text = "\n".join(lines).strip()
-
-            # Try to extract author and date from first line
-            # Format: **@username** (YYYY-MM-DD):
-            author = None
-            created_at = None
-            body = full_text
-
-            header_match = re.match(
-                r"\*\*@([^*]+)\*\*\s*(?:\((\d{4}-\d{2}-\d{2})\))?:?\s*(.*)",
-                full_text,
-                re.DOTALL,
-            )
-
-            if header_match:
-                author = header_match.group(1).strip()
-                date_str = header_match.group(2)
-                if date_str:
-                    with contextlib.suppress(ValueError):
-                        created_at = datetime.strptime(date_str, "%Y-%m-%d")
-                body = header_match.group(3).strip()
-            else:
-                # Check for simpler format: @username: comment
-                simple_match = re.match(r"@([^\s:]+):?\s*(.*)", full_text, re.DOTALL)
-                if simple_match:
-                    author = simple_match.group(1).strip()
-                    body = simple_match.group(2).strip()
-
-            if body:
-                comments.append(
-                    Comment(
-                        body=body,
-                        author=author,
-                        created_at=created_at,
-                        comment_type="text",
-                    )
-                )
-
-        return comments
+        # Use shared utility for parsing blockquote comments
+        return parse_blockquote_comments(section.group(1))
 
     def _extract_tracker_info(
         self, content: str
