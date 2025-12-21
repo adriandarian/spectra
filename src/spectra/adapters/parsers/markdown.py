@@ -369,11 +369,11 @@ class MarkdownParser(DocumentParserPort):
 
         Expected format:
         ## Epic: PROJ-100 - Epic Title 1
-        ### US-001: Story 1
+        ### STORY-001: Story 1
         ...
 
         ## Epic: PROJ-200 - Epic Title 2
-        ### US-002: Story 2
+        ### STORY-002: Story 2
         ...
 
         Args:
@@ -897,7 +897,7 @@ class MarkdownParser(DocumentParserPort):
             return subtasks
 
         # Format B: | ID | Task | Status | Est. | (Est. is story points)
-        # ID format: US-001-01 or just 01
+        # ID format: STORY-001-01 or just 01
         # Check if header contains "Est" to detect this format
         has_est_column = re.search(r"\|\s*Est\.?\s*\|", section_content, re.IGNORECASE)
         pattern_b = r"\|\s*(?:US-\d+-)?(\d+)\s*\|\s*([^|]+)\s*\|\s*([^|]+)\s*\|\s*([^|]+)\s*\|"

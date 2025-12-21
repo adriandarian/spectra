@@ -44,7 +44,7 @@ class JsonParser(DocumentParserPort):
       },
       "stories": [
         {
-          "id": "US-001",
+          "id": "STORY-001",  // Any PREFIX-NUMBER format (US-001, PROJ-123, etc.)
           "title": "Story Title",
           "description": {
             "as_a": "user",

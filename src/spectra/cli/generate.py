@@ -330,7 +330,7 @@ class TemplateGenerator:
     def _generate_placeholder_story(self) -> list[str]:
         """Generate a placeholder story template."""
         return [
-            "### 📋 US-001: Sample Story",
+            "### 📋 STORY-001: Sample Story",
             "",
             "| Field | Value |",
             "|-------|-------|",

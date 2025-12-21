@@ -559,15 +559,15 @@ class MarkdownValidator:
         # Check for consistent story ID format
         story_ids = [m.group("id1") or m.group("id2") for m in self.STORY_PATTERN.finditer(content)]
         if story_ids:
-            # Check if mixing formats (US-XXX vs PROJ-XXX)
-            us_format = [s for s in story_ids if s.startswith("US-")]
-            proj_format = [s for s in story_ids if not s.startswith("US-")]
+            # Check if mixing different prefixes (e.g., US-001 with PROJ-002)
+            prefixes = {s.split("-")[0] for s in story_ids if "-" in s}
 
-            if us_format and proj_format:
+            if len(prefixes) > 1:
+                prefix_list = ", ".join(sorted(prefixes))
                 result.add_warning(
                     "W300",
-                    "Mixing story ID formats (US-XXX and project keys)",
-                    suggestion="Use consistent story IDs throughout the document",
+                    f"Mixing story ID prefixes ({prefix_list})",
+                    suggestion="Use consistent story ID prefixes throughout the document",
                 )
 
 

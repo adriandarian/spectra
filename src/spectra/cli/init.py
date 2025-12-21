@@ -64,7 +64,7 @@ This is a sample epic document. Replace this description with your epic's detail
 
 ## Stories
 
-### US-001: Sample Story Title
+### STORY-001: Sample Story Title
 **Status:** To Do
 **Points:** 3
 
@@ -82,7 +82,7 @@ As a user, I want to have a sample story so that I can see the expected format.
 
 ---
 
-### US-002: Another Sample Story
+### STORY-002: Another Sample Story
 **Status:** To Do
 **Points:** 5
 
@@ -102,7 +102,7 @@ As a developer, I want to understand the markdown format so that I can create my
 
 ## Notes
 - Stories are separated by `---` (horizontal rule)
-- Story IDs (US-001) should be unique within the document
+- Story IDs use PREFIX-NUMBER format (e.g., STORY-001, US-001, PROJ-123)
 - Status should match a valid Jira status in your workflow
 - Points are optional but recommended for sprint planning
 """

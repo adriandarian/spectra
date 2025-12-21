@@ -49,7 +49,7 @@ class ToonParser(DocumentParserPort):
       description: Epic description
 
     stories:
-      - id: US-001
+      - id: STORY-001  # Any PREFIX-NUMBER format (US-001, PROJ-123, etc.)
         title: Story Title
         description:
           as_a: user
@@ -83,8 +83,8 @@ class ToonParser(DocumentParserPort):
     ```toon
     epic{key:PROJ-123 title:Epic Title}
     stories[
-      {id:US-001 title:Story Title story_points:5 priority:high}
-      {id:US-002 title:Another Story story_points:3}
+      {id:STORY-001 title:Story Title story_points:5 priority:high}
+      {id:STORY-002 title:Another Story story_points:3}
     ]
     ```
     """

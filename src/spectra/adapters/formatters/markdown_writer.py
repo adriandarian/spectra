@@ -250,7 +250,7 @@ class MarkdownUpdater:
 
         Args:
             content: Original markdown content.
-            story_id: Story ID to update (e.g., "US-001").
+            story_id: Story ID to update (e.g., "STORY-001", "PROJ-123").
             updated_story: Updated story data from Jira.
 
         Returns:

@@ -165,7 +165,7 @@ complete -c spectra -l phase -d 'Which phase to run' -x -a '
 '
 
 # Filters
-complete -c spectra -l story -d 'Filter to specific story ID (e.g., US-001)' -x
+complete -c spectra -l story -d 'Filter to specific story ID (e.g., STORY-001, PROJ-123)' -x
 
 # Configuration
 complete -c spectra -s c -l config -d 'Path to config file' -r -F -a '*.yaml *.yml *.toml'

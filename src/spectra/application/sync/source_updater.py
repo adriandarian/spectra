@@ -433,14 +433,14 @@ class SourceFileUpdater:
 
         Args:
             content: Full markdown content.
-            story_id: Story ID to update (e.g., "US-001").
+            story_id: Story ID to update (e.g., "STORY-001", "PROJ-123").
             tracker_info: Tracker information to write.
 
         Returns:
             Updated content.
         """
         # Find the story header with flexible pattern
-        # Matches: ### ✅ US-001: Title  or  # US-001: Title  etc.
+        # Matches: ### ✅ STORY-001: Title  or  # PROJ-123: Title  etc.
         # Note: doubled braces {{1,3}} to escape them in the f-string
         header_pattern = rf"(#{{1,3}}\s+[^\n]*?{re.escape(story_id)}:\s*[^\n]+\n)"
         header_match = re.search(header_pattern, content)

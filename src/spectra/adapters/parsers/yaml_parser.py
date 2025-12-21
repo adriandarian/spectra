@@ -42,7 +42,7 @@ class YamlParser(DocumentParserPort):
       description: "Epic description"
 
     stories:
-      - id: US-001
+      - id: STORY-001  # Any PREFIX-NUMBER format works (US-001, PROJ-123, etc.)
         title: "Story Title"
         description:
           as_a: "user"

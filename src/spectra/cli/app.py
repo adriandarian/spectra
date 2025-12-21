@@ -221,7 +221,7 @@ Environment Variables:
 
     filters_group = parser.add_argument_group("Filters")
     filters_group.add_argument(
-        "--story", type=str, help="Filter to specific story ID (e.g., US-001)"
+        "--story", type=str, help="Filter to specific story ID (e.g., STORY-001, US-001, PROJ-123)"
     )
 
     config_group = parser.add_argument_group("Configuration")

@@ -34,9 +34,11 @@ class CsvParser(DocumentParserPort):
 
     ```csv
     id,title,description,story_points,priority,status,acceptance_criteria,subtasks,technical_notes,links
-    US-001,"Story Title","As a user, I want feature, so that benefit",5,high,planned,"AC1;AC2;AC3","Task1;Task2","Tech notes","blocks:PROJ-123"
-    US-002,"Another Story","Simple description",3,medium,in_progress,"AC1","","","depends_on:OTHER-456"
+    STORY-001,"Story Title","As a user, I want feature, so that benefit",5,high,planned,"AC1;AC2;AC3","Task1;Task2","Tech notes","blocks:PROJ-123"
+    STORY-002,"Another Story","Simple description",3,medium,in_progress,"AC1","","","depends_on:OTHER-456"
     ```
+
+    Note: Story IDs can use any PREFIX-NUMBER format (US-001, PROJ-123, FEAT-001, etc.)
 
     Column mappings (case-insensitive, flexible):
     - id, story_id, story id → Story ID

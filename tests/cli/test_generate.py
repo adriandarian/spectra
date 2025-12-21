@@ -151,7 +151,7 @@ class TestTemplateGenerator:
         lines = generator._generate_placeholder_story()
 
         content = "\n".join(lines)
-        assert "US-001" in content
+        assert "STORY-001" in content
         assert "Story Points" in content
         assert "Acceptance Criteria" in content
         assert "- [ ]" in content

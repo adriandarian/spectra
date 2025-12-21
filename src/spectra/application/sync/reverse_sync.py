@@ -335,7 +335,7 @@ class ReverseSyncOrchestrator:
         )
 
     def _extract_story_id(self, summary: str) -> str | None:
-        """Extract story ID from summary if present (e.g., 'US-001: Title')."""
+        """Extract story ID from summary if present (e.g., 'STORY-001: Title')."""
         import re
 
         match = re.match(r"^(US-\d+)[:\s]", summary)
@@ -345,7 +345,7 @@ class ReverseSyncOrchestrator:
         """Remove story ID prefix from summary to get clean title."""
         import re
 
-        # Remove "US-XXX: " or "US-XXX - " prefix
+        # Remove "PREFIX-XXX: " or "PREFIX-XXX - " prefix (e.g., STORY-001: Title)
         cleaned = re.sub(rf"^{re.escape(story_id)}[:\s-]+\s*", "", summary)
         return cleaned.strip() or summary
 

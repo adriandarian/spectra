@@ -30,10 +30,12 @@ class ExcelParser(DocumentParserPort):
 
     Expected Excel format (first sheet is used by default):
 
-    | id     | title        | description                        | story_points | priority | status   | acceptance_criteria | subtasks    |
-    |--------|--------------|------------------------------------|--------------| ---------|----------|---------------------|-------------|
-    | US-001 | Story Title  | As a user, I want..., so that...   | 5            | high     | planned  | AC1; AC2; AC3       | Task1;Task2 |
-    | US-002 | Another Story| Simple description                 | 3            | medium   | done     | AC1                 |             |
+    | id        | title        | description                        | story_points | priority | status   | acceptance_criteria | subtasks    |
+    |-----------|--------------|------------------------------------|--------------| ---------|----------|---------------------|-------------|
+    | STORY-001 | Story Title  | As a user, I want..., so that...   | 5            | high     | planned  | AC1; AC2; AC3       | Task1;Task2 |
+    | STORY-002 | Another Story| Simple description                 | 3            | medium   | done     | AC1                 |             |
+
+    Note: Story IDs can use any PREFIX-NUMBER format (US-001, PROJ-123, FEAT-001, etc.)
 
     Column mappings (case-insensitive, flexible):
     - id, story_id → Story ID

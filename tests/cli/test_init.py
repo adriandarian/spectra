@@ -276,7 +276,7 @@ class TestSampleMarkdown:
 
         assert "# Epic: PROJ-XXX" in sample
         assert "## Stories" in sample
-        assert "### US-001:" in sample
+        assert "### STORY-001:" in sample
         assert "#### Subtasks" in sample
         assert "- [ ]" in sample
 
