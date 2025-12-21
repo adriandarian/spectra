@@ -216,15 +216,29 @@ Contains hardcoded examples using `US-001` format in prompts.
 
 ---
 
-## Related Improvements to Consider
+## Related Improvements Status
 
 While we're removing restrictions, consider these related improvements:
 
-1. **Epic ID flexibility**: Currently expects `PROJ-100` format for epics
-2. **Number padding**: Allow `PROJ-1` not just `PROJ-001`
-3. **Lowercase tolerance**: Accept `us-001` and normalize to uppercase
-4. **Custom separators**: Some orgs use `PROJ_001` or `PROJ/001`
-5. **Purely numeric IDs**: Some systems use just `#123`
+| Improvement | Status | Notes |
+|-------------|--------|-------|
+| **Epic ID flexibility** | ✅ Done | `IssueKey` accepts any `[A-Z]+-\d+` format |
+| **Number padding** | ✅ Done | Pattern `[A-Z]+-\d+` allows `PROJ-1` or `PROJ-001` |
+| **Lowercase tolerance** | ✅ Done | `StoryId` normalizes to uppercase via `.upper()` |
+| **Custom separators** | ❌ Not done | Pattern only allows hyphen `-`, not `_` or `/` |
+| **Purely numeric IDs** | 🟡 Partial | Only `NotionParser` supports `#\d+` pattern |
+
+### Remaining Work
+
+1. **Custom separators** (`PROJ_001`, `PROJ/001`):
+   - Update `STORY_ID_PATTERN` regex in all parsers to accept `[_/-]`
+   - Update `StoryId` and `IssueKey` value objects
+   - Estimated: ~2 hours
+
+2. **Universal `#123` support**:
+   - Add `#\d+` pattern to `markdown.py`, `asciidoc_parser.py`, `yaml_parser.py`, etc.
+   - Handle GitHub-style IDs consistently across all parsers
+   - Estimated: ~2 hours
 
 ---
 

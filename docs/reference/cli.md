@@ -32,6 +32,8 @@ spectra [OPTIONS]
 |--------|-------------|--------|
 | `--phase PHASE` | Run specific sync phase | `all`, `descriptions`, `subtasks`, `comments`, `statuses` |
 | `--story ID` | Filter to specific story | Story ID (e.g., `US-001`) |
+| `--update-source` | Write tracker info back to source markdown file | `false` (default) |
+| `--incremental` | Only sync changed stories (skip unchanged) | `false` (default) |
 
 ## Configuration Options
 
@@ -195,6 +197,20 @@ spectra -m EPIC.md -e PROJ-123 --interactive
 
 # Resume interrupted sync
 spectra -m EPIC.md -e PROJ-123 --resume
+```
+
+### Source File Update (Tracker Writeback)
+
+```bash
+# Sync and write tracker info back to markdown file
+spectra -m EPIC.md -e PROJ-123 -x --update-source
+
+# After sync, your markdown will contain:
+# > **Tracker:** Jira
+# > **Issue:** [PROJ-456](https://company.atlassian.net/browse/PROJ-456)
+# > **Last Synced:** 2025-01-15 14:30 UTC
+# > **Sync Status:** ✅ Synced
+# > **Content Hash:** `a1b2c3d4`
 ```
 
 ### Validation
