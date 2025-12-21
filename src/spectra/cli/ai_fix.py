@@ -162,11 +162,12 @@ REQUIRED STRUCTURE
 ──────────────────
 
 1. STORY HEADER (Required)
-   Format: ### [emoji] US-XXX: Story Title
+   Format: ### [emoji] PREFIX-XXX: Story Title
+   Any PREFIX-NUMBER format works (US-001, EU-042, PROJ-123, FEAT-001, etc.)
 
    Examples:
-     ### 🔧 US-001: Implement User Authentication
-     ### 🚀 US-002: Add Dashboard Feature
+     ### 🔧 STORY-001: Implement User Authentication
+     ### 🚀 STORY-002: Add Dashboard Feature
      ### PROJ-123: Fix Login Bug
 
 2. METADATA (Required after each story header)
@@ -230,7 +231,7 @@ COMPLETE EXAMPLE
 
 ---
 
-### 🔧 US-001: Implement Feature X
+### 🔧 STORY-001: Implement Feature X
 
 **Priority**: P0
 **Story Points**: 5
@@ -258,7 +259,7 @@ COMPLETE EXAMPLE
 
 ---
 
-### 🚀 US-002: Add Feature Y
+### 🚀 STORY-002: Add Feature Y
 
 ... (continue with same format)
 
@@ -296,7 +297,7 @@ VALIDATION ERRORS:
 {error_list}{warning_list}
 
 REQUIRED FORMAT SPECIFICATIONS:
-1. Story headers MUST use format: ### [emoji] US-XXX: Title (or ### PROJ-XXX: Title)
+1. Story headers MUST use format: ### [emoji] PREFIX-XXX: Title (e.g., US-001, PROJ-123, STORY-001)
 2. Each story MUST have metadata with **Priority**, **Story Points**, and **Status** using bold labels
 3. User story descriptions MUST use: **As a** role, **I want** feature, **So that** benefit
 4. Acceptance criteria should use checkbox format: - [ ] criterion
@@ -349,7 +350,7 @@ Issues to fix:
 {error_list}{warning_list}
 
 Required format:
-- Story headers: ### [emoji] US-XXX: Title
+- Story headers: ### [emoji] PREFIX-XXX: Title (e.g., US-001, PROJ-123)
 - Metadata: **Priority**: X, **Story Points**: N, **Status**: X
 - Description: **As a** role, **I want** feature, **So that** benefit
 - Acceptance criteria: - [ ] criterion (checkbox format)

@@ -160,7 +160,10 @@ class AsciiDocParser(DocumentParserPort):
 
         story_matches = list(re.finditer(self.STORY_PATTERN, content, re.MULTILINE))
         if not story_matches:
-            errors.append("No user stories found matching pattern '== US-XXX: Title'")
+            errors.append(
+                "No user stories found matching pattern '== PREFIX-XXX: Title' "
+                "(e.g., US-001, EU-042, PROJ-123)"
+            )
 
         return errors
 
