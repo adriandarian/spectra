@@ -377,7 +377,6 @@ def build_ai_command(
     Returns:
         Tuple of (command args list, description of what the command does).
     """
-
     if tool.tool == AITool.CLAUDE:
         # Claude CLI: claude "prompt" -f file.md
         return (
