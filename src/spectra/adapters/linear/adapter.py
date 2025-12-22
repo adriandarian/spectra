@@ -224,6 +224,17 @@ class LinearAdapter(IssueTrackerPort):
         self.logger.info(f"Updated description for {issue_key}")
         return True
 
+    def update_issue_story_points(self, issue_key: str, story_points: float) -> bool:
+        if self._dry_run:
+            self.logger.info(
+                f"[DRY-RUN] Would update story points for {issue_key} to {story_points}"
+            )
+            return True
+
+        self._client.update_issue(issue_key, estimate=int(story_points))
+        self.logger.info(f"Updated story points for {issue_key} to {story_points}")
+        return True
+
     def create_subtask(
         self,
         parent_key: str,

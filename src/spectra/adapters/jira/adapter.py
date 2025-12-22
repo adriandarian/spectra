@@ -136,6 +136,20 @@ class JiraAdapter(IssueTrackerPort):
         self.logger.info(f"Updated description for {issue_key}")
         return True
 
+    def update_issue_story_points(self, issue_key: str, story_points: float) -> bool:
+        if self._dry_run:
+            self.logger.info(
+                f"[DRY-RUN] Would update story points for {issue_key} to {story_points}"
+            )
+            return True
+
+        self._client.put(
+            f"issue/{issue_key}",
+            json={JiraField.FIELDS: {self.STORY_POINTS_FIELD: float(story_points)}},
+        )
+        self.logger.info(f"Updated story points for {issue_key} to {story_points}")
+        return True
+
     def update_issue_type(self, issue_key: str, issue_type: str) -> bool:
         """
         Change an issue's type using the move operation.

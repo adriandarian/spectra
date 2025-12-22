@@ -294,6 +294,22 @@ class IssueTrackerPort(ABC):
         ...
 
     @abstractmethod
+    def update_issue_story_points(self, issue_key: str, story_points: float) -> bool:
+        """
+        Update an issue's story points.
+
+        Works for any issue type (Epic, Story, Task, Subtask, etc.).
+
+        Args:
+            issue_key: The issue to update
+            story_points: New story points value
+
+        Returns:
+            True if successful
+        """
+        ...
+
+    @abstractmethod
     def create_subtask(
         self,
         parent_key: str,

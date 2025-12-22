@@ -261,6 +261,28 @@ class GitHubAdapter(IssueTrackerPort):
         self.logger.info(f"Updated description for #{issue_number}")
         return True
 
+    def update_issue_story_points(self, issue_key: str, story_points: float) -> bool:
+        if self._dry_run:
+            self.logger.info(
+                f"[DRY-RUN] Would update story points for {issue_key} to {story_points}"
+            )
+            return True
+
+        issue_number = self._parse_issue_key(issue_key)
+
+        # Update points label (remove existing, add new)
+        issue = self._client.get_issue(issue_number)
+        labels = [
+            label["name"]
+            for label in issue.get("labels", [])
+            if not label["name"].startswith("points:")
+        ]
+        labels.append(f"points:{int(story_points)}")
+
+        self._client.update_issue(issue_number, labels=labels)
+        self.logger.info(f"Updated story points for #{issue_number} to {story_points}")
+        return True
+
     def create_subtask(
         self,
         parent_key: str,

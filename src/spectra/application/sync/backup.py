@@ -777,9 +777,42 @@ class BackupManager:
                     )
                 )
 
-        # Note: Story points restoration for parent issues would need
-        # the update_subtask method which is designed for subtasks.
-        # For now, we skip story points on parent issues.
+        # Restore story points for parent issues
+        if restore_story_points and snapshot.story_points is not None:
+            try:
+                if dry_run:
+                    logger.info(
+                        f"[DRY-RUN] Would restore story points for {issue_key} "
+                        f"to {snapshot.story_points}"
+                    )
+                    result.add_operation(
+                        RestoreOperation(
+                            issue_key=issue_key,
+                            field="story_points",
+                            success=True,
+                        )
+                    )
+                else:
+                    tracker.update_issue_story_points(issue_key, snapshot.story_points)
+                    logger.info(f"Restored story points for {issue_key} to {snapshot.story_points}")
+                    result.add_operation(
+                        RestoreOperation(
+                            issue_key=issue_key,
+                            field="story_points",
+                            success=True,
+                        )
+                    )
+                restored_any = True
+            except Exception as e:
+                logger.error(f"Failed to restore story points for {issue_key}: {e}")
+                result.add_operation(
+                    RestoreOperation(
+                        issue_key=issue_key,
+                        field="story_points",
+                        success=False,
+                        error=str(e),
+                    )
+                )
 
         if restored_any:
             result.issues_restored += 1

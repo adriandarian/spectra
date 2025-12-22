@@ -218,6 +218,18 @@ class AzureDevOpsAdapter(IssueTrackerPort):
         self.logger.info(f"Updated description for {work_item_id}")
         return True
 
+    def update_issue_story_points(self, issue_key: str, story_points: float) -> bool:
+        if self._dry_run:
+            self.logger.info(
+                f"[DRY-RUN] Would update story points for {issue_key} to {story_points}"
+            )
+            return True
+
+        work_item_id = self._parse_work_item_id(issue_key)
+        self._client.update_work_item(work_item_id, story_points=float(story_points))
+        self.logger.info(f"Updated story points for {work_item_id} to {story_points}")
+        return True
+
     def create_subtask(
         self,
         parent_key: str,

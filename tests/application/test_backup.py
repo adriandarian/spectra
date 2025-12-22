@@ -481,6 +481,7 @@ class TestBackupManagerRestore:
         tracker = MagicMock()
         tracker.update_issue_description.return_value = True
         tracker.update_subtask.return_value = True
+        tracker.update_issue_story_points.return_value = True
         return tracker
 
     def test_restore_backup_dry_run(self, manager, mock_tracker, mock_restore_tracker):
@@ -561,6 +562,7 @@ class TestBackupManagerRestore:
         error_tracker = MagicMock()
         error_tracker.update_issue_description.side_effect = Exception("API Error")
         error_tracker.update_subtask.side_effect = Exception("API Error")
+        error_tracker.update_issue_story_points.side_effect = Exception("API Error")
 
         result = manager.restore_backup(
             tracker=error_tracker,
@@ -572,6 +574,159 @@ class TestBackupManagerRestore:
         assert result.success is False
         assert len(result.errors) > 0
         assert "API Error" in result.errors[0]
+
+    def test_restore_story_points_for_parent_issues(self, backup_dir):
+        """Should restore story points for parent issues (not just subtasks)."""
+        # Create a mock tracker for backup creation with story points on parent
+        create_tracker = MagicMock()
+        create_tracker.get_epic_children.return_value = [
+            IssueData(
+                key="PROJ-100",
+                summary="Story 1",
+                description="Original description",
+                status="Open",
+                issue_type="Story",
+                story_points=8.0,  # Parent issue has story points
+                subtasks=[],
+            ),
+        ]
+        create_tracker.get_issue_comments.return_value = []
+
+        # Create backup
+        manager = BackupManager(backup_dir=backup_dir)
+        backup = manager.create_backup(create_tracker, "PROJ-1", "/file.md")
+
+        # Create mock restore tracker
+        restore_tracker = MagicMock()
+        restore_tracker.update_issue_description.return_value = True
+        restore_tracker.update_issue_story_points.return_value = True
+
+        # Restore with execute
+        result = manager.restore_backup(
+            tracker=restore_tracker,
+            backup_id=backup.backup_id,
+            epic_key="PROJ-1",
+            dry_run=False,
+            restore_descriptions=True,
+            restore_story_points=True,
+        )
+
+        assert result.success is True
+        assert result.issues_restored == 1
+        # Verify story points were restored
+        restore_tracker.update_issue_story_points.assert_called_once_with("PROJ-100", 8.0)
+        restore_tracker.update_issue_description.assert_called_once()
+
+    def test_restore_story_points_dry_run(self, backup_dir):
+        """Should simulate story points restore in dry-run mode."""
+        create_tracker = MagicMock()
+        create_tracker.get_epic_children.return_value = [
+            IssueData(
+                key="PROJ-100",
+                summary="Story 1",
+                description="Desc",
+                status="Open",
+                issue_type="Story",
+                story_points=5.0,
+                subtasks=[],
+            ),
+        ]
+        create_tracker.get_issue_comments.return_value = []
+
+        manager = BackupManager(backup_dir=backup_dir)
+        backup = manager.create_backup(create_tracker, "PROJ-1", "/file.md")
+
+        restore_tracker = MagicMock()
+
+        result = manager.restore_backup(
+            tracker=restore_tracker,
+            backup_id=backup.backup_id,
+            epic_key="PROJ-1",
+            dry_run=True,
+            restore_story_points=True,
+        )
+
+        assert result.success is True
+        assert result.dry_run is True
+        # No actual API calls in dry run
+        restore_tracker.update_issue_story_points.assert_not_called()
+        restore_tracker.update_issue_description.assert_not_called()
+        # But operations should be tracked
+        story_points_ops = [op for op in result.operations if op.field == "story_points"]
+        assert len(story_points_ops) == 1
+        assert story_points_ops[0].success is True
+
+    def test_restore_story_points_disabled(self, backup_dir):
+        """Should not restore story points when restore_story_points=False."""
+        create_tracker = MagicMock()
+        create_tracker.get_epic_children.return_value = [
+            IssueData(
+                key="PROJ-100",
+                summary="Story 1",
+                description="Desc",
+                status="Open",
+                story_points=5.0,
+                subtasks=[],
+            ),
+        ]
+        create_tracker.get_issue_comments.return_value = []
+
+        manager = BackupManager(backup_dir=backup_dir)
+        backup = manager.create_backup(create_tracker, "PROJ-1", "/file.md")
+
+        restore_tracker = MagicMock()
+        restore_tracker.update_issue_description.return_value = True
+
+        result = manager.restore_backup(
+            tracker=restore_tracker,
+            backup_id=backup.backup_id,
+            epic_key="PROJ-1",
+            dry_run=False,
+            restore_descriptions=True,
+            restore_story_points=False,  # Explicitly disable
+        )
+
+        assert result.success is True
+        # Description should be restored, but not story points
+        restore_tracker.update_issue_description.assert_called()
+        restore_tracker.update_issue_story_points.assert_not_called()
+
+    def test_restore_story_points_handles_api_error(self, backup_dir):
+        """Should handle API errors when restoring story points."""
+        create_tracker = MagicMock()
+        create_tracker.get_epic_children.return_value = [
+            IssueData(
+                key="PROJ-100",
+                summary="Story 1",
+                description="Desc",
+                status="Open",
+                story_points=5.0,
+                subtasks=[],
+            ),
+        ]
+        create_tracker.get_issue_comments.return_value = []
+
+        manager = BackupManager(backup_dir=backup_dir)
+        backup = manager.create_backup(create_tracker, "PROJ-1", "/file.md")
+
+        # Tracker that fails on story points but succeeds on description
+        restore_tracker = MagicMock()
+        restore_tracker.update_issue_description.return_value = True
+        restore_tracker.update_issue_story_points.side_effect = Exception("Story points API error")
+
+        result = manager.restore_backup(
+            tracker=restore_tracker,
+            backup_id=backup.backup_id,
+            epic_key="PROJ-1",
+            dry_run=False,
+            restore_story_points=True,
+        )
+
+        # Should fail because of story points error
+        assert result.success is False
+        assert any("Story points API error" in err for err in result.errors)
+        # But description should have been attempted
+        restore_tracker.update_issue_description.assert_called()
 
 
 class TestRestoreFromBackup:

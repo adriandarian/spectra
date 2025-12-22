@@ -205,6 +205,12 @@ class CachedAsanaAdapter(AsanaAdapter):
         self._invalidate_task(issue_key)
         return result
 
+    def update_issue_story_points(self, issue_key: str, story_points: float) -> bool:
+        """Update task story points with cache invalidation."""
+        result = super().update_issue_story_points(issue_key, story_points)
+        self._invalidate_task(issue_key)
+        return result
+
     def create_subtask(
         self,
         parent_key: str,

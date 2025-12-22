@@ -311,6 +311,21 @@ class AsanaAdapter(IssueTrackerPort):
         self._request("PUT", f"/tasks/{issue_key}", json={"data": {"notes": description}})
         return True
 
+    def update_issue_story_points(self, issue_key: str, story_points: float) -> bool:
+        if self._dry_run:
+            self.logger.debug(
+                "Dry run: would update story points for %s to %s", issue_key, story_points
+            )
+            return True
+
+        self._request(
+            "PUT",
+            f"/tasks/{issue_key}",
+            json={"data": {"custom_fields": {self.config.story_points_field: story_points}}},
+        )
+        self.logger.info("Updated story points for %s to %s", issue_key, story_points)
+        return True
+
     def create_subtask(
         self,
         parent_key: str,
