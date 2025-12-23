@@ -31,7 +31,7 @@ spectra [OPTIONS]
 | Option | Description | Values |
 |--------|-------------|--------|
 | `--phase PHASE` | Run specific sync phase | `all`, `descriptions`, `subtasks`, `comments`, `statuses` |
-| `--story ID` | Filter to specific story | Story ID (e.g., `US-001`) |
+| `--story ID` | Filter to specific story | Story ID (e.g., `STORY-001`, `PROJ-123`) |
 | `--update-source` | Write tracker info back to source markdown file | `false` (default) |
 | `--incremental` | Only sync changed stories (skip unchanged) | `false` (default) |
 
@@ -131,11 +131,11 @@ spectra -m EPIC.md -e PROJ-123 -x --phase statuses
 
 ```bash
 # Sync specific story
-spectra -m EPIC.md -e PROJ-123 -x --story US-001
+spectra -m EPIC.md -e PROJ-123 -x --story STORY-001
 
 # Multiple stories (run multiple times)
-spectra -m EPIC.md -e PROJ-123 -x --story US-001
-spectra -m EPIC.md -e PROJ-123 -x --story US-002
+spectra -m EPIC.md -e PROJ-123 -x --story STORY-001
+spectra -m EPIC.md -e PROJ-123 -x --story STORY-002
 ```
 
 ### CI/CD Usage

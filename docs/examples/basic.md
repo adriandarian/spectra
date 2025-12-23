@@ -29,7 +29,7 @@ Create `EPIC.md`:
 
 ---
 
-### 🔧 US-001: Setup Development Environment
+### 🔧 STORY-001: Setup Development Environment
 
 | Field | Value |
 |-------|-------|
@@ -147,7 +147,7 @@ spectra -m EPIC.md -e PROJ-123 -x --phase subtasks
 Focus on a single story:
 
 ```bash
-spectra -m EPIC.md -e PROJ-123 -x --story US-001
+spectra -m EPIC.md -e PROJ-123 -x --story STORY-001
 ```
 
 ### Verbose Output
@@ -209,7 +209,7 @@ Output for invalid file:
 ✗ Markdown validation failed
 
 Errors:
-  Line 15: Story "US-002" missing metadata table
+  Line 15: Story "STORY-002" missing metadata table
   Line 42: Invalid status emoji "⏳" - use ✅, 🔄, or 📋
   Line 67: Subtasks table missing "SP" column
 ```
@@ -240,7 +240,7 @@ spectra --diff-latest --epic PROJ-123
 Output:
 
 ```diff
-Story: PROJ-124 (US-001: Setup Development Environment)
+Story: PROJ-124 (STORY-001: Setup Development Environment)
   Description:
 -   **As a** developer
 -   **I want** the environment ready
@@ -284,14 +284,14 @@ Interactive session:
 
 Found 5 stories to sync with PROJ-123
 
-Story 1/5: US-001 - Setup Development Environment
+Story 1/5: STORY-001 - Setup Development Environment
 
 Preview changes:
   📝 Update description
   ➕ Create 3 subtasks
   ⏳ Sync status (Planned → Open)
 
-Apply changes to US-001? [y/n/s(kip)/q(uit)]: y
+Apply changes to STORY-001? [y/n/s(kip)/q(uit)]: y
 
 ✓ Updated description
 ✓ Created subtask PROJ-125
@@ -299,7 +299,7 @@ Apply changes to US-001? [y/n/s(kip)/q(uit)]: y
 ✓ Created subtask PROJ-127
 ✓ Status synced
 
-Story 2/5: US-002 - User Authentication
+Story 2/5: STORY-002 - User Authentication
 ...
 ```
 

@@ -171,7 +171,7 @@ Validation Result: ✗ FAILED
 
 Errors (3):
   ✗ [MD001] Line 5: Story header missing required format
-  ✗ [MD003] Line 7: Metadata section missing Priority field  
+  ✗ [MD003] Line 7: Metadata section missing Priority field
   ✗ [MD005] Line 12: User story description missing "As a" format
 
 ────────────────────────────────────────────────
@@ -319,7 +319,7 @@ Create a small markdown file that demonstrates the issue:
 
 ---
 
-### US-001: Test Story
+### STORY-001: Test Story
 
 This is a minimal test case.
 ```

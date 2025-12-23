@@ -44,7 +44,7 @@ graph LR
 Create a markdown file with your epic:
 
 ```markdown
-### 🚀 US-001: User Authentication
+### 🚀 STORY-001: User Authentication
 
 | Field | Value |
 |-------|-------|

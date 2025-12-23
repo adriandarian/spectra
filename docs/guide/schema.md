@@ -61,7 +61,7 @@ Spectra supports any uppercase letter prefix followed by a dash and numbers. Use
 ### Standard Prefixes
 
 ```markdown
-### 🔧 US-001: Migrate to TypeScript
+### 🔧 STORY-001: Migrate to TypeScript
 ### 🚀 STORY-002: Add Authentication
 ### 🎨 FEAT-003: Redesign Dashboard
 ### 🐛 BUG-004: Fix Login Bug
@@ -307,7 +307,7 @@ Modernize the legacy PHP application to a modern TypeScript/React stack.
 
 ---
 
-### 🔧 US-001: Set Up TypeScript Configuration
+### 🔧 STORY-001: Set Up TypeScript Configuration
 
 | Field | Value |
 |-------|-------|
@@ -344,7 +344,7 @@ Modernize the legacy PHP application to a modern TypeScript/React stack.
 
 ---
 
-### 🚀 US-002: Implement User Authentication
+### 🚀 STORY-002: Implement User Authentication
 
 | Field | Value |
 |-------|-------|
@@ -381,7 +381,7 @@ Modernize the legacy PHP application to a modern TypeScript/React stack.
 
 Before running spectra, verify:
 
-- [ ] Each story has `### [emoji] US-XXX: Title` format
+- [ ] Each story has `### [emoji] PREFIX-XXX: Title` format (e.g., STORY-001, PROJ-123)
 - [ ] Each story has the metadata table with Story Points, Priority, Status
 - [ ] Each story has `#### Description` with As a/I want/So that
 - [ ] Subtasks table has all 5 columns: #, Subtask, Description, SP, Status
@@ -392,7 +392,7 @@ Before running spectra, verify:
 
 | Error | Cause | Fix |
 |-------|-------|-----|
-| Story not detected | Missing `US-XXX:` pattern | Use exact format: `### 🔧 US-001: Title` |
+| Story not detected | Missing `PREFIX-XXX:` pattern | Use exact format: `### 🔧 STORY-001: Title` |
 | Missing description | Wrong heading level | Use `#### Description` (H4) |
 | Subtasks not created | Wrong table format | Ensure 5 columns with correct headers |
 | Status not synced | Wrong emoji | Use exact emojis: ✅ 🔄 📋 |

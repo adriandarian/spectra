@@ -39,10 +39,10 @@
 - [ ] **Contract Tests for Adapters** - Shared test suite (pagination, retries, mapping)
 
 ### Documentation
-- [ ] **Documentation Examples Standardization** - Use neutral prefix like `STORY-001` instead of `US-001`
-- [ ] **AI Prompts Dynamic Examples** - Make prompts in `ai_fix.py` use dynamic/neutral examples
-- [ ] **OpenTelemetry/Prometheus Documentation** - Document setup, export configuration, integration examples
-- [ ] **TrackerType.ASANA Full Integration Check** - Verify in `_get_tracker_display_name()`, `_build_url()`, CLI, docs
+- [x] **Documentation Examples Standardization** - Use neutral prefix like `STORY-001` instead of `US-001`
+- [x] **AI Prompts Dynamic Examples** - Make prompts in `ai_fix.py` use dynamic/neutral examples
+- [x] **OpenTelemetry/Prometheus Documentation** - Document setup, export configuration, integration examples
+- [x] **TrackerType.ASANA Full Integration Check** - Verified in `_get_tracker_display_name()`, `_build_url()`, CLI, docs
 
 ---
 

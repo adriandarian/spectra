@@ -65,7 +65,7 @@ When working with spectra's markdown parsing, understand these exact patterns:
 ### Story Header Pattern
 ```python
 # Regex: r"### [^\n]* (US-\d+|[A-Z]+-\d+): ([^\n]+)"
-### 🔧 US-001: Story Title
+### 🔧 STORY-001: Story Title
 ### PROJ-123: Another Title
 ```
 
@@ -143,15 +143,15 @@ class MyFormatParser(DocumentParser):
     @property
     def name(self) -> str:
         return "MyFormat"
-    
+
     @property
     def supported_extensions(self) -> list[str]:
         return [".myf"]
-    
+
     def can_parse(self, source: str | Path) -> bool:
         # Detection logic
         ...
-    
+
     def parse_stories(self, content: str | Path) -> list[UserStory]:
         # Parsing logic
         ...
@@ -170,15 +170,15 @@ class TestMyParser:
     @pytest.fixture
     def parser(self) -> MyParser:
         return MyParser()
-    
+
     def test_parse_minimal(self, parser):
         """Should parse minimal valid input."""
         ...
-    
+
     def test_parse_full(self, parser):
         """Should parse input with all fields."""
         ...
-    
+
     def test_validate_errors(self, parser):
         """Should catch validation errors."""
         ...

@@ -17,7 +17,7 @@ You are a technical documentation specialist. Generate a Jira-compatible epic do
 
 **Project Name**: [YOUR PROJECT NAME]
 **Project Description**: [DESCRIBE WHAT YOU'RE BUILDING]
-**Key Features/Requirements**: 
+**Key Features/Requirements**:
 - [FEATURE 1]
 - [FEATURE 2]
 - [FEATURE 3]
@@ -96,10 +96,10 @@ Generate the epic document following this EXACT structure:
 
 ## FORMATTING RULES
 
-1. **Story IDs**: Use sequential numbering: US-001, US-002, US-003...
+1. **Story IDs**: Use sequential numbering: STORY-001, STORY-002, STORY-003... (or any prefix like PROJ-123, FEAT-042)
 2. **Emojis for Story Types**:
    - 🔧 Technical/Infrastructure
-   - 🚀 New Feature  
+   - 🚀 New Feature
    - 🎨 UI/Design
    - 🐛 Bug Fix
    - 📚 Documentation
@@ -117,7 +117,7 @@ Generate the epic document following this EXACT structure:
    - 🟢 Medium/Low
 
 5. **Story Points**: Use Fibonacci (1, 2, 3, 5, 8, 13)
-6. **Subtasks**: 
+6. **Subtasks**:
    - Keep descriptions concise (under 100 chars)
    - Each subtask should be 1-2 story points
    - Sum of subtask SPs should roughly equal story SPs
@@ -140,7 +140,7 @@ You are a technical documentation specialist. Generate a Jira-compatible epic do
 
 **Project Name**: Customer Portal Redesign
 **Project Description**: Modernize our customer-facing portal from Angular to React with improved UX
-**Key Features/Requirements**: 
+**Key Features/Requirements**:
 - User authentication with SSO
 - Dashboard with analytics widgets
 - Document management system
@@ -211,7 +211,7 @@ Focus on risk mitigation and validation criteria.
 For simple projects, use this condensed prompt:
 
 ```
-Generate a Jira epic in markdown for "[PROJECT]" with [N] user stories. 
+Generate a Jira epic in markdown for "[PROJECT]" with [N] user stories.
 Use this format for each story:
 ### 🔧 US-XXX: Title
 | Field | Value |

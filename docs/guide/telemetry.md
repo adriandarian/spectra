@@ -64,13 +64,84 @@ Then scrape metrics at `http://localhost:9090/metrics`.
 |----------|-------------|---------|
 | `OTEL_ENABLED` | Enable OpenTelemetry | `false` |
 | `OTEL_SERVICE_NAME` | Service name for traces/metrics | `spectra` |
+| `OTEL_SERVICE_VERSION` | Service version for traces/metrics | `2.0.0` |
 | `OTEL_EXPORTER_OTLP_ENDPOINT` | OTLP collector endpoint | None |
 | `OTEL_EXPORTER_OTLP_INSECURE` | Use insecure connection | `true` |
+| `OTEL_EXPORTER_OTLP_HEADERS` | Additional headers (comma-separated key=value pairs) | None |
 | `OTEL_CONSOLE_EXPORT` | Export to console (debugging) | `false` |
 | `OTEL_METRICS_ENABLED` | Enable metrics collection | `true` |
 | `PROMETHEUS_ENABLED` | Enable Prometheus server | `false` |
 | `PROMETHEUS_PORT` | Prometheus metrics port | `9090` |
 | `PROMETHEUS_HOST` | Prometheus bind address | `0.0.0.0` |
+
+### Export Configuration
+
+#### OTLP Export (OpenTelemetry Protocol)
+
+The OTLP exporter sends traces and metrics to an OpenTelemetry Collector or compatible backend (Jaeger, Zipkin, Datadog, etc.).
+
+**Basic Configuration:**
+```bash
+export OTEL_ENABLED=true
+export OTEL_EXPORTER_OTLP_ENDPOINT=http://localhost:4317
+spectra --markdown EPIC.md --epic PROJ-123
+```
+
+**With Authentication Headers:**
+```bash
+export OTEL_ENABLED=true
+export OTEL_EXPORTER_OTLP_ENDPOINT=https://api.datadoghq.com
+export OTEL_EXPORTER_OTLP_HEADERS="DD-API-KEY=your-key,DD-SITE=datadoghq.com"
+export OTEL_EXPORTER_OTLP_INSECURE=false
+spectra --markdown EPIC.md --epic PROJ-123
+```
+
+**Via CLI Flags:**
+```bash
+spectra --otel-enable \
+  --otel-endpoint http://localhost:4317 \
+  --otel-service-name my-spectra-instance \
+  --markdown EPIC.md --epic PROJ-123
+```
+
+#### Prometheus Export
+
+Prometheus metrics are exposed via HTTP on the configured port. The metrics endpoint is available at `/metrics`.
+
+**Basic Configuration:**
+```bash
+export PROMETHEUS_ENABLED=true
+export PROMETHEUS_PORT=9090
+spectra --markdown EPIC.md --epic PROJ-123
+```
+
+**Via CLI Flags:**
+```bash
+spectra --prometheus \
+  --prometheus-port 9090 \
+  --prometheus-host 0.0.0.0 \
+  --markdown EPIC.md --epic PROJ-123
+```
+
+**Accessing Metrics:**
+```bash
+curl http://localhost:9090/metrics
+```
+
+#### Console Export (Debugging)
+
+For local development and debugging, you can export traces and metrics to the console:
+
+```bash
+export OTEL_ENABLED=true
+export OTEL_CONSOLE_EXPORT=true
+spectra --markdown EPIC.md --epic PROJ-123
+```
+
+Or via CLI:
+```bash
+spectra --otel-enable --otel-console --markdown EPIC.md --epic PROJ-123
+```
 
 ### Programmatic Configuration
 
@@ -165,7 +236,7 @@ from spectra.cli.telemetry import get_telemetry
 
 telemetry = get_telemetry()
 
-with telemetry.span("my.operation", attributes={"story_id": "US-001"}) as span:
+with telemetry.span("my.operation", attributes={"story_id": "STORY-001"}) as span:
     # Your code here
     if span:
         span.set_attribute("result", "success")
@@ -460,6 +531,86 @@ If telemetry causes high memory usage:
 1. Reduce metric cardinality by limiting labels
 2. Decrease the metric export interval
 3. Consider using sampling for traces
+
+## Integration Examples
+
+### Datadog APM
+
+Export traces and metrics to Datadog:
+
+```bash
+export OTEL_ENABLED=true
+export OTEL_EXPORTER_OTLP_ENDPOINT=https://api.datadoghq.com
+export OTEL_EXPORTER_OTLP_HEADERS="DD-API-KEY=your-key,DD-SITE=datadoghq.com"
+export OTEL_EXPORTER_OTLP_INSECURE=false
+export OTEL_SERVICE_NAME=spectra-sync
+spectra --markdown EPIC.md --epic PROJ-123
+```
+
+### New Relic
+
+Export to New Relic via OTLP:
+
+```bash
+export OTEL_ENABLED=true
+export OTEL_EXPORTER_OTLP_ENDPOINT=https://otlp.nr-data.net
+export OTEL_EXPORTER_OTLP_HEADERS="api-key=your-new-relic-license-key"
+export OTEL_EXPORTER_OTLP_INSECURE=false
+export OTEL_SERVICE_NAME=spectra
+spectra --markdown EPIC.md --epic PROJ-123
+```
+
+### Honeycomb
+
+Export to Honeycomb:
+
+```bash
+export OTEL_ENABLED=true
+export OTEL_EXPORTER_OTLP_ENDPOINT=https://api.honeycomb.io
+export OTEL_EXPORTER_OTLP_HEADERS="x-honeycomb-team=your-api-key"
+export OTEL_EXPORTER_OTLP_INSECURE=false
+export OTEL_SERVICE_NAME=spectra
+spectra --markdown EPIC.md --epic PROJ-123
+```
+
+### OpenTelemetry Collector
+
+Use an OpenTelemetry Collector as an intermediary for processing and routing:
+
+```yaml
+# otel-collector-config.yaml
+receivers:
+  otlp:
+    protocols:
+      grpc:
+        endpoint: 0.0.0.0:4317
+
+exporters:
+  logging:
+    loglevel: debug
+  prometheus:
+    endpoint: "0.0.0.0:8889"
+  jaeger:
+    endpoint: jaeger:14250
+    tls:
+      insecure: true
+
+service:
+  pipelines:
+    traces:
+      receivers: [otlp]
+      exporters: [logging, jaeger]
+    metrics:
+      receivers: [otlp]
+      exporters: [logging, prometheus]
+```
+
+Run spectra with collector:
+```bash
+export OTEL_ENABLED=true
+export OTEL_EXPORTER_OTLP_ENDPOINT=http://localhost:4317
+spectra --markdown EPIC.md --epic PROJ-123
+```
 
 ## See Also
 

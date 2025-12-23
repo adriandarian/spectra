@@ -31,7 +31,7 @@ Create `EPIC.md` with your user stories:
 
 ---
 
-### 🔧 US-001: Set Up Project Infrastructure
+### 🔧 STORY-001: Set Up Project Infrastructure
 
 | Field | Value |
 |-------|-------|
@@ -61,7 +61,7 @@ Create `EPIC.md` with your user stories:
 
 ---
 
-### 🚀 US-002: User Authentication
+### 🚀 STORY-002: User Authentication
 
 | Field | Value |
 |-------|-------|
@@ -137,7 +137,7 @@ Stories found: 2
 Mode: DRY RUN (no changes will be made)
 
 ┌─────────────────────────────────────────────┐
-│ US-001: Set Up Project Infrastructure       │
+│ STORY-001: Set Up Project Infrastructure       │
 ├─────────────────────────────────────────────┤
 │ ➕ Would create 3 subtasks                  │
 │ 📝 Would update description                 │
@@ -145,7 +145,7 @@ Mode: DRY RUN (no changes will be made)
 └─────────────────────────────────────────────┘
 
 ┌─────────────────────────────────────────────┐
-│ US-002: User Authentication                 │
+│ STORY-002: User Authentication                 │
 ├─────────────────────────────────────────────┤
 │ ➕ Would create 3 subtasks                  │
 │ 📝 Would update description                 │
@@ -189,7 +189,7 @@ spectra -m EPIC.md -e PROJ-123 -x --phase descriptions
 spectra -m EPIC.md -e PROJ-123 -x --phase subtasks
 
 # Sync specific story
-spectra -m EPIC.md -e PROJ-123 -x --story US-001
+spectra -m EPIC.md -e PROJ-123 -x --story STORY-001
 
 # Skip confirmation prompts (for CI/CD)
 spectra -m EPIC.md -e PROJ-123 -x --no-confirm
