@@ -60,7 +60,7 @@ def create_tracker_factory(
     Create a factory function for the issue tracker.
 
     Args:
-        tracker_type: Type of tracker ('jira', 'github', 'azure', 'linear', 'asana')
+        tracker_type: Type of tracker ('jira', 'github', 'azure', 'linear', 'asana', 'gitlab')
 
     Returns:
         Factory function that creates the tracker
@@ -111,6 +111,24 @@ def create_tracker_factory(
             return AsanaAdapter(
                 config=config,
                 dry_run=is_dry_run,
+            )
+        if tracker_type == "gitlab":
+            from spectra.adapters.gitlab import GitLabAdapter
+            from spectra.core.ports.config_provider import GitLabConfig
+
+            if not isinstance(config, GitLabConfig):
+                raise ValueError("GitLab adapter requires GitLabConfig")
+            return GitLabAdapter(
+                token=config.token,
+                project_id=config.project_id,
+                dry_run=is_dry_run,
+                base_url=config.base_url,
+                group_id=config.group_id,
+                epic_label=config.epic_label,
+                story_label=config.story_label,
+                subtask_label=config.subtask_label,
+                status_labels=config.status_labels,
+                use_epics=config.use_epics,
             )
         raise ValueError(f"Unknown tracker type: {tracker_type}")
 

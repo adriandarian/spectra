@@ -55,16 +55,539 @@
 
 ## 🟢 New Tracker Integrations
 
-- [ ] **GitLab Issues Adapter** - Major gap in supported trackers
-- [ ] **Monday.com Adapter** - Popular work management tool
-- [ ] **Trello Adapter** - Simple kanban boards
-- [ ] **Shortcut (Clubhouse) Adapter** - Popular in startups
-- [ ] **ClickUp Adapter** - Growing competitor to Jira/Asana
-- [ ] **Bitbucket Cloud/Server** - For Git-centric teams
-- [ ] **YouTrack Adapter** - JetBrains issue tracker
-- [ ] **Basecamp Adapter** - Project management tool
-- [ ] **Plane.so Adapter** - Open-source Jira alternative
-- [ ] **Pivotal Tracker Adapter** - Agile project management
+### Implementation Requirements
+
+Each tracker adapter requires:
+1. **Core Adapter** (`adapter.py`) - Implements `IssueTrackerPort` interface
+2. **API Client** (`client.py`) - Low-level HTTP/GraphQL client
+3. **Configuration** (`config.py`) - Tracker-specific config dataclass
+4. **Plugin** (`plugin.py`) - Optional plugin registration
+5. **Async Adapter** (`async_adapter.py`) - Optional async implementation
+6. **Batch Client** (`batch.py`) - Optional batch operations
+7. **Tests** (`test_*_adapter.py`) - Unit and integration tests
+8. **Factory Registration** - Add to `create_tracker_factory()` in `core/services.py`
+9. **TrackerType Enum** - Add to `TrackerType` enum in `core/ports/config_provider.py`
+10. **CLI Integration** - Update CLI help text and examples
+
+### Priority Trackers
+
+#### 1. GitLab Issues Adapter ✅ **COMPLETED**
+**Priority: High** | **Effort: Medium** | **Complexity: Medium**
+
+- [x] **Core Implementation**
+  - [x] Add `GITLAB` to `TrackerType` enum
+  - [x] Create `GitLabConfig` dataclass (token, project_id, base_url, group_id)
+  - [x] Implement `GitLabAdapter` with `IssueTrackerPort`
+  - [x] Create `GitLabApiClient` using GitLab REST API v4
+  - [x] Map Epic → Milestone or Epic issue type
+  - [x] Map Story → Issue with labels
+  - [x] Map Subtask → Issue with parent link or task list
+  - [x] Status mapping (open/closed + labels for workflow states)
+  - [x] Priority mapping (labels or issue weight)
+  - [x] Story points → Issue weight field
+
+- [x] **API Integration**
+  - [x] Authentication: Personal Access Token or OAuth
+  - [x] Endpoints: `/projects/:id/issues`, `/projects/:id/milestones`, `/groups/:id/epics`
+  - [x] Support GitLab.com and self-hosted instances
+  - [x] Rate limiting: 2000 requests/hour per user
+  - [x] Pagination: Use `page` and `per_page` parameters
+
+- [x] **Advanced Features**
+  - [x] Epic support (GitLab Premium/Ultimate feature)
+  - [ ] Issue boards integration (future enhancement)
+  - [ ] Merge request linking (future enhancement)
+  - [ ] Time tracking support (future enhancement)
+  - [x] Labels and milestones sync
+
+- [x] **Testing**
+  - [x] Unit tests for adapter methods (34 tests)
+  - [x] Unit tests for client (28 tests)
+  - [x] Integration tests with GitLab API (mocked)
+  - [x] Test self-hosted GitLab instances (via base_url config)
+  - [x] Test rate limiting and pagination
+
+- [x] **Dependencies**
+  - [x] `requests` (already in dependencies)
+  - [ ] Optional: `python-gitlab` SDK (consider for advanced features - not needed)
+
+- [ ] **Documentation**
+  - [ ] Configuration guide
+  - [ ] API authentication setup
+  - [ ] Self-hosted GitLab setup
+  - [ ] Epic vs Milestone mapping guide
+
+**Status**: ✅ **Core implementation complete** - 62 unit tests passing, all linting/type checks passing. Ready for use. Documentation pending.
+
+**Actual Time**: ~3 hours (faster than estimated due to good patterns from GitHub adapter)
+
+---
+
+#### 2. Monday.com Adapter
+**Priority: Medium** | **Effort: High** | **Complexity: High**
+
+- [ ] **Core Implementation**
+  - [ ] Add `MONDAY` to `TrackerType` enum
+  - [ ] Create `MondayConfig` dataclass (api_token, board_id, workspace_id)
+  - [ ] Implement `MondayAdapter` with `IssueTrackerPort`
+  - [ ] Create `MondayApiClient` using Monday.com GraphQL API
+  - [ ] Map Epic → Group (board group)
+  - [ ] Map Story → Item (board item)
+  - [ ] Map Subtask → Subitem or linked item
+  - [ ] Status mapping → Status column
+  - [ ] Priority mapping → Priority column
+  - [ ] Story points → Numbers column
+
+- [ ] **API Integration**
+  - [ ] Authentication: API Token (v2)
+  - [ ] GraphQL API endpoint: `https://api.monday.com/v2`
+  - [ ] Rate limiting: 500 requests per 10 seconds
+  - [ ] Webhooks support for real-time sync
+  - [ ] Custom column mapping configuration
+
+- [ ] **Advanced Features**
+  - [ ] Board structure mapping
+  - [ ] Custom columns support
+  - [ ] Timeline/Gantt view integration
+  - [ ] File attachments
+  - [ ] Updates (comments) sync
+
+- [ ] **Testing**
+  - [ ] Unit tests for GraphQL queries/mutations
+  - [ ] Integration tests with Monday.com API
+  - [ ] Test custom column mappings
+  - [ ] Test rate limiting
+
+- [ ] **Dependencies**
+  - [ ] `requests` + `graphql-core` (or custom GraphQL client)
+  - [ ] Consider: `gql` library for GraphQL
+
+- [ ] **Documentation**
+  - [ ] API token setup
+  - [ ] Board and column configuration
+  - [ ] Custom column mapping guide
+
+**Estimated Time**: 4-5 days
+
+---
+
+#### 3. Trello Adapter
+**Priority: Medium** | **Effort: Low-Medium** | **Complexity: Low**
+
+- [ ] **Core Implementation**
+  - [ ] Add `TRELLO` to `TrackerType` enum
+  - [ ] Create `TrelloConfig` dataclass (api_key, api_token, board_id)
+  - [ ] Implement `TrelloAdapter` with `IssueTrackerPort`
+  - [ ] Create `TrelloApiClient` using Trello REST API
+  - [ ] Map Epic → Board or List (epic list)
+  - [ ] Map Story → Card
+  - [ ] Map Subtask → Checklist item or linked card
+  - [ ] Status mapping → List (board lists)
+  - [ ] Priority mapping → Labels
+  - [ ] Story points → Custom field or card description
+
+- [ ] **API Integration**
+  - [ ] Authentication: API Key + Token (OAuth 1.0)
+  - [ ] Endpoints: `/boards/:id`, `/cards`, `/lists`, `/checklists`
+  - [ ] Rate limiting: 300 requests per 10 seconds
+  - [ ] Webhooks support
+
+- [ ] **Advanced Features**
+  - [ ] Card attachments
+  - [ ] Comments sync
+  - [ ] Due dates
+  - [ ] Labels and custom fields
+  - [ ] Power-Ups integration (optional)
+
+- [ ] **Testing**
+  - [ ] Unit tests for adapter methods
+  - [ ] Integration tests with Trello API
+  - [ ] Test checklist-based subtasks
+
+- [ ] **Dependencies**
+  - [ ] `requests` + `requests-oauthlib` for OAuth
+  - [ ] Or: `py-trello` library (wrapper)
+
+- [ ] **Documentation**
+  - [ ] API key/token setup
+  - [ ] Board and list configuration
+  - [ ] Checklist vs linked cards for subtasks
+
+**Estimated Time**: 2-3 days
+
+---
+
+#### 4. Shortcut (Clubhouse) Adapter
+**Priority: Medium** | **Effort: Medium** | **Complexity: Medium**
+
+- [ ] **Core Implementation**
+  - [ ] Add `SHORTCUT` to `TrackerType` enum
+  - [ ] Create `ShortcutConfig` dataclass (api_token, workspace_id)
+  - [ ] Implement `ShortcutAdapter` with `IssueTrackerPort`
+  - [ ] Create `ShortcutApiClient` using Shortcut REST API
+  - [ ] Map Epic → Epic
+  - [ ] Map Story → Story
+  - [ ] Map Subtask → Task (within story)
+  - [ ] Status mapping → Workflow State
+  - [ ] Priority mapping → Story priority
+  - [ ] Story points → Story estimate
+
+- [ ] **API Integration**
+  - [ ] Authentication: API Token
+  - [ ] Endpoints: `/epics`, `/stories`, `/tasks`
+  - [ ] Rate limiting: 200 requests per minute
+  - [ ] Webhooks support
+
+- [ ] **Advanced Features**
+  - [ ] Iterations (sprints) support
+  - [ ] Story types (feature, bug, chore)
+  - [ ] Story dependencies
+  - [ ] Comments and file attachments
+
+- [ ] **Testing**
+  - [ ] Unit tests for adapter methods
+  - [ ] Integration tests with Shortcut API
+  - [ ] Test workflow state transitions
+
+- [ ] **Dependencies**
+  - [ ] `requests` (already in dependencies)
+
+- [ ] **Documentation**
+  - [ ] API token setup
+  - [ ] Workspace configuration
+  - [ ] Workflow state mapping
+
+**Estimated Time**: 2-3 days
+
+---
+
+#### 5. ClickUp Adapter
+**Priority: Medium** | **Effort: High** | **Complexity: High**
+
+- [ ] **Core Implementation**
+  - [ ] Add `CLICKUP` to `TrackerType` enum
+  - [ ] Create `ClickUpConfig` dataclass (api_token, space_id, folder_id, list_id)
+  - [ ] Implement `ClickUpAdapter` with `IssueTrackerPort`
+  - [ ] Create `ClickUpApiClient` using ClickUp REST API v2
+  - [ ] Map Epic → Goal or Folder
+  - [ ] Map Story → Task
+  - [ ] Map Subtask → Subtask or Checklist item
+  - [ ] Status mapping → Status (custom statuses)
+  - [ ] Priority mapping → Priority
+  - [ ] Story points → Story points field
+
+- [ ] **API Integration**
+  - [ ] Authentication: API Token
+  - [ ] Endpoints: `/team/:team_id/space`, `/list/:list_id/task`, `/goal`
+  - [ ] Rate limiting: 100 requests per minute
+  - [ ] Webhooks support
+  - [ ] Custom fields support
+
+- [ ] **Advanced Features**
+  - [ ] Hierarchical structure (Space → Folder → List → Task)
+  - [ ] Custom fields mapping
+  - [ ] Time tracking
+  - [ ] Dependencies and relationships
+  - [ ] Comments and attachments
+  - [ ] Views (Board, List, Calendar)
+
+- [ ] **Testing**
+  - [ ] Unit tests for adapter methods
+  - [ ] Integration tests with ClickUp API
+  - [ ] Test custom fields and statuses
+
+- [ ] **Dependencies**
+  - [ ] `requests` (already in dependencies)
+
+- [ ] **Documentation**
+  - [ ] API token setup
+  - [ ] Space/Folder/List hierarchy
+  - [ ] Custom fields configuration
+
+**Estimated Time**: 4-5 days
+
+---
+
+#### 6. Bitbucket Cloud/Server Adapter
+**Priority: Medium** | **Effort: Medium** | **Complexity: Medium**
+
+- [ ] **Core Implementation**
+  - [ ] Add `BITBUCKET` to `TrackerType` enum
+  - [ ] Create `BitbucketConfig` dataclass (username, app_password, workspace, repo)
+  - [ ] Implement `BitbucketAdapter` with `IssueTrackerPort`
+  - [ ] Create `BitbucketApiClient` using Bitbucket REST API v2
+  - [ ] Map Epic → Milestone or Epic issue
+  - [ ] Map Story → Issue
+  - [ ] Map Subtask → Issue with parent link
+  - [ ] Status mapping → Issue state (new, open, resolved, closed)
+  - [ ] Priority mapping → Issue priority
+  - [ ] Story points → Custom field (if available)
+
+- [ ] **API Integration**
+  - [ ] Authentication: App Password (Cloud) or Personal Access Token (Server)
+  - [ ] Endpoints: `/repositories/:workspace/:repo/issues`, `/milestones`
+  - [ ] Support both Cloud and Server (self-hosted)
+  - [ ] Rate limiting: 1000 requests per hour (Cloud)
+  - [ ] Pagination: Use `page` parameter
+
+- [ ] **Advanced Features**
+  - [ ] Pull request linking
+  - [ ] Comments sync
+  - [ ] Attachments support
+  - [ ] Component and version fields
+
+- [ ] **Testing**
+  - [ ] Unit tests for adapter methods
+  - [ ] Integration tests with Bitbucket Cloud
+  - [ ] Test self-hosted Bitbucket Server
+  - [ ] Test rate limiting
+
+- [ ] **Dependencies**
+  - [ ] `requests` (already in dependencies)
+  - [ ] Optional: `atlassian-python-api` (for Server support)
+
+- [ ] **Documentation**
+  - [ ] App Password setup (Cloud)
+  - [ ] Personal Access Token setup (Server)
+  - [ ] Workspace and repository configuration
+
+**Estimated Time**: 2-3 days
+
+---
+
+#### 7. YouTrack Adapter
+**Priority: Low** | **Effort: Medium** | **Complexity: Medium**
+
+- [ ] **Core Implementation**
+  - [ ] Add `YOUTRACK` to `TrackerType` enum
+  - [ ] Create `YouTrackConfig` dataclass (url, token, project_id)
+  - [ ] Implement `YouTrackAdapter` with `IssueTrackerPort`
+  - [ ] Create `YouTrackApiClient` using YouTrack REST API
+  - [ ] Map Epic → Epic issue type
+  - [ ] Map Story → Task or User Story issue type
+  - [ ] Map Subtask → Subtask
+  - [ ] Status mapping → State field
+  - [ ] Priority mapping → Priority field
+  - [ ] Story points → Story points field
+
+- [ ] **API Integration**
+  - [ ] Authentication: Permanent Token or OAuth
+  - [ ] Endpoints: `/issues`, `/projects/:id/issues`
+  - [ ] Support Cloud and self-hosted instances
+  - [ ] Rate limiting: Varies by instance
+  - [ ] Custom fields support
+
+- [ ] **Advanced Features**
+  - [ ] Agile boards integration
+  - [ ] Sprints support
+  - [ ] Time tracking
+  - [ ] Custom fields mapping
+  - [ ] Workflow automation
+
+- [ ] **Testing**
+  - [ ] Unit tests for adapter methods
+  - [ ] Integration tests with YouTrack API
+  - [ ] Test custom fields
+
+- [ ] **Dependencies**
+  - [ ] `requests` (already in dependencies)
+
+- [ ] **Documentation**
+  - [ ] Token setup
+  - [ ] Project configuration
+  - [ ] Custom fields mapping
+
+**Estimated Time**: 2-3 days
+
+---
+
+#### 8. Basecamp Adapter
+**Priority: Low** | **Effort: Medium** | **Complexity: Medium**
+
+- [ ] **Core Implementation**
+  - [ ] Add `BASECAMP` to `TrackerType` enum
+  - [ ] Create `BasecampConfig` dataclass (access_token, account_id, project_id)
+  - [ ] Implement `BasecampAdapter` with `IssueTrackerPort`
+  - [ ] Create `BasecampApiClient` using Basecamp 3 API
+  - [ ] Map Epic → Project or Message Board category
+  - [ ] Map Story → Todo or Message
+  - [ ] Map Subtask → Todo list item
+  - [ ] Status mapping → Todo completion status
+  - [ ] Priority mapping → Not natively supported (use notes)
+  - [ ] Story points → Not natively supported (use notes)
+
+- [ ] **API Integration**
+  - [ ] Authentication: OAuth 2.0 (access token)
+  - [ ] Endpoints: `/projects/:id/todosets`, `/projects/:id/todos`, `/projects/:id/messages`
+  - [ ] Rate limiting: 40 requests per 10 seconds
+  - [ ] Webhooks support
+
+- [ ] **Advanced Features**
+  - [ ] Todo lists and todos
+  - [ ] Message boards
+  - [ ] Comments and file attachments
+  - [ ] Campfire (chat) integration (optional)
+
+- [ ] **Testing**
+  - [ ] Unit tests for adapter methods
+  - [ ] Integration tests with Basecamp API
+  - [ ] Test OAuth flow
+
+- [ ] **Dependencies**
+  - [ ] `requests` + `requests-oauthlib` for OAuth
+
+- [ ] **Documentation**
+  - [ ] OAuth setup
+  - [ ] Account and project configuration
+  - [ ] Todo vs Message mapping
+
+**Estimated Time**: 2-3 days
+
+---
+
+#### 9. Plane.so Adapter
+**Priority: Low** | **Effort: Medium** | **Complexity: Medium**
+
+- [ ] **Core Implementation**
+  - [ ] Add `PLANE` to `TrackerType` enum
+  - [ ] Create `PlaneConfig` dataclass (api_token, workspace_slug, project_id)
+  - [ ] Implement `PlaneAdapter` with `IssueTrackerPort`
+  - [ ] Create `PlaneApiClient` using Plane REST API
+  - [ ] Map Epic → Cycle or Module
+  - [ ] Map Story → Issue
+  - [ ] Map Subtask → Sub-issue or checklist item
+  - [ ] Status mapping → State
+  - [ ] Priority mapping → Priority
+  - [ ] Story points → Estimate
+
+- [ ] **API Integration**
+  - [ ] Authentication: API Token
+  - [ ] Endpoints: `/workspaces/:slug/projects/:id/issues`, `/cycles`, `/modules`
+  - [ ] Support self-hosted instances
+  - [ ] Rate limiting: Varies by instance
+  - [ ] Webhooks support
+
+- [ ] **Advanced Features**
+  - [ ] Cycles (sprints) support
+  - [ ] Modules (epics) support
+  - [ ] Views and filters
+  - [ ] Labels and assignees
+  - [ ] Comments and attachments
+
+- [ ] **Testing**
+  - [ ] Unit tests for adapter methods
+  - [ ] Integration tests with Plane API
+  - [ ] Test self-hosted instances
+
+- [ ] **Dependencies**
+  - [ ] `requests` (already in dependencies)
+
+- [ ] **Documentation**
+  - [ ] API token setup
+  - [ ] Workspace and project configuration
+  - [ ] Self-hosted setup
+
+**Estimated Time**: 2-3 days
+
+---
+
+#### 10. Pivotal Tracker Adapter
+**Priority: Low** | **Effort: Low-Medium** | **Complexity: Low**
+
+- [ ] **Core Implementation**
+  - [ ] Add `PIVOTAL` to `TrackerType` enum
+  - [ ] Create `PivotalConfig` dataclass (api_token, project_id)
+  - [ ] Implement `PivotalAdapter` with `IssueTrackerPort`
+  - [ ] Create `PivotalApiClient` using Pivotal Tracker REST API v5
+  - [ ] Map Epic → Epic
+  - [ ] Map Story → Story
+  - [ ] Map Subtask → Task (within story)
+  - [ ] Status mapping → Current State
+  - [ ] Priority mapping → Story priority
+  - [ ] Story points → Story estimate
+
+- [ ] **API Integration**
+  - [ ] Authentication: API Token
+  - [ ] Endpoints: `/projects/:id/stories`, `/projects/:id/epics`
+  - [ ] Rate limiting: 400 requests per 15 minutes
+  - [ ] Webhooks support
+
+- [ ] **Advanced Features**
+  - [ ] Iterations support
+  - [ ] Story types (feature, bug, chore, release)
+  - [ ] Labels
+  - [ ] Comments and file attachments
+  - [ ] Activity feed
+
+- [ ] **Testing**
+  - [ ] Unit tests for adapter methods
+  - [ ] Integration tests with Pivotal Tracker API
+  - [ ] Test story state transitions
+
+- [ ] **Dependencies**
+  - [ ] `requests` (already in dependencies)
+
+- [ ] **Documentation**
+  - [ ] API token setup
+  - [ ] Project configuration
+  - [ ] Story type mapping
+
+**Estimated Time**: 1-2 days
+
+---
+
+### Implementation Checklist Template
+
+For each new tracker adapter, follow this checklist:
+
+- [ ] **1. Core Setup**
+  - [ ] Add tracker type to `TrackerType` enum
+  - [ ] Create config dataclass in `config_provider.py`
+  - [ ] Create adapter package directory structure
+  - [ ] Add `__init__.py` exports
+
+- [ ] **2. API Client**
+  - [ ] Implement low-level HTTP client
+  - [ ] Handle authentication
+  - [ ] Implement rate limiting
+  - [ ] Handle pagination
+  - [ ] Error handling and retries
+
+- [ ] **3. Adapter Implementation**
+  - [ ] Implement `IssueTrackerPort` interface
+  - [ ] Map domain entities to tracker model
+  - [ ] Implement all required methods
+  - [ ] Handle edge cases
+
+- [ ] **4. Factory Integration**
+  - [ ] Add to `create_tracker_factory()` in `core/services.py`
+  - [ ] Update CLI help text
+  - [ ] Add tracker to orchestrator detection logic
+
+- [ ] **5. Testing**
+  - [ ] Unit tests for adapter
+  - [ ] Unit tests for client
+  - [ ] Integration tests (with mock API)
+  - [ ] Contract tests (verify `IssueTrackerPort` compliance)
+  - [ ] Edge case tests
+
+- [ ] **6. Optional Features**
+  - [ ] Async adapter implementation
+  - [ ] Batch operations client
+  - [ ] Caching support
+  - [ ] Plugin registration
+
+- [ ] **7. Documentation**
+  - [ ] Configuration guide
+  - [ ] Authentication setup
+  - [ ] API mapping documentation
+  - [ ] Examples and use cases
+
+- [ ] **8. Validation**
+  - [ ] Run `ruff format src tests && ruff check src tests --fix`
+  - [ ] Run `mypy src/spectra`
+  - [ ] Run `pytest` and ensure all tests pass
+  - [ ] Manual testing with real tracker instance
 
 ---
 
@@ -339,26 +862,26 @@
 
 ## 📊 Summary
 
-| Category | Item Count |
-|----------|------------|
-| High Priority | 3 |
-| Medium Priority (Quality) | 20+ |
-| New Tracker Integrations | 10 |
-| New Document Formats | 10 |
-| CLI & Developer Experience | 25+ |
-| Advanced Sync Features | 20+ |
-| AI & Intelligence | 15 |
-| IDE Integrations | 12 |
-| Enterprise Features | 10 |
-| Performance & Scalability | 10 |
-| Infrastructure & DevOps | 10 |
-| Documentation & Community | 15 |
-| Technical Improvements | 15 |
-| Accessibility & i18n | 5 |
-| Parser Improvements | 8 |
-| Quick Wins | 15+ |
+| Category | Item Count | Completed |
+|----------|------------|-----------|
+| High Priority | 3 | 3 |
+| Medium Priority (Quality) | 20+ | 20+ |
+| New Tracker Integrations | 10 | 1 (GitLab) |
+| New Document Formats | 10 | 0 |
+| CLI & Developer Experience | 25+ | 0 |
+| Advanced Sync Features | 20+ | 0 |
+| AI & Intelligence | 15 | 0 |
+| IDE Integrations | 12 | 0 |
+| Enterprise Features | 10 | 0 |
+| Performance & Scalability | 10 | 0 |
+| Infrastructure & DevOps | 10 | 0 |
+| Documentation & Community | 15 | 0 |
+| Technical Improvements | 15 | 0 |
+| Accessibility & i18n | 5 | 0 |
+| Parser Improvements | 8 | 0 |
+| Quick Wins | 15+ | 0 |
 
-**Total: 190+ improvement opportunities**
+**Total: 190+ improvement opportunities** | **Completed: 24+ (including GitLab adapter)**
 
 ---
 
@@ -372,9 +895,9 @@
 5. Documentation updates
 
 ### Phase 2: High Impact (1-2 months)
-1. Integration tests for all trackers
-2. Asana adapter parity verification
-3. GitLab Issues Adapter
+1. Integration tests for all trackers ✅
+2. Asana adapter parity verification ✅
+3. GitLab Issues Adapter ✅ **COMPLETED**
 4. Incremental sync optimization
 5. Interactive TUI dashboard
 

@@ -1155,6 +1155,10 @@ class SyncOrchestrator:
             tracker_type = TrackerType.LINEAR
         elif "azure" in adapter_name:
             tracker_type = TrackerType.AZURE_DEVOPS
+        elif "gitlab" in adapter_name:
+            tracker_type = TrackerType.GITLAB
+        elif "asana" in adapter_name:
+            tracker_type = TrackerType.ASANA
 
         if not base_url:
             result.add_warning("Could not determine tracker base URL for source update")
@@ -1233,6 +1237,14 @@ class SyncOrchestrator:
             return f"{base_url}/issue/{issue_key}"
         if tracker_type == TrackerType.AZURE_DEVOPS:
             return f"{base_url}/_workitems/edit/{issue_key}"
+        if tracker_type == TrackerType.ASANA:
+            return f"{base_url}/0/0/{issue_key}"
+        if tracker_type == TrackerType.GITLAB:
+            # GitLab URLs: https://gitlab.com/group/project/-/issues/123
+            issue_iid = issue_key.lstrip("#")
+            # Base URL is API URL, convert to web URL
+            web_url = base_url.replace("/api/v4", "").rstrip("/")
+            return f"{web_url}/-/issues/{issue_iid}"
         return f"{base_url}/{issue_key}"
 
     # -------------------------------------------------------------------------

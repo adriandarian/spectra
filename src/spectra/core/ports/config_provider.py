@@ -20,6 +20,7 @@ class TrackerType(Enum):
     LINEAR = "linear"
     AZURE_DEVOPS = "azure_devops"
     ASANA = "asana"
+    GITLAB = "gitlab"
 
 
 @dataclass
@@ -100,6 +101,38 @@ class AzureDevOpsConfig:
     def is_valid(self) -> bool:
         """Check if configuration is valid."""
         return bool(self.organization and self.project and self.pat)
+
+
+@dataclass
+class GitLabConfig:
+    """Configuration for GitLab Issues tracker."""
+
+    token: str  # Personal Access Token or OAuth token
+    project_id: str  # Project ID (numeric or path like 'group/project')
+    base_url: str = "https://gitlab.com/api/v4"
+    group_id: str | None = None  # Optional group ID for epics (Premium/Ultimate)
+
+    # Label configuration
+    epic_label: str = "epic"
+    story_label: str = "story"
+    subtask_label: str = "subtask"
+
+    # Status label mapping (GitLab only has open/closed, use labels for workflow)
+    status_labels: dict[str, str] = field(
+        default_factory=lambda: {
+            "open": "status:open",
+            "in progress": "status:in-progress",
+            "done": "status:done",
+            "closed": "status:done",
+        }
+    )
+
+    # Use milestones for epics (default) or epic issue type (Premium/Ultimate)
+    use_epics: bool = False  # Set to True if Premium/Ultimate and using Epic issue type
+
+    def is_valid(self) -> bool:
+        """Check if configuration is valid."""
+        return bool(self.token and self.project_id)
 
 
 # =============================================================================

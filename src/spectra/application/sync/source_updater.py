@@ -652,6 +652,7 @@ class SourceFileUpdater:
             TrackerType.LINEAR: "Linear",
             TrackerType.AZURE_DEVOPS: "Azure DevOps",
             TrackerType.ASANA: "Asana",
+            TrackerType.GITLAB: "GitLab",
         }
         return names.get(tracker_type, tracker_type.value.title())
 
@@ -686,6 +687,14 @@ class SourceFileUpdater:
             # Asana URLs: https://app.asana.com/0/project_gid/task_gid
             # The issue_key is typically the task GID
             return f"{self.base_url}/0/0/{issue_key}"
+
+        if self.tracker_type == TrackerType.GITLAB:
+            # GitLab URLs: https://gitlab.com/group/project/-/issues/123
+            # Extract IID from key like "#123" or "123"
+            issue_iid = issue_key.lstrip("#")
+            # Base URL is API URL, convert to web URL
+            web_url = self.base_url.replace("/api/v4", "").rstrip("/")
+            return f"{web_url}/-/issues/{issue_iid}"
 
         # Fallback for unknown trackers
         return f"{self.base_url}/{issue_key}"
