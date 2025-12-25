@@ -120,6 +120,9 @@ verbose = true
 | `TRELLO_BOARD_ID` | Trello board ID (alphanumeric, from board URL) |
 | `TRELLO_API_URL` | Trello API endpoint (default: `https://api.trello.com/1`) |
 | `TRELLO_SUBTASK_MODE` | Subtask mode: `checklist` (default) or `linked_card` |
+| `SHORTCUT_API_TOKEN` | Shortcut API token ([generate here](https://app.shortcut.com/settings/api-tokens)) |
+| `SHORTCUT_WORKSPACE_ID` | Shortcut workspace ID (UUID or slug) |
+| `SHORTCUT_API_URL` | Shortcut API endpoint (default: `https://api.app.shortcut.com/api/v3`) |
 | `MD2JIRA_VERBOSE` | Enable verbose output (`true`/`false`) |
 
 ## .env File
@@ -214,6 +217,16 @@ See [GitLab Integration Guide](/guide/gitlab) for detailed configuration example
 | `monday.story_points_column_id` | string | Story points column ID (auto-detected if not specified) |
 
 See [Monday.com Integration Guide](/guide/monday) for detailed configuration examples.
+
+### Shortcut Settings
+
+| Setting | Type | Description |
+|---------|------|-------------|
+| `shortcut.api_token` | string | Shortcut API token (required) |
+| `shortcut.workspace_id` | string | Shortcut workspace ID (UUID or slug, required) |
+| `shortcut.api_url` | string | API endpoint (default: `https://api.app.shortcut.com/api/v3`) |
+
+See [Shortcut Integration Guide](/guide/shortcut) for detailed configuration examples.
 
 ### Sync Settings
 

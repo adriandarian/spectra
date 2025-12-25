@@ -23,6 +23,7 @@ class TrackerType(Enum):
     GITLAB = "gitlab"
     MONDAY = "monday"
     TRELLO = "trello"
+    SHORTCUT = "shortcut"
 
 
 @dataclass
@@ -185,6 +186,19 @@ class TrelloConfig:
     def is_valid(self) -> bool:
         """Check if configuration is valid."""
         return bool(self.api_key and self.api_token and self.board_id)
+
+
+@dataclass
+class ShortcutConfig:
+    """Configuration for Shortcut (formerly Clubhouse) tracker."""
+
+    api_token: str
+    workspace_id: str
+    api_url: str = "https://api.app.shortcut.com/api/v3"
+
+    def is_valid(self) -> bool:
+        """Check if configuration is valid."""
+        return bool(self.api_token and self.workspace_id)
 
 
 # =============================================================================

@@ -60,7 +60,7 @@ def create_tracker_factory(
     Create a factory function for the issue tracker.
 
     Args:
-        tracker_type: Type of tracker ('jira', 'github', 'azure', 'linear', 'asana', 'gitlab', 'monday')
+        tracker_type: Type of tracker ('jira', 'github', 'azure', 'linear', 'asana', 'gitlab', 'monday', 'trello', 'shortcut')
 
     Returns:
         Factory function that creates the tracker
@@ -155,6 +155,18 @@ def create_tracker_factory(
             return TrelloAdapter(
                 config=config,
                 dry_run=is_dry_run,
+            )
+        if tracker_type == "shortcut":
+            from spectra.adapters.shortcut import ShortcutAdapter
+            from spectra.core.ports.config_provider import ShortcutConfig
+
+            if not isinstance(config, ShortcutConfig):
+                raise ValueError("Shortcut adapter requires ShortcutConfig")
+            return ShortcutAdapter(
+                api_token=config.api_token,
+                workspace_id=config.workspace_id,
+                dry_run=is_dry_run,
+                api_url=config.api_url,
             )
         raise ValueError(f"Unknown tracker type: {tracker_type}")
 
