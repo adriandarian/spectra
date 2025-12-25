@@ -9,7 +9,7 @@
 
 **The Universal Bridge between Product Specifications and Issue Trackers**
 
-*Synchronize Markdown, YAML, JSON, and Notion specs with Jira, GitHub, Linear, Azure DevOps, Asana, GitLab, Trello, Monday.com, and Shortcut*
+*Synchronize Markdown, YAML, JSON, and Notion specs with Jira, GitHub, Linear, Azure DevOps, Asana, GitLab, Trello, Monday.com, Shortcut, ClickUp, Bitbucket, YouTrack, and Confluence*
 
 [Core Features](#-core-features) •
 [Installation](#-installation) •
@@ -32,7 +32,7 @@ Whether you write stories in Markdown, manage roadmaps in YAML, or organize feat
 
 ## ✨ Core Features
 
-- 🔄 **Universal Sync** - Multi-platform support for Jira, GitHub, Linear, Azure DevOps, Asana, GitLab, Trello, Monday.com, and Shortcut.
+- 🔄 **Universal Sync** - Multi-platform support for Jira, GitHub, Linear, Azure DevOps, Asana, GitLab, Trello, Monday.com, Shortcut, ClickUp, Bitbucket, YouTrack, and Confluence.
 - 📝 **Rich Input Formats** - Support for Markdown, YAML, TOML, JSON, CSV, and even Notion.
 - 🤖 **AI-Assisted Fixing** - Intelligent validation and auto-fixing of specifications using Claude, Ollama, or Aider.
 - 🛡️ **Safe by Design** - Mandatory dry-runs, detailed diff previews, and automatic backups.
@@ -46,15 +46,18 @@ Whether you write stories in Markdown, manage roadmaps in YAML, or organize feat
 | **Inputs (Parsers)** | **Outputs (Trackers)** |
 |:--- |:--- |
 | ✅ **Markdown** (Standard & GFM) | ✅ **Jira** (Cloud & Data Center) |
-| ✅ **YAML** & **TOML** | ✅ **GitHub Issues** |
-| ✅ **JSON** & **CSV/Excel** | ✅ **Linear** |
-| ✅ **Notion** | ✅ **Azure DevOps** |
-| ✅ **AsciiDoc** | ✅ **Confluence** |
-|  | ✅ **Asana** |
-|  | ✅ **GitLab** |
-|  | ✅ **Trello** |
+| ✅ **YAML** | ✅ **GitHub Issues** |
+| ✅ **TOML** | ✅ **Linear** |
+| ✅ **JSON** | ✅ **Azure DevOps** |
+| ✅ **CSV/Excel** | ✅ **Confluence** |
+| ✅ **AsciiDoc** | ✅ **Asana** |
+| ✅ **Notion** | ✅ **GitLab** |
+| ✅ **TOON** | ✅ **Trello** |
 |  | ✅ **Monday.com** |
 |  | ✅ **Shortcut** |
+|  | ✅ **ClickUp** |
+|  | ✅ **Bitbucket** |
+|  | ✅ **YouTrack** |
 
 ---
 

@@ -101,8 +101,8 @@ Each tracker adapter requires:
   - [x] Labels and milestones sync
 
 - [x] **Testing**
-  - [x] Unit tests for adapter methods (34 tests)
-  - [x] Unit tests for client (28 tests)
+  - [x] Unit tests for adapter methods (52 tests)
+  - [x] Unit tests for client (42 tests)
   - [x] Integration tests with GitLab API (mocked)
   - [x] Test self-hosted GitLab instances (via base_url config)
   - [x] Test rate limiting and pagination
@@ -117,13 +117,13 @@ Each tracker adapter requires:
   - [x] Self-hosted GitLab setup - Configuration and SSL/TLS guidance
   - [x] Epic vs Milestone mapping guide - Detailed comparison and use cases
 
-**Status**: ✅ **Core implementation complete** - 62 unit tests passing, all linting/type checks passing. Ready for use. Documentation pending.
+**Status**: ✅ **Core implementation complete** - 94 unit tests passing, all linting/type checks passing. Ready for use.
 
 **Actual Time**: ~3 hours (faster than estimated due to good patterns from GitHub adapter)
 
 ---
 
-#### 2. Monday.com Adapter
+#### 2. Monday.com Adapter ✅ **COMPLETED**
 **Priority: Medium** | **Effort: High** | **Complexity: High**
 
 - [x] **Core Implementation**
@@ -167,6 +167,8 @@ Each tracker adapter requires:
   - [x] Board and column configuration
   - [x] Custom column mapping guide
 
+**Status**: ✅ **Core implementation complete** - 41 unit tests passing, all linting/type checks passing. Ready for use.
+
 **Estimated Time**: 4-5 days
 
 ---
@@ -195,7 +197,7 @@ Each tracker adapter requires:
 - [x] **Advanced Features**
   - [x] Card attachments ✅ **COMPLETED** - Full support for get/upload/delete attachments
   - [x] Comments sync
-  - [x] Due dates (supported via API, not yet mapped in adapter)
+  - [ ] Due dates (Trello API supports, not yet mapped in adapter)
   - [x] Labels and custom fields
   - [x] Power-Ups integration (list Power-Ups, custom fields support)
 
@@ -216,7 +218,7 @@ Each tracker adapter requires:
   - [x] Added to main configuration guide (`docs/guide/configuration.md`)
   - [x] Updated homepage to include Trello in supported trackers
 
-**Status**: ✅ **Core implementation complete** - 54 unit tests passing (including webhook, Power-Ups, and attachment support), all linting/type checks passing. Ready for use. Documentation pending.
+**Status**: ✅ **Core implementation complete** - 56 unit tests passing (including webhook, Power-Ups, and attachment support), all linting/type checks passing. Ready for use.
 
 **Actual Time**: ~4 hours (faster than estimated due to good patterns from Linear/GitHub adapters)
 
@@ -247,7 +249,8 @@ Each tracker adapter requires:
   - [x] Iterations (sprints) support ✅ **COMPLETED** - Full support for create/list/get/update/delete iterations and assign/remove stories
   - [x] Story types (feature, bug, chore) - supported via API
   - [x] Story dependencies ✅ **COMPLETED** - Full support for get/create/delete dependencies with LinkType mapping
-  - [x] Comments and file attachments (comments supported, attachments future enhancement)
+  - [x] Comments sync
+  - [ ] File attachments (not yet implemented)
 
 - [x] **Testing**
   - [x] Unit tests for adapter methods (61 tests including webhooks and iterations)
@@ -262,7 +265,7 @@ Each tracker adapter requires:
   - [x] Workspace configuration - Comprehensive guide with examples
   - [x] Workflow state mapping - Detailed mapping table and custom state guide
 
-**Status**: ✅ **Core implementation complete** - 61 unit tests passing (including webhooks and iterations), all linting/type checks passing. Ready for use. Documentation pending.
+**Status**: ✅ **Core implementation complete** - 63 unit tests passing (including webhooks and iterations), all linting/type checks passing. Ready for use.
 
 **Actual Time**: ~4 hours (faster than estimated due to good patterns from Linear/GitHub adapters)
 
@@ -295,7 +298,8 @@ Each tracker adapter requires:
   - [x] Custom fields mapping
   - [x] Time tracking ✅ **COMPLETED** - Full support for time entries, stats, create/update/delete
   - [x] Dependencies and relationships ✅ **COMPLETED** - Full support for task dependencies with LinkType mapping
-  - [x] Comments and attachments (comments supported, attachments future enhancement)
+  - [x] Comments sync
+  - [ ] File attachments (not yet implemented)
   - [x] Views (Board, List, Calendar) ✅ **COMPLETED** - Full support for getting views and view tasks
 
 - [x] **Testing**
@@ -312,13 +316,13 @@ Each tracker adapter requires:
   - [x] Custom fields configuration - Detailed instructions for story points and custom fields
   - [x] Added to main configuration guide (`docs/guide/configuration.md`)
 
-**Status**: ✅ **Core implementation complete** - 59 unit tests passing (including 18 webhook tests, 5 time tracking tests, 7 dependency tests, 4 views tests), all linting/type checks passing. Ready for use. Documentation pending.
+**Status**: ✅ **Core implementation complete** - 61 unit tests passing (including 18 webhook tests, 5 time tracking tests, 7 dependency tests, 4 views tests), all linting/type checks passing. Ready for use.
 
 **Actual Time**: ~4 hours (faster than estimated due to good patterns from Linear/GitHub adapters)
 
 ---
 
-#### 6. Bitbucket Cloud/Server Adapter
+#### 6. Bitbucket Cloud/Server Adapter ✅ **COMPLETED**
 **Priority: Medium** | **Effort: Medium** | **Complexity: Medium**
 
 - [x] **Core Implementation**
@@ -361,6 +365,8 @@ Each tracker adapter requires:
   - [x] Personal Access Token setup (Server)
   - [x] Workspace and repository configuration
 
+**Status**: ✅ **Core implementation complete** - 42 unit tests passing, all linting/type checks passing. Ready for use.
+
 **Estimated Time**: 2-3 days
 
 ---
@@ -387,7 +393,7 @@ Each tracker adapter requires:
   - [x] Endpoints: `/issues`, `/api/issues`
   - [x] Support Cloud and self-hosted instances
   - [x] Rate limiting: Retry with exponential backoff
-  - [x] Custom fields support
+  - [ ] Custom fields support (only story points implemented, not full custom fields)
 
 - [ ] **Advanced Features** (Optional - Future Enhancements)
 
@@ -412,10 +418,10 @@ Each tracker adapter requires:
 
 - [x] **Testing**
   - [x] Unit tests for adapter methods (28 tests)
-  - [x] Unit tests for API client (basic tests in adapter file, needs dedicated test_youtrack_client.py)
+  - [ ] Unit tests for API client (needs dedicated test_youtrack_client.py)
   - [x] Contract tests for adapter interface compliance (6 tests)
   - [x] Integration tests with mocked YouTrack API responses (11 tests)
-  - [x] Test custom fields
+  - [x] Test custom fields (story points only)
   - [ ] Test rate limiting and retry logic
   - [ ] Test error handling (403, 500, network errors, timeouts)
   - [ ] Test edge cases (empty responses, malformed JSON, connection errors)
@@ -431,7 +437,7 @@ Each tracker adapter requires:
   - [x] Project configuration
   - [x] Custom fields mapping
 
-**Status**: ✅ **Core implementation complete** - 45 tests passing (28 unit + 6 contract + 11 integration), all linting/type checks passing. Ready for production use. The adapter supports all essential IssueTrackerPort operations: create/read/update issues, subtasks, comments, links, status transitions, and search. Advanced features listed above are optional enhancements that can be added incrementally based on user needs.
+**Status**: ✅ **Core implementation complete** - 45 tests passing (28 unit + 6 contract + 11 integration), all linting/type checks passing. Ready for basic use. Supports core IssueTrackerPort operations: create/read/update issues, subtasks, comments, links, status transitions, and search. Story points custom field is supported; full custom fields support is not yet implemented. Dedicated client tests and advanced features are pending.
 
 **Estimated Time**: 2-3 days (core) | Advanced features: 1-2 days each
 
@@ -902,7 +908,7 @@ For each new tracker adapter, follow this checklist:
 |----------|------------|-----------|
 | High Priority | 3 | 3 |
 | Medium Priority (Quality) | 20+ | 20+ |
-| New Tracker Integrations | 10 | 4 (GitLab, Trello, Shortcut, ClickUp) |
+| New Tracker Integrations | 10 | 7 (GitLab, Monday.com, Trello, Shortcut, ClickUp, Bitbucket, YouTrack) |
 | New Document Formats | 10 | 0 |
 | CLI & Developer Experience | 25+ | 0 |
 | Advanced Sync Features | 20+ | 0 |
@@ -917,7 +923,7 @@ For each new tracker adapter, follow this checklist:
 | Parser Improvements | 8 | 0 |
 | Quick Wins | 15+ | 0 |
 
-**Total: 190+ improvement opportunities** | **Completed: 27+ (including GitLab, Trello, Shortcut, and ClickUp adapters)**
+**Total: 190+ improvement opportunities** | **Completed: 30+ (including GitLab, Monday.com, Trello, Shortcut, ClickUp, Bitbucket, and YouTrack adapters)**
 
 ---
 
@@ -939,7 +945,7 @@ For each new tracker adapter, follow this checklist:
 6. Interactive TUI dashboard
 
 ### Phase 3: Major Features (3-6 months)
-1. Additional tracker adapters (Monday.com ✅, Shortcut ✅, ClickUp ✅)
+1. Additional tracker adapters (Monday.com ✅, Shortcut ✅, ClickUp ✅, Bitbucket ✅, YouTrack ✅)
 2. AI/ML features (story generation, quality scoring)
 3. Bidirectional sync with conflict resolution
 4. JetBrains IDE plugin

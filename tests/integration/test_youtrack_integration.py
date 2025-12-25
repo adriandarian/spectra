@@ -160,9 +160,7 @@ class TestYouTrackIntegration:
         assert issue.story_points == 5
 
     @patch("spectra.adapters.youtrack.client.requests.Session")
-    def test_search_issues(
-        self, mock_session, youtrack_config, mock_issues_list_response
-    ):
+    def test_search_issues(self, mock_session, youtrack_config, mock_issues_list_response):
         """Test searching for issues."""
         mock_response = Mock()
         mock_response.ok = True
@@ -195,9 +193,7 @@ class TestYouTrackIntegration:
         assert issues[1].key == "PROJ-11"
 
     @patch("spectra.adapters.youtrack.client.requests.Session")
-    def test_create_subtask(
-        self, mock_session, youtrack_config, mock_issue_response
-    ):
+    def test_create_subtask(self, mock_session, youtrack_config, mock_issue_response):
         """Test creating a subtask."""
         # Mock issue creation response
         create_response = Mock()
@@ -222,7 +218,7 @@ class TestYouTrackIntegration:
                 return create_response
             if method == "POST" and "links" in endpoint:
                 return link_response
-            return Mock(ok=True, json=lambda: {}, text="{}")
+            return Mock(ok=True, json=dict, text="{}")
 
         mock_session.return_value.request.side_effect = side_effect
 
@@ -238,9 +234,7 @@ class TestYouTrackIntegration:
         assert subtask_id == "PROJ-125"
 
     @patch("spectra.adapters.youtrack.client.requests.Session")
-    def test_update_issue_description(
-        self, mock_session, youtrack_config, mock_issue_response
-    ):
+    def test_update_issue_description(self, mock_session, youtrack_config, mock_issue_response):
         """Test updating issue description."""
         update_response = Mock()
         update_response.ok = True
@@ -270,9 +264,7 @@ class TestYouTrackIntegration:
         assert result is True
 
     @patch("spectra.adapters.youtrack.client.requests.Session")
-    def test_transition_issue(
-        self, mock_session, youtrack_config, mock_states_response
-    ):
+    def test_transition_issue(self, mock_session, youtrack_config, mock_states_response):
         """Test transitioning an issue."""
         transition_response = Mock()
         transition_response.ok = True
@@ -302,9 +294,7 @@ class TestYouTrackIntegration:
         assert result is True
 
     @patch("spectra.adapters.youtrack.client.requests.Session")
-    def test_get_epic_children(
-        self, mock_session, youtrack_config, mock_issues_list_response
-    ):
+    def test_get_epic_children(self, mock_session, youtrack_config, mock_issues_list_response):
         """Test getting epic children."""
         search_response = Mock()
         search_response.ok = True
@@ -360,4 +350,3 @@ class TestYouTrackIntegration:
 
         with pytest.raises(IssueTrackerError):
             adapter.get_issue("PROJ-999")
-

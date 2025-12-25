@@ -59,21 +59,21 @@ class TestGitLabSdkClient:
 
     def test_initialization(self, mock_gitlab):
         """Should initialize SDK client."""
-        mock_gl, mock_project = mock_gitlab
+        _mock_gl, _mock_project = mock_gitlab
         client = GitLabSdkClient(token="test", project_id="123", dry_run=True)
         assert client.project_id == "123"
         assert client.dry_run is True
 
     def test_get_authenticated_user(self, mock_gitlab):
         """Should get authenticated user."""
-        mock_gl, mock_project = mock_gitlab
+        _mock_gl, _mock_project = mock_gitlab
         client = GitLabSdkClient(token="test", project_id="123", dry_run=True)
         user = client.get_authenticated_user()
         assert user["username"] == "testuser"
 
     def test_get_issue(self, mock_gitlab):
         """Should get issue using SDK."""
-        mock_gl, mock_project = mock_gitlab
+        _mock_gl, mock_project = mock_gitlab
         mock_issue = MagicMock()
         mock_issue.iid = 123
         mock_issue.id = 456789
@@ -95,7 +95,7 @@ class TestGitLabSdkClient:
 
     def test_create_issue_dry_run(self, mock_gitlab):
         """Should not create issue in dry-run mode."""
-        mock_gl, mock_project = mock_gitlab
+        _mock_gl, mock_project = mock_gitlab
         client = GitLabSdkClient(token="test", project_id="123", dry_run=True)
         result = client.create_issue(title="Test", description="Desc")
         assert result == {}
@@ -103,7 +103,7 @@ class TestGitLabSdkClient:
 
     def test_list_labels(self, mock_gitlab):
         """Should list labels using SDK."""
-        mock_gl, mock_project = mock_gitlab
+        _mock_gl, mock_project = mock_gitlab
         mock_label = MagicMock()
         mock_label.name = "bug"
         mock_label.color = "#ff0000"
@@ -118,6 +118,6 @@ class TestGitLabSdkClient:
 
     def test_test_connection(self, mock_gitlab):
         """Should test connection."""
-        mock_gl, mock_project = mock_gitlab
+        _mock_gl, _mock_project = mock_gitlab
         client = GitLabSdkClient(token="test", project_id="123", dry_run=True)
         assert client.test_connection() is True
