@@ -513,6 +513,141 @@ class YouTrackApiClient:
             return values if isinstance(values, list) else []
         return []
 
+    # -------------------------------------------------------------------------
+    # Custom Fields API
+    # -------------------------------------------------------------------------
+
+    def get_project_custom_fields(self, project_id: str) -> list[dict[str, Any]]:
+        """
+        Get all custom field definitions for a project.
+
+        Args:
+            project_id: Project short name or ID
+
+        Returns:
+            List of custom field definitions with id, name, type, etc.
+        """
+        result = self.get(
+            f"admin/projects/{project_id}/customFields",
+            params={"fields": "id,name,field(id,name,fieldType(id,presentation))"},
+        )
+        return result if isinstance(result, list) else []
+
+    def get_issue_custom_fields(self, issue_id: str) -> list[dict[str, Any]]:
+        """
+        Get all custom field values for an issue.
+
+        Args:
+            issue_id: Issue ID (e.g., "PROJ-123")
+
+        Returns:
+            List of custom field values with name, value, etc.
+        """
+        result = self.get(
+            f"issues/{issue_id}/customFields",
+            params={"fields": "id,name,value(id,name,presentation,text,login,email),$type"},
+        )
+        return result if isinstance(result, list) else []
+
+    def get_issue_custom_field(
+        self,
+        issue_id: str,
+        field_name: str,
+    ) -> dict[str, Any] | None:
+        """
+        Get a specific custom field value for an issue.
+
+        Args:
+            issue_id: Issue ID (e.g., "PROJ-123")
+            field_name: Custom field name
+
+        Returns:
+            Custom field value dict, or None if not found
+        """
+        fields = self.get_issue_custom_fields(issue_id)
+        for field in fields:
+            if field.get("name") == field_name:
+                return field
+        return None
+
+    def update_issue_custom_field(
+        self,
+        issue_id: str,
+        field_name: str,
+        value: Any,
+    ) -> dict[str, Any]:
+        """
+        Update a custom field value for an issue.
+
+        Args:
+            issue_id: Issue ID (e.g., "PROJ-123")
+            field_name: Custom field name
+            value: New value (format depends on field type)
+                   - Simple values: str, int, float
+                   - Enum fields: {"name": "value"} or just "value"
+                   - User fields: {"login": "username"}
+                   - Date fields: timestamp in milliseconds
+
+        Returns:
+            Updated custom field data
+        """
+        # First, find the field ID
+        fields = self.get_issue_custom_fields(issue_id)
+        field_id = None
+        field_type = None
+
+        for field in fields:
+            if field.get("name") == field_name:
+                field_id = field.get("id")
+                field_type = field.get("$type", "")
+                break
+
+        if not field_id:
+            raise NotFoundError(f"Custom field '{field_name}' not found for issue {issue_id}")
+
+        # Format the value based on field type
+        formatted_value: Any
+        field_type_str = field_type or ""
+        if isinstance(value, dict):
+            # Already formatted (e.g., {"name": "value"})
+            formatted_value = value
+        elif "EnumBundle" in field_type_str or "StateBundle" in field_type_str:
+            # Enum or state field - wrap in name dict
+            formatted_value = {"name": str(value)}
+        elif "User" in field_type_str:
+            # User field - wrap in login dict
+            formatted_value = {"login": str(value)}
+        else:
+            # Simple value (text, number, etc.)
+            formatted_value = value
+
+        result = self.post(
+            f"issues/{issue_id}/customFields/{field_id}",
+            json={"value": formatted_value},
+        )
+        return result if isinstance(result, dict) else {}
+
+    def get_custom_field_bundle(
+        self,
+        bundle_type: str,
+        bundle_id: str,
+    ) -> dict[str, Any]:
+        """
+        Get a custom field bundle (available values for enum-like fields).
+
+        Args:
+            bundle_type: Bundle type (e.g., "enum", "state", "priority", "ownedField")
+            bundle_id: Bundle ID
+
+        Returns:
+            Bundle data with available values
+        """
+        result = self.get(
+            f"admin/customFieldSettings/bundles/{bundle_type}/{bundle_id}",
+            params={"fields": "id,name,values(id,name,description,color)"},
+        )
+        return result if isinstance(result, dict) else {}
+
     def transition_issue(
         self,
         issue_id: str,
@@ -533,6 +668,976 @@ class YouTrackApiClient:
 
         result = self.post(f"issues/{issue_id}/executeCommand", json=data)
         return result if isinstance(result, dict) else {}
+
+    # -------------------------------------------------------------------------
+    # Bulk Operations API
+    # -------------------------------------------------------------------------
+
+    def bulk_create_issues(
+        self,
+        issues: list[dict[str, Any]],
+    ) -> list[dict[str, Any]]:
+        """
+        Create multiple issues in a batch.
+
+        Args:
+            issues: List of issue data dictionaries, each containing:
+                    - project: {"id": "PROJECT_ID"} or {"shortName": "PROJ"}
+                    - summary: Issue summary
+                    - description: Issue description (optional)
+                    - Additional fields as needed
+
+        Returns:
+            List of created issue data dictionaries
+        """
+        if self.dry_run:
+            self.logger.info(f"[DRY-RUN] Would create {len(issues)} issues in bulk")
+            return [{"id": f"dry-run-{i}", "idReadable": f"PROJ-{i}"} for i in range(len(issues))]
+
+        created = []
+        for issue_data in issues:
+            try:
+                result = self.post("issues", json=issue_data)
+                if isinstance(result, dict):
+                    created.append(result)
+            except IssueTrackerError as e:
+                self.logger.error(f"Failed to create issue: {e}")
+                created.append({"error": str(e), "data": issue_data})
+        return created
+
+    def bulk_update_issues(
+        self,
+        updates: list[dict[str, Any]],
+    ) -> list[dict[str, Any]]:
+        """
+        Update multiple issues in a batch.
+
+        Args:
+            updates: List of update dictionaries, each containing:
+                     - id: Issue ID (e.g., "PROJ-123")
+                     - fields to update (summary, description, customFields, etc.)
+
+        Returns:
+            List of update results
+        """
+        if self.dry_run:
+            self.logger.info(f"[DRY-RUN] Would update {len(updates)} issues in bulk")
+            return [{"id": u.get("id"), "status": "dry-run"} for u in updates]
+
+        results = []
+        for update in updates:
+            issue_id = update.pop("id", None)
+            if not issue_id:
+                results.append({"error": "Missing issue ID", "data": update})
+                continue
+
+            try:
+                result = self.put(f"issues/{issue_id}", json=update)
+                if isinstance(result, dict):
+                    results.append(result)
+                else:
+                    results.append({"id": issue_id, "status": "updated"})
+            except IssueTrackerError as e:
+                self.logger.error(f"Failed to update issue {issue_id}: {e}")
+                results.append({"id": issue_id, "error": str(e)})
+        return results
+
+    def bulk_delete_issues(
+        self,
+        issue_ids: list[str],
+    ) -> list[dict[str, Any]]:
+        """
+        Delete multiple issues in a batch.
+
+        Args:
+            issue_ids: List of issue IDs to delete
+
+        Returns:
+            List of deletion results
+        """
+        if self.dry_run:
+            self.logger.info(f"[DRY-RUN] Would delete {len(issue_ids)} issues in bulk")
+            return [{"id": id, "status": "dry-run"} for id in issue_ids]
+
+        results = []
+        for issue_id in issue_ids:
+            try:
+                self.delete(f"issues/{issue_id}")
+                results.append({"id": issue_id, "status": "deleted"})
+            except IssueTrackerError as e:
+                self.logger.error(f"Failed to delete issue {issue_id}: {e}")
+                results.append({"id": issue_id, "error": str(e)})
+        return results
+
+    def bulk_execute_command(
+        self,
+        issue_ids: list[str],
+        command: str,
+        comment: str | None = None,
+    ) -> list[dict[str, Any]]:
+        """
+        Execute a command on multiple issues.
+
+        Args:
+            issue_ids: List of issue IDs
+            command: YouTrack command string (e.g., "State In Progress", "Priority Critical")
+            comment: Optional comment to add
+
+        Returns:
+            List of command execution results
+        """
+        if self.dry_run:
+            self.logger.info(
+                f"[DRY-RUN] Would execute command '{command}' on {len(issue_ids)} issues"
+            )
+            return [{"id": id, "status": "dry-run"} for id in issue_ids]
+
+        results = []
+        for issue_id in issue_ids:
+            try:
+                data: dict[str, Any] = {"query": command}
+                if comment:
+                    data["comment"] = comment
+
+                result = self.post(f"issues/{issue_id}/executeCommand", json=data)
+                results.append({"id": issue_id, "status": "executed", "result": result})
+            except IssueTrackerError as e:
+                self.logger.error(f"Failed to execute command on {issue_id}: {e}")
+                results.append({"id": issue_id, "error": str(e)})
+        return results
+
+    # -------------------------------------------------------------------------
+    # Attachments API
+    # -------------------------------------------------------------------------
+
+    def get_issue_attachments(self, issue_id: str) -> list[dict[str, Any]]:
+        """
+        Get all attachments for an issue.
+
+        Args:
+            issue_id: Issue ID (e.g., "PROJ-123")
+
+        Returns:
+            List of attachment dictionaries
+        """
+        result = self.get(
+            f"issues/{issue_id}/attachments",
+            params={"fields": "id,name,url,size,mimeType,created,author(login,name)"},
+        )
+        return result if isinstance(result, list) else []
+
+    def upload_attachment(
+        self,
+        issue_id: str,
+        file_path: str,
+        name: str | None = None,
+    ) -> dict[str, Any]:
+        """
+        Upload a file attachment to an issue.
+
+        Args:
+            issue_id: Issue ID (e.g., "PROJ-123")
+            file_path: Path to file to upload
+            name: Optional attachment name (defaults to filename)
+
+        Returns:
+            Attachment information dictionary
+        """
+        if self.dry_run:
+            self.logger.info(f"[DRY-RUN] Would upload {file_path} to {issue_id}")
+            return {"id": "attachment:dry-run", "name": name or file_path}
+
+        from pathlib import Path
+
+        file_path_obj = Path(file_path)
+        if not file_path_obj.exists():
+            raise NotFoundError(f"File not found: {file_path}")
+
+        file_name = name or file_path_obj.name
+        url = f"{self.api_url}/issues/{issue_id}/attachments"
+
+        with open(file_path_obj, "rb") as f:
+            files = {"file": (file_name, f)}
+
+            # Remove Content-Type for multipart upload
+            headers = dict(self._session.headers)
+            headers.pop("Content-Type", None)
+
+            response = self._session.post(
+                url,
+                files=files,
+                headers=headers,
+                timeout=self.timeout,
+            )
+
+        if not response.ok:
+            raise IssueTrackerError(
+                f"Failed to upload attachment: {response.status_code} - {response.text[:500]}"
+            )
+
+        try:
+            result = response.json()
+            if isinstance(result, list) and len(result) > 0:
+                return dict(result[0]) if isinstance(result[0], dict) else {"id": "unknown"}
+            return (
+                dict(result) if isinstance(result, dict) else {"id": "unknown", "name": file_name}
+            )
+        except ValueError:
+            return {"id": "unknown", "name": file_name}
+
+    def delete_attachment(self, issue_id: str, attachment_id: str) -> bool:
+        """
+        Delete an attachment from an issue.
+
+        Args:
+            issue_id: Issue ID (e.g., "PROJ-123")
+            attachment_id: Attachment ID to delete
+
+        Returns:
+            True if successful
+        """
+        if self.dry_run:
+            self.logger.info(f"[DRY-RUN] Would delete attachment {attachment_id} from {issue_id}")
+            return True
+
+        self.delete(f"issues/{issue_id}/attachments/{attachment_id}")
+        return True
+
+    def download_attachment(
+        self,
+        issue_id: str,
+        attachment_id: str,
+        output_path: str,
+    ) -> str:
+        """
+        Download an attachment to a local file.
+
+        Args:
+            issue_id: Issue ID (e.g., "PROJ-123")
+            attachment_id: Attachment ID to download
+            output_path: Path to save the file
+
+        Returns:
+            Path to the downloaded file
+        """
+        if self.dry_run:
+            self.logger.info(
+                f"[DRY-RUN] Would download attachment {attachment_id} to {output_path}"
+            )
+            return output_path
+
+        # Get attachment info to find the URL
+        attachments = self.get_issue_attachments(issue_id)
+        attachment_url = None
+        for att in attachments:
+            if att.get("id") == attachment_id:
+                attachment_url = att.get("url")
+                break
+
+        if not attachment_url:
+            raise NotFoundError(f"Attachment {attachment_id} not found on {issue_id}")
+
+        # Download the file
+        response = self._session.get(attachment_url, timeout=self.timeout)
+        if not response.ok:
+            raise IssueTrackerError(f"Failed to download attachment: {response.status_code}")
+
+        from pathlib import Path
+
+        output_path_obj = Path(output_path)
+        output_path_obj.parent.mkdir(parents=True, exist_ok=True)
+        output_path_obj.write_bytes(response.content)
+
+        return str(output_path_obj)
+
+    # -------------------------------------------------------------------------
+    # Workflow & Commands API
+    # -------------------------------------------------------------------------
+
+    def execute_command(
+        self,
+        issue_id: str,
+        command: str,
+        comment: str | None = None,
+        run_as: str | None = None,
+    ) -> dict[str, Any]:
+        """
+        Execute a YouTrack command on an issue.
+
+        Args:
+            issue_id: Issue ID (e.g., "PROJ-123")
+            command: Command string (e.g., "State In Progress", "Priority Critical")
+            comment: Optional comment to add
+            run_as: Optional user login to run the command as
+
+        Returns:
+            Command execution result
+        """
+        if self.dry_run:
+            self.logger.info(f"[DRY-RUN] Would execute command '{command}' on {issue_id}")
+            return {"id": issue_id, "command": command, "status": "dry-run"}
+
+        data: dict[str, Any] = {"query": command}
+        if comment:
+            data["comment"] = comment
+        if run_as:
+            data["runAs"] = run_as
+
+        result = self.post(f"issues/{issue_id}/executeCommand", json=data)
+        return result if isinstance(result, dict) else {}
+
+    def get_available_commands(self, issue_id: str) -> list[dict[str, Any]]:
+        """
+        Get available commands for an issue based on current state.
+
+        Args:
+            issue_id: Issue ID
+
+        Returns:
+            List of available command suggestions
+        """
+        result = self.get(
+            f"issues/{issue_id}/commands",
+            params={"fields": "id,name,description"},
+        )
+        return result if isinstance(result, list) else []
+
+    # -------------------------------------------------------------------------
+    # Due Dates API
+    # -------------------------------------------------------------------------
+
+    def get_issue_due_date(self, issue_id: str) -> int | None:
+        """
+        Get the due date for an issue.
+
+        Args:
+            issue_id: Issue ID
+
+        Returns:
+            Due date as Unix timestamp (milliseconds), or None if not set
+        """
+        # Due date is typically stored in a custom field called "Due Date"
+        fields = self.get_issue_custom_fields(issue_id)
+        for field in fields:
+            field_name = field.get("name", "").lower()
+            if "due" in field_name and "date" in field_name:
+                value = field.get("value")
+                if isinstance(value, int):
+                    return value
+                if isinstance(value, dict):
+                    return value.get("timestamp") or value.get("value")
+        return None
+
+    def set_issue_due_date(
+        self,
+        issue_id: str,
+        due_date: int | str | None,
+        field_name: str = "Due Date",
+    ) -> dict[str, Any]:
+        """
+        Set or clear the due date for an issue.
+
+        Args:
+            issue_id: Issue ID
+            due_date: Due date as Unix timestamp (ms), ISO date string, or None to clear
+            field_name: Name of the due date custom field
+
+        Returns:
+            Update result
+        """
+        if self.dry_run:
+            self.logger.info(f"[DRY-RUN] Would set due date for {issue_id} to {due_date}")
+            return {"id": issue_id, "status": "dry-run"}
+
+        # Convert ISO string to timestamp if needed
+        if isinstance(due_date, str):
+            from datetime import datetime
+
+            try:
+                dt = datetime.fromisoformat(due_date.replace("Z", "+00:00"))
+                due_date = int(dt.timestamp() * 1000)
+            except ValueError:
+                pass
+
+        return self.update_issue_custom_field(issue_id, field_name, due_date)
+
+    # -------------------------------------------------------------------------
+    # Tags API
+    # -------------------------------------------------------------------------
+
+    def get_issue_tags(self, issue_id: str) -> list[dict[str, Any]]:
+        """
+        Get all tags for an issue.
+
+        Args:
+            issue_id: Issue ID
+
+        Returns:
+            List of tag dictionaries
+        """
+        result = self.get(
+            f"issues/{issue_id}/tags",
+            params={"fields": "id,name,color(id,background,foreground)"},
+        )
+        return result if isinstance(result, list) else []
+
+    def add_issue_tag(self, issue_id: str, tag_name: str) -> dict[str, Any]:
+        """
+        Add a tag to an issue.
+
+        Args:
+            issue_id: Issue ID
+            tag_name: Tag name to add
+
+        Returns:
+            Tag information
+        """
+        if self.dry_run:
+            self.logger.info(f"[DRY-RUN] Would add tag '{tag_name}' to {issue_id}")
+            return {"name": tag_name, "status": "dry-run"}
+
+        # Use command API to add tag
+        return self.execute_command(issue_id, f"tag {tag_name}")
+
+    def remove_issue_tag(self, issue_id: str, tag_name: str) -> dict[str, Any]:
+        """
+        Remove a tag from an issue.
+
+        Args:
+            issue_id: Issue ID
+            tag_name: Tag name to remove
+
+        Returns:
+            Result of tag removal
+        """
+        if self.dry_run:
+            self.logger.info(f"[DRY-RUN] Would remove tag '{tag_name}' from {issue_id}")
+            return {"name": tag_name, "status": "dry-run"}
+
+        # Use command API to remove tag
+        return self.execute_command(issue_id, f"untag {tag_name}")
+
+    def get_project_tags(self, project_id: str) -> list[dict[str, Any]]:
+        """
+        Get all tags available in a project.
+
+        Args:
+            project_id: Project short name or ID
+
+        Returns:
+            List of tag dictionaries
+        """
+        result = self.get(
+            f"admin/projects/{project_id}/tags",
+            params={"fields": "id,name,color(id,background,foreground)"},
+        )
+        return result if isinstance(result, list) else []
+
+    # -------------------------------------------------------------------------
+    # Watchers API
+    # -------------------------------------------------------------------------
+
+    def get_issue_watchers(self, issue_id: str) -> list[dict[str, Any]]:
+        """
+        Get all watchers for an issue.
+
+        Args:
+            issue_id: Issue ID
+
+        Returns:
+            List of watcher user dictionaries
+        """
+        result = self.get(
+            f"issues/{issue_id}/watchers",
+            params={"fields": "id,login,name,email"},
+        )
+        return result if isinstance(result, list) else []
+
+    def add_issue_watcher(self, issue_id: str, user_login: str) -> dict[str, Any]:
+        """
+        Add a watcher to an issue.
+
+        Args:
+            issue_id: Issue ID
+            user_login: User login to add as watcher
+
+        Returns:
+            Result of adding watcher
+        """
+        if self.dry_run:
+            self.logger.info(f"[DRY-RUN] Would add watcher '{user_login}' to {issue_id}")
+            return {"login": user_login, "status": "dry-run"}
+
+        result = self.post(
+            f"issues/{issue_id}/watchers",
+            json={"login": user_login},
+        )
+        return result if isinstance(result, dict) else {}
+
+    def remove_issue_watcher(self, issue_id: str, user_login: str) -> bool:
+        """
+        Remove a watcher from an issue.
+
+        Args:
+            issue_id: Issue ID
+            user_login: User login to remove
+
+        Returns:
+            True if successful
+        """
+        if self.dry_run:
+            self.logger.info(f"[DRY-RUN] Would remove watcher '{user_login}' from {issue_id}")
+            return True
+
+        # Find the watcher ID
+        watchers = self.get_issue_watchers(issue_id)
+        watcher_id = None
+        for w in watchers:
+            if w.get("login") == user_login:
+                watcher_id = w.get("id")
+                break
+
+        if not watcher_id:
+            raise NotFoundError(f"Watcher '{user_login}' not found on {issue_id}")
+
+        self.delete(f"issues/{issue_id}/watchers/{watcher_id}")
+        return True
+
+    def is_watching(self, issue_id: str, user_login: str | None = None) -> bool:
+        """
+        Check if a user is watching an issue.
+
+        Args:
+            issue_id: Issue ID
+            user_login: User login to check (defaults to current user)
+
+        Returns:
+            True if watching
+        """
+        watchers = self.get_issue_watchers(issue_id)
+        if user_login is None:
+            # Get current user
+            current = self.get_current_user()
+            user_login = current.get("login")
+
+        return any(w.get("login") == user_login for w in watchers)
+
+    # -------------------------------------------------------------------------
+    # Agile Boards API
+    # -------------------------------------------------------------------------
+
+    def get_agile_boards(self) -> list[dict[str, Any]]:
+        """
+        Get all agile boards.
+
+        Returns:
+            List of agile board dictionaries
+        """
+        result = self.get(
+            "agiles",
+            params={"fields": "id,name,owner(login,name),projects(id,shortName)"},
+        )
+        return result if isinstance(result, list) else []
+
+    def get_agile_board(self, board_id: str) -> dict[str, Any]:
+        """
+        Get a specific agile board.
+
+        Args:
+            board_id: Board ID
+
+        Returns:
+            Board information
+        """
+        result = self.get(
+            f"agiles/{board_id}",
+            params={"fields": "id,name,owner(login,name),projects(id,shortName),sprints(id,name)"},
+        )
+        return result if isinstance(result, dict) else {}
+
+    def get_board_sprints(self, board_id: str) -> list[dict[str, Any]]:
+        """
+        Get all sprints for an agile board.
+
+        Args:
+            board_id: Board ID
+
+        Returns:
+            List of sprint dictionaries
+        """
+        result = self.get(
+            f"agiles/{board_id}/sprints",
+            params={"fields": "id,name,start,finish,goal,isDefault,archived"},
+        )
+        return result if isinstance(result, list) else []
+
+    # -------------------------------------------------------------------------
+    # Sprints API
+    # -------------------------------------------------------------------------
+
+    def get_sprint(self, board_id: str, sprint_id: str) -> dict[str, Any]:
+        """
+        Get a specific sprint.
+
+        Args:
+            board_id: Board ID
+            sprint_id: Sprint ID
+
+        Returns:
+            Sprint information
+        """
+        result = self.get(
+            f"agiles/{board_id}/sprints/{sprint_id}",
+            params={
+                "fields": "id,name,start,finish,goal,isDefault,archived,issues(id,idReadable,summary)"
+            },
+        )
+        return result if isinstance(result, dict) else {}
+
+    def create_sprint(
+        self,
+        board_id: str,
+        name: str,
+        start: int | None = None,
+        finish: int | None = None,
+        goal: str | None = None,
+    ) -> dict[str, Any]:
+        """
+        Create a new sprint.
+
+        Args:
+            board_id: Board ID
+            name: Sprint name
+            start: Start date as Unix timestamp (ms)
+            finish: End date as Unix timestamp (ms)
+            goal: Sprint goal
+
+        Returns:
+            Created sprint data
+        """
+        if self.dry_run:
+            self.logger.info(f"[DRY-RUN] Would create sprint '{name}' on board {board_id}")
+            return {"id": "sprint:dry-run", "name": name}
+
+        data: dict[str, Any] = {"name": name}
+        if start is not None:
+            data["start"] = start
+        if finish is not None:
+            data["finish"] = finish
+        if goal is not None:
+            data["goal"] = goal
+
+        result = self.post(f"agiles/{board_id}/sprints", json=data)
+        return result if isinstance(result, dict) else {}
+
+    def update_sprint(
+        self,
+        board_id: str,
+        sprint_id: str,
+        name: str | None = None,
+        start: int | None = None,
+        finish: int | None = None,
+        goal: str | None = None,
+        archived: bool | None = None,
+    ) -> dict[str, Any]:
+        """
+        Update a sprint.
+
+        Args:
+            board_id: Board ID
+            sprint_id: Sprint ID
+            name: New name
+            start: New start date
+            finish: New end date
+            goal: New goal
+            archived: Archive status
+
+        Returns:
+            Updated sprint data
+        """
+        if self.dry_run:
+            self.logger.info(f"[DRY-RUN] Would update sprint {sprint_id}")
+            return {"id": sprint_id}
+
+        data: dict[str, Any] = {}
+        if name is not None:
+            data["name"] = name
+        if start is not None:
+            data["start"] = start
+        if finish is not None:
+            data["finish"] = finish
+        if goal is not None:
+            data["goal"] = goal
+        if archived is not None:
+            data["archived"] = archived
+
+        result = self.post(f"agiles/{board_id}/sprints/{sprint_id}", json=data)
+        return result if isinstance(result, dict) else {}
+
+    def add_issue_to_sprint(
+        self,
+        board_id: str,
+        sprint_id: str,
+        issue_id: str,
+    ) -> dict[str, Any]:
+        """
+        Add an issue to a sprint.
+
+        Args:
+            board_id: Board ID
+            sprint_id: Sprint ID
+            issue_id: Issue ID to add
+
+        Returns:
+            Result
+        """
+        if self.dry_run:
+            self.logger.info(f"[DRY-RUN] Would add {issue_id} to sprint {sprint_id}")
+            return {"id": issue_id}
+
+        # Use command API to add to sprint
+        return self.execute_command(issue_id, f"Board {board_id} Sprint {sprint_id}")
+
+    def remove_issue_from_sprint(self, issue_id: str) -> dict[str, Any]:
+        """
+        Remove an issue from its current sprint.
+
+        Args:
+            issue_id: Issue ID
+
+        Returns:
+            Result
+        """
+        if self.dry_run:
+            self.logger.info(f"[DRY-RUN] Would remove {issue_id} from sprint")
+            return {"id": issue_id}
+
+        # Use command API to remove from sprint
+        return self.execute_command(issue_id, "Sprint Unassigned")
+
+    # -------------------------------------------------------------------------
+    # Time Tracking API
+    # -------------------------------------------------------------------------
+
+    def get_issue_work_items(self, issue_id: str) -> list[dict[str, Any]]:
+        """
+        Get all work items (time entries) for an issue.
+
+        Args:
+            issue_id: Issue ID
+
+        Returns:
+            List of work item dictionaries
+        """
+        result = self.get(
+            f"issues/{issue_id}/timeTracking/workItems",
+            params={
+                "fields": "id,author(login,name),date,duration(minutes,presentation),text,type(name)"
+            },
+        )
+        return result if isinstance(result, list) else []
+
+    def add_work_item(
+        self,
+        issue_id: str,
+        duration_minutes: int,
+        date: int | None = None,
+        text: str | None = None,
+        work_type: str | None = None,
+    ) -> dict[str, Any]:
+        """
+        Add a work item (time entry) to an issue.
+
+        Args:
+            issue_id: Issue ID
+            duration_minutes: Duration in minutes
+            date: Date as Unix timestamp (ms), defaults to now
+            text: Work description
+            work_type: Work type name
+
+        Returns:
+            Created work item
+        """
+        if self.dry_run:
+            self.logger.info(f"[DRY-RUN] Would add {duration_minutes}m work to {issue_id}")
+            return {"id": "work:dry-run", "duration": {"minutes": duration_minutes}}
+
+        data: dict[str, Any] = {"duration": {"minutes": duration_minutes}}
+        if date is not None:
+            data["date"] = date
+        if text is not None:
+            data["text"] = text
+        if work_type is not None:
+            data["type"] = {"name": work_type}
+
+        result = self.post(f"issues/{issue_id}/timeTracking/workItems", json=data)
+        return result if isinstance(result, dict) else {}
+
+    def delete_work_item(self, issue_id: str, work_item_id: str) -> bool:
+        """
+        Delete a work item.
+
+        Args:
+            issue_id: Issue ID
+            work_item_id: Work item ID to delete
+
+        Returns:
+            True if successful
+        """
+        if self.dry_run:
+            self.logger.info(f"[DRY-RUN] Would delete work item {work_item_id}")
+            return True
+
+        self.delete(f"issues/{issue_id}/timeTracking/workItems/{work_item_id}")
+        return True
+
+    def get_time_tracking_settings(self, issue_id: str) -> dict[str, Any]:
+        """
+        Get time tracking settings for an issue.
+
+        Args:
+            issue_id: Issue ID
+
+        Returns:
+            Time tracking settings
+        """
+        result = self.get(
+            f"issues/{issue_id}/timeTracking",
+            params={
+                "fields": "enabled,estimate(minutes,presentation),spentTime(minutes,presentation)"
+            },
+        )
+        return result if isinstance(result, dict) else {}
+
+    def set_time_estimate(
+        self,
+        issue_id: str,
+        estimate_minutes: int | None,
+    ) -> dict[str, Any]:
+        """
+        Set time estimate for an issue.
+
+        Args:
+            issue_id: Issue ID
+            estimate_minutes: Estimate in minutes, or None to clear
+
+        Returns:
+            Updated time tracking data
+        """
+        if self.dry_run:
+            self.logger.info(f"[DRY-RUN] Would set estimate for {issue_id} to {estimate_minutes}m")
+            return {"estimate": {"minutes": estimate_minutes}}
+
+        data: dict[str, Any] = {}
+        if estimate_minutes is not None:
+            data["estimate"] = {"minutes": estimate_minutes}
+        else:
+            data["estimate"] = None
+
+        result = self.post(f"issues/{issue_id}/timeTracking", json=data)
+        return result if isinstance(result, dict) else {}
+
+    # -------------------------------------------------------------------------
+    # Issue History/Activity API
+    # -------------------------------------------------------------------------
+
+    def get_issue_activities(
+        self,
+        issue_id: str,
+        categories: list[str] | None = None,
+    ) -> list[dict[str, Any]]:
+        """
+        Get activity/history for an issue.
+
+        Args:
+            issue_id: Issue ID
+            categories: Filter by category (e.g., "IssueCreatedCategory", "CustomFieldCategory")
+
+        Returns:
+            List of activity items
+        """
+        params: dict[str, Any] = {
+            "fields": "id,timestamp,author(login,name),added,removed,target,field(name)"
+        }
+        if categories:
+            params["categories"] = ",".join(categories)
+
+        result = self.get(f"issues/{issue_id}/activities", params=params)
+        return result if isinstance(result, list) else []
+
+    def get_issue_changes(self, issue_id: str) -> list[dict[str, Any]]:
+        """
+        Get change history for an issue (simplified activity feed).
+
+        Args:
+            issue_id: Issue ID
+
+        Returns:
+            List of change dictionaries
+        """
+        activities = self.get_issue_activities(issue_id)
+        changes = []
+        for activity in activities:
+            change = {
+                "id": activity.get("id", ""),
+                "timestamp": activity.get("timestamp"),
+                "author": activity.get("author", {}).get("login")
+                or activity.get("author", {}).get("name"),
+                "field": activity.get("field", {}).get("name") if activity.get("field") else None,
+                "added": activity.get("added"),
+                "removed": activity.get("removed"),
+            }
+            changes.append(change)
+        return changes
+
+    # -------------------------------------------------------------------------
+    # Mentions API
+    # -------------------------------------------------------------------------
+
+    def add_comment_with_mentions(
+        self,
+        issue_id: str,
+        text: str,
+        mentions: list[str] | None = None,
+    ) -> dict[str, Any]:
+        """
+        Add a comment with @mentions.
+
+        Args:
+            issue_id: Issue ID
+            text: Comment text (can include @username mentions)
+            mentions: Optional list of usernames to notify
+
+        Returns:
+            Created comment
+        """
+        if self.dry_run:
+            self.logger.info(f"[DRY-RUN] Would add comment with mentions to {issue_id}")
+            return {"id": "comment:dry-run", "text": text}
+
+        # Format mentions into the text if provided separately
+        if mentions:
+            mention_text = " ".join(f"@{m}" for m in mentions)
+            text = f"{text}\n\n{mention_text}"
+
+        return self.add_comment(issue_id, text)
+
+    def get_mentionable_users(self, query: str = "") -> list[dict[str, Any]]:
+        """
+        Get users that can be mentioned.
+
+        Args:
+            query: Search query for user names/logins
+
+        Returns:
+            List of user dictionaries
+        """
+        params: dict[str, Any] = {"fields": "id,login,name,email"}
+        if query:
+            params["query"] = query
+
+        result = self.get("users", params=params)
+        return result if isinstance(result, list) else []
 
     # -------------------------------------------------------------------------
     # Resource Cleanup

@@ -25,6 +25,7 @@ from spectra.core.ports.issue_tracker import (
     IssueTrackerError,
     IssueTrackerPort,
     LinkType,
+    NotFoundError,
     TransitionError,
 )
 
@@ -379,8 +380,1066 @@ class YouTrackAdapter(IssueTrackerPort):
         ]
 
     # -------------------------------------------------------------------------
+    # Custom Fields Operations
+    # -------------------------------------------------------------------------
+
+    def get_project_custom_fields(self) -> list[dict[str, Any]]:
+        """
+        Get all custom field definitions for the configured project.
+
+        Returns:
+            List of custom field definitions with id, name, type, etc.
+        """
+        fields = self._client.get_project_custom_fields(self.config.project_id)
+        return [
+            {
+                "id": f.get("id", ""),
+                "name": f.get("name", ""),
+                "field_name": f.get("field", {}).get("name", ""),
+                "field_type": f.get("field", {}).get("fieldType", {}).get("presentation", ""),
+            }
+            for f in fields
+        ]
+
+    def get_issue_custom_fields(self, issue_key: str) -> list[dict[str, Any]]:
+        """
+        Get all custom field values for an issue.
+
+        Args:
+            issue_key: Issue key (e.g., "PROJ-123")
+
+        Returns:
+            List of custom field values with name, value, type, etc.
+        """
+        fields = self._client.get_issue_custom_fields(issue_key)
+        result = []
+        for field in fields:
+            value = field.get("value")
+            # Extract the actual value depending on type
+            if isinstance(value, dict):
+                # Enum, state, user, etc.
+                extracted_value = (
+                    value.get("name")
+                    or value.get("login")
+                    or value.get("presentation")
+                    or value.get("text")
+                )
+            elif isinstance(value, list):
+                # Multi-value fields
+                extracted_value = [
+                    v.get("name") or v.get("login") or str(v) for v in value if isinstance(v, dict)
+                ]
+            else:
+                extracted_value = value
+
+            result.append(
+                {
+                    "id": field.get("id", ""),
+                    "name": field.get("name", ""),
+                    "value": extracted_value,
+                    "raw_value": value,
+                    "type": field.get("$type", ""),
+                }
+            )
+        return result
+
+    def get_issue_custom_field(
+        self,
+        issue_key: str,
+        field_name: str,
+    ) -> Any | None:
+        """
+        Get a specific custom field value for an issue.
+
+        Args:
+            issue_key: Issue key (e.g., "PROJ-123")
+            field_name: Custom field name
+
+        Returns:
+            The custom field value, or None if not found
+        """
+        fields = self.get_issue_custom_fields(issue_key)
+        for field in fields:
+            if field.get("name") == field_name:
+                return field.get("value")
+        return None
+
+    def update_issue_custom_field(
+        self,
+        issue_key: str,
+        field_name: str,
+        value: Any,
+    ) -> bool:
+        """
+        Update a custom field value for an issue.
+
+        Args:
+            issue_key: Issue key (e.g., "PROJ-123")
+            field_name: Custom field name
+            value: New value (format depends on field type)
+                   - Simple values: str, int, float
+                   - Enum/state fields: "value_name" (will be wrapped automatically)
+                   - User fields: "username" (will be wrapped automatically)
+                   - Date fields: timestamp in milliseconds or ISO date string
+
+        Returns:
+            True if successful
+        """
+        if self._dry_run:
+            self.logger.info(
+                f"[DRY-RUN] Would update custom field '{field_name}' for {issue_key} to {value}"
+            )
+            return True
+
+        try:
+            self._client.update_issue_custom_field(issue_key, field_name, value)
+            self.logger.info(f"Updated custom field '{field_name}' for {issue_key}")
+            return True
+        except (NotFoundError, IssueTrackerError) as e:
+            self.logger.error(f"Failed to update custom field: {e}")
+            return False
+
+    def get_custom_field_options(
+        self,
+        field_name: str,
+    ) -> list[dict[str, Any]]:
+        """
+        Get available options for an enum-like custom field.
+
+        Args:
+            field_name: Custom field name
+
+        Returns:
+            List of available options with name, id, etc.
+        """
+        # Get the field definition to find the bundle
+        fields = self._client.get_project_custom_fields(self.config.project_id)
+        for field in fields:
+            if field.get("name") == field_name or field.get("field", {}).get("name") == field_name:
+                # Try to get the bundle values
+                field_def = field.get("field", {})
+                field_type = field_def.get("fieldType", {}).get("id", "")
+
+                # Determine bundle type from field type
+                if "EnumBundleElement" in field_type:
+                    bundle_type = "enum"
+                elif "StateBundleElement" in field_type:
+                    bundle_type = "state"
+                elif "OwnedBundleElement" in field_type:
+                    bundle_type = "ownedField"
+                else:
+                    # Field doesn't have a bundle
+                    return []
+
+                # Get bundle ID from field
+                bundle_id = field_def.get("bundle", {}).get("id")
+                if bundle_id:
+                    bundle = self._client.get_custom_field_bundle(bundle_type, bundle_id)
+                    values = bundle.get("values", [])
+                    return [
+                        {
+                            "id": v.get("id", ""),
+                            "name": v.get("name", ""),
+                            "description": v.get("description", ""),
+                            "color": v.get("color", {}).get("id")
+                            if isinstance(v.get("color"), dict)
+                            else None,
+                        }
+                        for v in values
+                    ]
+        return []
+
+    # -------------------------------------------------------------------------
+    # Bulk Operations
+    # -------------------------------------------------------------------------
+
+    def bulk_create_issues(
+        self,
+        issues: list[dict[str, Any]],
+    ) -> list[dict[str, Any]]:
+        """
+        Create multiple issues in a batch.
+
+        Args:
+            issues: List of issue data dictionaries, each containing:
+                    - summary: Issue summary (required)
+                    - description: Issue description (optional)
+                    - Additional fields as needed
+
+        Returns:
+            List of created issue data with keys
+        """
+        if self._dry_run:
+            self.logger.info(f"[DRY-RUN] Would create {len(issues)} issues in bulk")
+            return [
+                {"key": f"{self.config.project_id}-{i}", "status": "dry-run"}
+                for i in range(len(issues))
+            ]
+
+        # Add project to each issue
+        prepared_issues = []
+        for issue in issues:
+            prepared = dict(issue)
+            prepared["project"] = {"id": self.config.project_id}
+            prepared_issues.append(prepared)
+
+        results = self._client.bulk_create_issues(prepared_issues)
+        return [{"key": r.get("idReadable", r.get("id", "")), **r} for r in results]
+
+    def bulk_update_issues(
+        self,
+        updates: list[dict[str, Any]],
+    ) -> list[dict[str, Any]]:
+        """
+        Update multiple issues in a batch.
+
+        Args:
+            updates: List of update dictionaries, each containing:
+                     - id: Issue key (e.g., "PROJ-123")
+                     - Fields to update (summary, description, etc.)
+
+        Returns:
+            List of update results
+        """
+        if self._dry_run:
+            self.logger.info(f"[DRY-RUN] Would update {len(updates)} issues in bulk")
+            return [{"id": u.get("id"), "status": "dry-run"} for u in updates]
+
+        return self._client.bulk_update_issues(updates)
+
+    def bulk_delete_issues(
+        self,
+        issue_keys: list[str],
+    ) -> list[dict[str, Any]]:
+        """
+        Delete multiple issues in a batch.
+
+        Args:
+            issue_keys: List of issue keys to delete
+
+        Returns:
+            List of deletion results
+        """
+        if self._dry_run:
+            self.logger.info(f"[DRY-RUN] Would delete {len(issue_keys)} issues in bulk")
+            return [{"id": key, "status": "dry-run"} for key in issue_keys]
+
+        return self._client.bulk_delete_issues(issue_keys)
+
+    def bulk_transition_issues(
+        self,
+        issue_keys: list[str],
+        target_status: str,
+        comment: str | None = None,
+    ) -> list[dict[str, Any]]:
+        """
+        Transition multiple issues to a new status.
+
+        Args:
+            issue_keys: List of issue keys
+            target_status: Target status name
+            comment: Optional comment for the transition
+
+        Returns:
+            List of transition results
+        """
+        if self._dry_run:
+            self.logger.info(
+                f"[DRY-RUN] Would transition {len(issue_keys)} issues to '{target_status}'"
+            )
+            return [{"id": key, "status": "dry-run"} for key in issue_keys]
+
+        # Map status to YouTrack state
+        youtrack_state = self._map_status_to_youtrack_state(target_status)
+        command = f"State {youtrack_state}"
+
+        return self._client.bulk_execute_command(issue_keys, command, comment)
+
+    # -------------------------------------------------------------------------
+    # File Attachment Operations
+    # -------------------------------------------------------------------------
+
+    def get_issue_attachments(self, issue_key: str) -> list[dict[str, Any]]:
+        """
+        Get all file attachments for an issue.
+
+        Args:
+            issue_key: Issue key (e.g., "PROJ-123")
+
+        Returns:
+            List of attachment dictionaries with id, name, size, etc.
+        """
+        attachments = self._client.get_issue_attachments(issue_key)
+        return [
+            {
+                "id": a.get("id", ""),
+                "name": a.get("name", ""),
+                "url": a.get("url", ""),
+                "size": a.get("size", 0),
+                "mime_type": a.get("mimeType", ""),
+                "created": a.get("created"),
+                "author": a.get("author", {}).get("login") or a.get("author", {}).get("name"),
+            }
+            for a in attachments
+        ]
+
+    def upload_attachment(
+        self,
+        issue_key: str,
+        file_path: str,
+        name: str | None = None,
+    ) -> dict[str, Any]:
+        """
+        Upload a file attachment to an issue.
+
+        Args:
+            issue_key: Issue key (e.g., "PROJ-123")
+            file_path: Path to file to upload
+            name: Optional attachment name
+
+        Returns:
+            Attachment information dictionary
+        """
+        if self._dry_run:
+            self.logger.info(f"[DRY-RUN] Would upload {file_path} to {issue_key}")
+            return {"id": "attachment:dry-run", "name": name or file_path}
+
+        result = self._client.upload_attachment(issue_key, file_path, name)
+        self.logger.info(f"Uploaded attachment to {issue_key}: {result.get('name')}")
+        return result
+
+    def delete_attachment(
+        self,
+        issue_key: str,
+        attachment_id: str,
+    ) -> bool:
+        """
+        Delete a file attachment from an issue.
+
+        Args:
+            issue_key: Issue key (e.g., "PROJ-123")
+            attachment_id: Attachment ID to delete
+
+        Returns:
+            True if successful
+        """
+        if self._dry_run:
+            self.logger.info(f"[DRY-RUN] Would delete attachment {attachment_id} from {issue_key}")
+            return True
+
+        try:
+            self._client.delete_attachment(issue_key, attachment_id)
+            self.logger.info(f"Deleted attachment {attachment_id} from {issue_key}")
+            return True
+        except (NotFoundError, IssueTrackerError) as e:
+            self.logger.error(f"Failed to delete attachment: {e}")
+            return False
+
+    def download_attachment(
+        self,
+        issue_key: str,
+        attachment_id: str,
+        output_path: str,
+    ) -> str | None:
+        """
+        Download an attachment to a local file.
+
+        Args:
+            issue_key: Issue key (e.g., "PROJ-123")
+            attachment_id: Attachment ID to download
+            output_path: Path to save the file
+
+        Returns:
+            Path to downloaded file, or None on failure
+        """
+        if self._dry_run:
+            self.logger.info(
+                f"[DRY-RUN] Would download attachment {attachment_id} to {output_path}"
+            )
+            return output_path
+
+        try:
+            result = self._client.download_attachment(issue_key, attachment_id, output_path)
+            self.logger.info(f"Downloaded attachment {attachment_id} to {result}")
+            return result
+        except (NotFoundError, IssueTrackerError) as e:
+            self.logger.error(f"Failed to download attachment: {e}")
+            return None
+
+    # -------------------------------------------------------------------------
+    # Workflow & Commands Operations
+    # -------------------------------------------------------------------------
+
+    def execute_command(
+        self,
+        issue_key: str,
+        command: str,
+        comment: str | None = None,
+    ) -> bool:
+        """
+        Execute a YouTrack command on an issue.
+
+        Args:
+            issue_key: Issue key (e.g., "PROJ-123")
+            command: Command string (e.g., "State In Progress", "Priority Critical")
+            comment: Optional comment to add
+
+        Returns:
+            True if successful
+        """
+        if self._dry_run:
+            self.logger.info(f"[DRY-RUN] Would execute command '{command}' on {issue_key}")
+            return True
+
+        try:
+            self._client.execute_command(issue_key, command, comment)
+            self.logger.info(f"Executed command '{command}' on {issue_key}")
+            return True
+        except IssueTrackerError as e:
+            self.logger.error(f"Failed to execute command: {e}")
+            return False
+
+    def get_available_commands(self, issue_key: str) -> list[dict[str, Any]]:
+        """
+        Get available commands for an issue.
+
+        Args:
+            issue_key: Issue key
+
+        Returns:
+            List of available commands
+        """
+        return self._client.get_available_commands(issue_key)
+
+    # -------------------------------------------------------------------------
+    # Due Dates Operations
+    # -------------------------------------------------------------------------
+
+    def get_issue_due_date(self, issue_key: str) -> str | None:
+        """
+        Get the due date for an issue.
+
+        Args:
+            issue_key: Issue key (e.g., "PROJ-123")
+
+        Returns:
+            Due date as ISO 8601 string, or None if not set
+        """
+        timestamp = self._client.get_issue_due_date(issue_key)
+        if timestamp is None:
+            return None
+
+        # Convert timestamp to ISO string
+        from datetime import datetime, timezone
+
+        dt = datetime.fromtimestamp(timestamp / 1000, tz=timezone.utc)
+        return dt.isoformat()
+
+    def update_issue_due_date(
+        self,
+        issue_key: str,
+        due_date: str | None,
+    ) -> bool:
+        """
+        Set or clear the due date for an issue.
+
+        Args:
+            issue_key: Issue key (e.g., "PROJ-123")
+            due_date: Due date in ISO 8601 format, or None to clear
+
+        Returns:
+            True if successful
+        """
+        if self._dry_run:
+            action = "clear" if due_date is None else f"set to {due_date}"
+            self.logger.info(f"[DRY-RUN] Would {action} due date for {issue_key}")
+            return True
+
+        try:
+            self._client.set_issue_due_date(issue_key, due_date)
+            action = "Cleared" if due_date is None else f"Set to {due_date}"
+            self.logger.info(f"{action} due date for {issue_key}")
+            return True
+        except (NotFoundError, IssueTrackerError) as e:
+            self.logger.error(f"Failed to update due date: {e}")
+            return False
+
+    # -------------------------------------------------------------------------
+    # Tags/Labels Operations
+    # -------------------------------------------------------------------------
+
+    def get_issue_tags(self, issue_key: str) -> list[dict[str, Any]]:
+        """
+        Get all tags for an issue.
+
+        Args:
+            issue_key: Issue key (e.g., "PROJ-123")
+
+        Returns:
+            List of tag dictionaries with id, name, color
+        """
+        tags = self._client.get_issue_tags(issue_key)
+        return [
+            {
+                "id": t.get("id", ""),
+                "name": t.get("name", ""),
+                "color": t.get("color", {}).get("background")
+                if isinstance(t.get("color"), dict)
+                else None,
+            }
+            for t in tags
+        ]
+
+    def add_issue_tag(self, issue_key: str, tag_name: str) -> bool:
+        """
+        Add a tag to an issue.
+
+        Args:
+            issue_key: Issue key (e.g., "PROJ-123")
+            tag_name: Tag name to add
+
+        Returns:
+            True if successful
+        """
+        if self._dry_run:
+            self.logger.info(f"[DRY-RUN] Would add tag '{tag_name}' to {issue_key}")
+            return True
+
+        try:
+            self._client.add_issue_tag(issue_key, tag_name)
+            self.logger.info(f"Added tag '{tag_name}' to {issue_key}")
+            return True
+        except IssueTrackerError as e:
+            self.logger.error(f"Failed to add tag: {e}")
+            return False
+
+    def remove_issue_tag(self, issue_key: str, tag_name: str) -> bool:
+        """
+        Remove a tag from an issue.
+
+        Args:
+            issue_key: Issue key (e.g., "PROJ-123")
+            tag_name: Tag name to remove
+
+        Returns:
+            True if successful
+        """
+        if self._dry_run:
+            self.logger.info(f"[DRY-RUN] Would remove tag '{tag_name}' from {issue_key}")
+            return True
+
+        try:
+            self._client.remove_issue_tag(issue_key, tag_name)
+            self.logger.info(f"Removed tag '{tag_name}' from {issue_key}")
+            return True
+        except IssueTrackerError as e:
+            self.logger.error(f"Failed to remove tag: {e}")
+            return False
+
+    def get_available_tags(self) -> list[dict[str, Any]]:
+        """
+        Get all available tags for the project.
+
+        Returns:
+            List of available tag dictionaries
+        """
+        tags = self._client.get_project_tags(self.config.project_id)
+        return [
+            {
+                "id": t.get("id", ""),
+                "name": t.get("name", ""),
+                "color": t.get("color", {}).get("background")
+                if isinstance(t.get("color"), dict)
+                else None,
+            }
+            for t in tags
+        ]
+
+    # -------------------------------------------------------------------------
+    # Watchers/Observers Operations
+    # -------------------------------------------------------------------------
+
+    def get_issue_watchers(self, issue_key: str) -> list[dict[str, Any]]:
+        """
+        Get all watchers for an issue.
+
+        Args:
+            issue_key: Issue key (e.g., "PROJ-123")
+
+        Returns:
+            List of watcher dictionaries with login, name, email
+        """
+        watchers = self._client.get_issue_watchers(issue_key)
+        return [
+            {
+                "id": w.get("id", ""),
+                "login": w.get("login", ""),
+                "name": w.get("name", ""),
+                "email": w.get("email", ""),
+            }
+            for w in watchers
+        ]
+
+    def add_issue_watcher(self, issue_key: str, user_login: str) -> bool:
+        """
+        Add a watcher to an issue.
+
+        Args:
+            issue_key: Issue key (e.g., "PROJ-123")
+            user_login: User login to add as watcher
+
+        Returns:
+            True if successful
+        """
+        if self._dry_run:
+            self.logger.info(f"[DRY-RUN] Would add watcher '{user_login}' to {issue_key}")
+            return True
+
+        try:
+            self._client.add_issue_watcher(issue_key, user_login)
+            self.logger.info(f"Added watcher '{user_login}' to {issue_key}")
+            return True
+        except IssueTrackerError as e:
+            self.logger.error(f"Failed to add watcher: {e}")
+            return False
+
+    def remove_issue_watcher(self, issue_key: str, user_login: str) -> bool:
+        """
+        Remove a watcher from an issue.
+
+        Args:
+            issue_key: Issue key (e.g., "PROJ-123")
+            user_login: User login to remove
+
+        Returns:
+            True if successful
+        """
+        if self._dry_run:
+            self.logger.info(f"[DRY-RUN] Would remove watcher '{user_login}' from {issue_key}")
+            return True
+
+        try:
+            self._client.remove_issue_watcher(issue_key, user_login)
+            self.logger.info(f"Removed watcher '{user_login}' from {issue_key}")
+            return True
+        except (NotFoundError, IssueTrackerError) as e:
+            self.logger.error(f"Failed to remove watcher: {e}")
+            return False
+
+    def is_watching(self, issue_key: str, user_login: str | None = None) -> bool:
+        """
+        Check if a user is watching an issue.
+
+        Args:
+            issue_key: Issue key (e.g., "PROJ-123")
+            user_login: User login to check (defaults to current user)
+
+        Returns:
+            True if the user is watching
+        """
+        return self._client.is_watching(issue_key, user_login)
+
+    # -------------------------------------------------------------------------
+    # Agile Boards Operations
+    # -------------------------------------------------------------------------
+
+    def get_agile_boards(self) -> list[dict[str, Any]]:
+        """
+        Get all agile boards.
+
+        Returns:
+            List of board dictionaries with id, name, owner, projects
+        """
+        boards = self._client.get_agile_boards()
+        return [
+            {
+                "id": b.get("id", ""),
+                "name": b.get("name", ""),
+                "owner": b.get("owner", {}).get("login") or b.get("owner", {}).get("name"),
+                "projects": [p.get("shortName") for p in b.get("projects", [])],
+            }
+            for b in boards
+        ]
+
+    def get_agile_board(self, board_id: str) -> dict[str, Any]:
+        """
+        Get a specific agile board.
+
+        Args:
+            board_id: Board ID
+
+        Returns:
+            Board information with sprints
+        """
+        board = self._client.get_agile_board(board_id)
+        return {
+            "id": board.get("id", ""),
+            "name": board.get("name", ""),
+            "owner": board.get("owner", {}).get("login") or board.get("owner", {}).get("name"),
+            "projects": [p.get("shortName") for p in board.get("projects", [])],
+            "sprints": [
+                {"id": s.get("id"), "name": s.get("name")} for s in board.get("sprints", [])
+            ],
+        }
+
+    # -------------------------------------------------------------------------
+    # Sprints/Iterations Operations
+    # -------------------------------------------------------------------------
+
+    def get_board_sprints(self, board_id: str) -> list[dict[str, Any]]:
+        """
+        Get all sprints for an agile board.
+
+        Args:
+            board_id: Board ID
+
+        Returns:
+            List of sprint dictionaries
+        """
+        sprints = self._client.get_board_sprints(board_id)
+        return [
+            {
+                "id": s.get("id", ""),
+                "name": s.get("name", ""),
+                "start": s.get("start"),
+                "finish": s.get("finish"),
+                "goal": s.get("goal"),
+                "is_default": s.get("isDefault", False),
+                "archived": s.get("archived", False),
+            }
+            for s in sprints
+        ]
+
+    def get_sprint(self, board_id: str, sprint_id: str) -> dict[str, Any]:
+        """
+        Get a specific sprint with issues.
+
+        Args:
+            board_id: Board ID
+            sprint_id: Sprint ID
+
+        Returns:
+            Sprint information with issues
+        """
+        sprint = self._client.get_sprint(board_id, sprint_id)
+        return {
+            "id": sprint.get("id", ""),
+            "name": sprint.get("name", ""),
+            "start": sprint.get("start"),
+            "finish": sprint.get("finish"),
+            "goal": sprint.get("goal"),
+            "issues": [
+                {"key": i.get("idReadable"), "summary": i.get("summary")}
+                for i in sprint.get("issues", [])
+            ],
+        }
+
+    def create_sprint(
+        self,
+        board_id: str,
+        name: str,
+        start: str | None = None,
+        finish: str | None = None,
+        goal: str | None = None,
+    ) -> dict[str, Any]:
+        """
+        Create a new sprint.
+
+        Args:
+            board_id: Board ID
+            name: Sprint name
+            start: Start date as ISO string
+            finish: End date as ISO string
+            goal: Sprint goal
+
+        Returns:
+            Created sprint data
+        """
+        if self._dry_run:
+            self.logger.info(f"[DRY-RUN] Would create sprint '{name}'")
+            return {"id": "sprint:dry-run", "name": name}
+
+        # Convert ISO dates to timestamps
+        start_ts = self._iso_to_timestamp(start) if start else None
+        finish_ts = self._iso_to_timestamp(finish) if finish else None
+
+        result = self._client.create_sprint(board_id, name, start_ts, finish_ts, goal)
+        self.logger.info(f"Created sprint '{name}' on board {board_id}")
+        return result
+
+    def add_issue_to_sprint(
+        self,
+        board_id: str,
+        sprint_id: str,
+        issue_key: str,
+    ) -> bool:
+        """
+        Add an issue to a sprint.
+
+        Args:
+            board_id: Board ID
+            sprint_id: Sprint ID
+            issue_key: Issue key to add
+
+        Returns:
+            True if successful
+        """
+        if self._dry_run:
+            self.logger.info(f"[DRY-RUN] Would add {issue_key} to sprint {sprint_id}")
+            return True
+
+        try:
+            self._client.add_issue_to_sprint(board_id, sprint_id, issue_key)
+            self.logger.info(f"Added {issue_key} to sprint {sprint_id}")
+            return True
+        except IssueTrackerError as e:
+            self.logger.error(f"Failed to add issue to sprint: {e}")
+            return False
+
+    def remove_issue_from_sprint(self, issue_key: str) -> bool:
+        """
+        Remove an issue from its current sprint.
+
+        Args:
+            issue_key: Issue key
+
+        Returns:
+            True if successful
+        """
+        if self._dry_run:
+            self.logger.info(f"[DRY-RUN] Would remove {issue_key} from sprint")
+            return True
+
+        try:
+            self._client.remove_issue_from_sprint(issue_key)
+            self.logger.info(f"Removed {issue_key} from sprint")
+            return True
+        except IssueTrackerError as e:
+            self.logger.error(f"Failed to remove issue from sprint: {e}")
+            return False
+
+    # -------------------------------------------------------------------------
+    # Time Tracking Operations
+    # -------------------------------------------------------------------------
+
+    def get_issue_work_items(self, issue_key: str) -> list[dict[str, Any]]:
+        """
+        Get all work items (time entries) for an issue.
+
+        Args:
+            issue_key: Issue key
+
+        Returns:
+            List of work item dictionaries
+        """
+        items = self._client.get_issue_work_items(issue_key)
+        return [
+            {
+                "id": i.get("id", ""),
+                "author": i.get("author", {}).get("login") or i.get("author", {}).get("name"),
+                "date": i.get("date"),
+                "duration_minutes": i.get("duration", {}).get("minutes", 0),
+                "duration_display": i.get("duration", {}).get("presentation", ""),
+                "description": i.get("text"),
+                "type": i.get("type", {}).get("name") if i.get("type") else None,
+            }
+            for i in items
+        ]
+
+    def add_work_item(
+        self,
+        issue_key: str,
+        duration_minutes: int,
+        description: str | None = None,
+        work_type: str | None = None,
+    ) -> dict[str, Any]:
+        """
+        Add a work item (log time) to an issue.
+
+        Args:
+            issue_key: Issue key
+            duration_minutes: Duration in minutes
+            description: Work description
+            work_type: Work type name
+
+        Returns:
+            Created work item
+        """
+        if self._dry_run:
+            self.logger.info(f"[DRY-RUN] Would add {duration_minutes}m work to {issue_key}")
+            return {"id": "work:dry-run", "duration_minutes": duration_minutes}
+
+        result = self._client.add_work_item(
+            issue_key, duration_minutes, None, description, work_type
+        )
+        self.logger.info(f"Added {duration_minutes}m work to {issue_key}")
+        return result
+
+    def delete_work_item(self, issue_key: str, work_item_id: str) -> bool:
+        """
+        Delete a work item.
+
+        Args:
+            issue_key: Issue key
+            work_item_id: Work item ID to delete
+
+        Returns:
+            True if successful
+        """
+        if self._dry_run:
+            self.logger.info(f"[DRY-RUN] Would delete work item {work_item_id}")
+            return True
+
+        try:
+            self._client.delete_work_item(issue_key, work_item_id)
+            self.logger.info(f"Deleted work item {work_item_id} from {issue_key}")
+            return True
+        except (NotFoundError, IssueTrackerError) as e:
+            self.logger.error(f"Failed to delete work item: {e}")
+            return False
+
+    def get_time_tracking(self, issue_key: str) -> dict[str, Any]:
+        """
+        Get time tracking summary for an issue.
+
+        Args:
+            issue_key: Issue key
+
+        Returns:
+            Time tracking info with estimate and spent time
+        """
+        settings = self._client.get_time_tracking_settings(issue_key)
+        return {
+            "enabled": settings.get("enabled", False),
+            "estimate_minutes": settings.get("estimate", {}).get("minutes"),
+            "estimate_display": settings.get("estimate", {}).get("presentation"),
+            "spent_minutes": settings.get("spentTime", {}).get("minutes"),
+            "spent_display": settings.get("spentTime", {}).get("presentation"),
+        }
+
+    def set_time_estimate(self, issue_key: str, estimate_minutes: int | None) -> bool:
+        """
+        Set time estimate for an issue.
+
+        Args:
+            issue_key: Issue key
+            estimate_minutes: Estimate in minutes, or None to clear
+
+        Returns:
+            True if successful
+        """
+        if self._dry_run:
+            self.logger.info(f"[DRY-RUN] Would set estimate for {issue_key} to {estimate_minutes}m")
+            return True
+
+        try:
+            self._client.set_time_estimate(issue_key, estimate_minutes)
+            self.logger.info(f"Set estimate for {issue_key} to {estimate_minutes}m")
+            return True
+        except IssueTrackerError as e:
+            self.logger.error(f"Failed to set time estimate: {e}")
+            return False
+
+    # -------------------------------------------------------------------------
+    # Issue History/Activity Operations
+    # -------------------------------------------------------------------------
+
+    def get_issue_history(self, issue_key: str) -> list[dict[str, Any]]:
+        """
+        Get change history for an issue.
+
+        Args:
+            issue_key: Issue key
+
+        Returns:
+            List of change dictionaries
+        """
+        return self._client.get_issue_changes(issue_key)
+
+    def get_issue_activities(
+        self,
+        issue_key: str,
+        categories: list[str] | None = None,
+    ) -> list[dict[str, Any]]:
+        """
+        Get activity feed for an issue.
+
+        Args:
+            issue_key: Issue key
+            categories: Filter by category (e.g., "IssueCreatedCategory")
+
+        Returns:
+            List of activity items
+        """
+        return self._client.get_issue_activities(issue_key, categories)
+
+    # -------------------------------------------------------------------------
+    # Mentions Operations
+    # -------------------------------------------------------------------------
+
+    def add_comment_with_mentions(
+        self,
+        issue_key: str,
+        text: str,
+        mentions: list[str] | None = None,
+    ) -> bool:
+        """
+        Add a comment with @mentions.
+
+        Args:
+            issue_key: Issue key
+            text: Comment text
+            mentions: List of usernames to mention
+
+        Returns:
+            True if successful
+        """
+        if self._dry_run:
+            self.logger.info(f"[DRY-RUN] Would add comment with mentions to {issue_key}")
+            return True
+
+        try:
+            self._client.add_comment_with_mentions(issue_key, text, mentions)
+            self.logger.info(f"Added comment with mentions to {issue_key}")
+            return True
+        except IssueTrackerError as e:
+            self.logger.error(f"Failed to add comment: {e}")
+            return False
+
+    def get_mentionable_users(self, query: str = "") -> list[dict[str, Any]]:
+        """
+        Get users that can be mentioned.
+
+        Args:
+            query: Search query
+
+        Returns:
+            List of user dictionaries
+        """
+        users = self._client.get_mentionable_users(query)
+        return [
+            {
+                "id": u.get("id", ""),
+                "login": u.get("login", ""),
+                "name": u.get("name", ""),
+                "email": u.get("email", ""),
+            }
+            for u in users
+        ]
+
+    # -------------------------------------------------------------------------
     # Private Methods
     # -------------------------------------------------------------------------
+
+    def _iso_to_timestamp(self, iso_string: str) -> int:
+        """Convert ISO 8601 string to Unix timestamp in milliseconds."""
+        from datetime import datetime
+
+        try:
+            dt = datetime.fromisoformat(iso_string.replace("Z", "+00:00"))
+            return int(dt.timestamp() * 1000)
+        except ValueError:
+            return 0
 
     def _parse_issue(self, data: dict[str, Any]) -> IssueData:
         """Parse YouTrack API response into IssueData."""
