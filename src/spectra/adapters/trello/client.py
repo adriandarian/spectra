@@ -825,6 +825,158 @@ class TrelloApiClient:
         return result[0] if result else {}
 
     # -------------------------------------------------------------------------
+    # Attachments API
+    # -------------------------------------------------------------------------
+
+    def get_card_attachments(self, card_id: str) -> list[dict[str, Any]]:
+        """
+        Get all attachments for a card.
+
+        Args:
+            card_id: Card ID
+
+        Returns:
+            List of attachment dictionaries with id, name, url, etc.
+        """
+        result = self.request("GET", f"cards/{card_id}/attachments")
+        assert isinstance(result, list)
+        return result
+
+    def upload_card_attachment(
+        self,
+        card_id: str,
+        file_path: str,
+        name: str | None = None,
+    ) -> dict[str, Any]:
+        """
+        Upload a file attachment to a card.
+
+        Trello attachments use multipart/form-data.
+
+        Args:
+            card_id: Card ID
+            file_path: Path to file to upload
+            name: Optional attachment name (defaults to filename)
+
+        Returns:
+            Attachment information dictionary
+
+        Raises:
+            NotFoundError: If file doesn't exist
+            IssueTrackerError: On upload failure
+        """
+        if self.dry_run:
+            self.logger.info(f"[DRY-RUN] Would upload attachment {file_path} to card {card_id}")
+            return {"id": "attachment:dry-run", "name": name or file_path}
+
+        from pathlib import Path
+
+        file_path_obj = Path(file_path)
+        if not file_path_obj.exists():
+            raise NotFoundError(f"File not found: {file_path}")
+
+        # Build URL with auth params
+        url = f"{self.api_url}/cards/{card_id}/attachments"
+        request_params = {**self.auth_params}
+        if name:
+            request_params["name"] = name
+
+        # Apply rate limiting
+        if self._rate_limiter is not None:
+            self._rate_limiter.acquire()
+
+        try:
+            # Open file and upload using multipart/form-data
+            with open(file_path_obj, "rb") as file_handle:
+                files = {"file": (file_path_obj.name, file_handle, "application/octet-stream")}
+
+                response = self._session.post(
+                    url,
+                    params=request_params,
+                    files=files,
+                    timeout=self.timeout,
+                )
+
+                # Update rate limiter
+                if self._rate_limiter is not None:
+                    self._rate_limiter.update_from_response(response)
+
+                if response.status_code == 401:
+                    raise AuthenticationError(
+                        "Trello authentication failed. Check your API key and token."
+                    )
+
+                if response.status_code == 403:
+                    raise PermissionError("Permission denied")
+
+                if not response.ok:
+                    error_text = response.text[:500] if response.text else ""
+                    raise IssueTrackerError(
+                        f"Trello attachment upload error {response.status_code}: {error_text}"
+                    )
+
+                result = response.json()
+                assert isinstance(result, dict)
+                return result
+
+        except requests.exceptions.RequestException as e:
+            raise IssueTrackerError(f"Failed to upload attachment: {e}", cause=e)
+
+    def delete_card_attachment(self, attachment_id: str) -> bool:
+        """
+        Delete an attachment.
+
+        Args:
+            attachment_id: Attachment ID to delete
+
+        Returns:
+            True if successful
+
+        Raises:
+            IssueTrackerError: On deletion failure
+        """
+        if self.dry_run:
+            self.logger.info(f"[DRY-RUN] Would delete attachment {attachment_id}")
+            return True
+
+        # Build URL with auth params
+        url = f"{self.api_url}/attachments/{attachment_id}"
+        request_params = {**self.auth_params}
+
+        # Apply rate limiting
+        if self._rate_limiter is not None:
+            self._rate_limiter.acquire()
+
+        try:
+            response = self._session.delete(url, params=request_params, timeout=self.timeout)
+
+            # Update rate limiter
+            if self._rate_limiter is not None:
+                self._rate_limiter.update_from_response(response)
+
+            if response.status_code == 401:
+                raise AuthenticationError(
+                    "Trello authentication failed. Check your API key and token."
+                )
+
+            if response.status_code == 403:
+                raise PermissionError("Permission denied")
+
+            if response.status_code == 404:
+                raise NotFoundError(f"Attachment not found: {attachment_id}")
+
+            if not response.ok:
+                error_text = response.text[:500] if response.text else ""
+                raise IssueTrackerError(
+                    f"Trello attachment deletion error {response.status_code}: {error_text}"
+                )
+
+            return True
+
+        except requests.exceptions.RequestException as e:
+            raise IssueTrackerError(f"Failed to delete attachment: {e}", cause=e)
+
+    # -------------------------------------------------------------------------
     # Resource Cleanup
     # -------------------------------------------------------------------------
 

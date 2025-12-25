@@ -682,6 +682,63 @@ class TrelloAdapter(IssueTrackerPort):
         self.logger.info(f"Set custom field {custom_field_id} on card {card_id}")
         return True
 
+    # -------------------------------------------------------------------------
+    # Attachment Methods
+    # -------------------------------------------------------------------------
+
+    def get_card_attachments(self, card_id: str) -> list[dict[str, Any]]:
+        """
+        Get all attachments for a card.
+
+        Args:
+            card_id: Card ID
+
+        Returns:
+            List of attachment dictionaries with id, name, url, etc.
+        """
+        return self._client.get_card_attachments(card_id)
+
+    def upload_card_attachment(
+        self,
+        card_id: str,
+        file_path: str,
+        name: str | None = None,
+    ) -> dict[str, Any]:
+        """
+        Upload a file attachment to a card.
+
+        Args:
+            card_id: Card ID
+            file_path: Path to file to upload
+            name: Optional attachment name (defaults to filename)
+
+        Returns:
+            Attachment information dictionary
+        """
+        if self._dry_run:
+            self.logger.info(f"[DRY-RUN] Would upload attachment {file_path} to card {card_id}")
+            return {"id": "attachment:dry-run", "name": name or file_path}
+
+        return self._client.upload_card_attachment(card_id, file_path, name)
+
+    def delete_card_attachment(self, attachment_id: str) -> bool:
+        """
+        Delete an attachment from a card.
+
+        Args:
+            attachment_id: Attachment ID to delete
+
+        Returns:
+            True if successful
+        """
+        if self._dry_run:
+            self.logger.info(f"[DRY-RUN] Would delete attachment {attachment_id}")
+            return True
+
+        self._client.delete_card_attachment(attachment_id)
+        self.logger.info(f"Deleted attachment {attachment_id}")
+        return True
+
     def get_custom_field_value(
         self,
         card_id: str,

@@ -628,3 +628,193 @@ class TestTrelloAdapter:
         assert value == 5.0
         mock_client.get_card_custom_fields.assert_called_once()
         mock_client.get_custom_field_definition.assert_called_once_with("field1")
+
+
+# =============================================================================
+# Attachment Tests
+# =============================================================================
+
+
+class TestTrelloAdapterAttachments:
+    """Tests for attachment functionality."""
+
+    @pytest.fixture
+    def adapter(self):
+        """Create a test adapter."""
+        config = TrelloConfig(
+            api_key="test_key",
+            api_token="test_token",
+            board_id="board123",
+        )
+        with patch("spectra.adapters.trello.adapter.TrelloApiClient"):
+            return TrelloAdapter(config=config, dry_run=False)
+
+    @pytest.fixture
+    def mock_client(self, adapter):
+        """Get the mocked client."""
+        return adapter._client
+
+    def test_get_card_attachments(self, adapter, mock_client):
+        """Should get all attachments for a card."""
+        mock_client.get_card_attachments.return_value = [
+            {"id": "att1", "name": "file1.pdf", "url": "https://trello.com/att1"},
+            {"id": "att2", "name": "file2.png", "url": "https://trello.com/att2"},
+        ]
+
+        attachments = adapter.get_card_attachments("card123")
+
+        assert len(attachments) == 2
+        assert attachments[0]["name"] == "file1.pdf"
+        assert attachments[1]["name"] == "file2.png"
+        mock_client.get_card_attachments.assert_called_once_with("card123")
+
+    def test_upload_card_attachment(self, adapter, mock_client, tmp_path):
+        """Should upload a file attachment to a card."""
+        test_file = tmp_path / "test.txt"
+        test_file.write_text("Test content")
+
+        mock_client.upload_card_attachment.return_value = {
+            "id": "att123",
+            "name": "test.txt",
+            "url": "https://trello.com/att123",
+        }
+
+        result = adapter.upload_card_attachment("card123", str(test_file))
+
+        assert result["id"] == "att123"
+        assert result["name"] == "test.txt"
+        mock_client.upload_card_attachment.assert_called_once_with("card123", str(test_file), None)
+
+    def test_upload_card_attachment_with_name(self, adapter, mock_client, tmp_path):
+        """Should upload attachment with custom name."""
+        test_file = tmp_path / "test.txt"
+        test_file.write_text("Test content")
+
+        mock_client.upload_card_attachment.return_value = {
+            "id": "att123",
+            "name": "Custom Name",
+        }
+
+        result = adapter.upload_card_attachment("card123", str(test_file), name="Custom Name")
+
+        assert result["name"] == "Custom Name"
+        mock_client.upload_card_attachment.assert_called_once_with(
+            "card123", str(test_file), "Custom Name"
+        )
+
+    def test_delete_card_attachment(self, adapter, mock_client):
+        """Should delete an attachment."""
+        adapter.delete_card_attachment("att123")
+
+        mock_client.delete_card_attachment.assert_called_once_with("att123")
+
+    def test_upload_attachment_dry_run(self, adapter, tmp_path):
+        """Should not upload in dry-run mode."""
+        adapter._dry_run = True
+        test_file = tmp_path / "test.txt"
+        test_file.write_text("Test content")
+
+        result = adapter.upload_card_attachment("card123", str(test_file))
+
+        assert result["id"] == "attachment:dry-run"
+        adapter._client.upload_card_attachment.assert_not_called()
+
+    def test_delete_attachment_dry_run(self, adapter):
+        """Should not delete in dry-run mode."""
+        adapter._dry_run = True
+
+        result = adapter.delete_card_attachment("att123")
+
+        assert result is True
+        adapter._client.delete_card_attachment.assert_not_called()
+
+
+class TestTrelloApiClientAttachments:
+    """Tests for TrelloApiClient attachment methods."""
+
+    @pytest.fixture
+    def mock_session(self):
+        """Create a mock session for testing."""
+        with patch("spectra.adapters.trello.client.requests.Session") as mock:
+            session = MagicMock()
+            mock.return_value = session
+            yield session
+
+    @pytest.fixture
+    def client(self, mock_session):
+        """Create a test client with mocked session."""
+        return TrelloApiClient(
+            api_key="test_key",
+            api_token="test_token",
+            board_id="board123",
+            dry_run=False,
+        )
+
+    def test_get_card_attachments(self, client, mock_session):
+        """Should get card attachments."""
+        mock_response = MagicMock()
+        mock_response.ok = True
+        mock_response.status_code = 200
+        mock_response.json.return_value = [
+            {"id": "att1", "name": "file1.pdf", "url": "https://trello.com/att1"},
+        ]
+        mock_response.headers = {}
+        mock_session.request.return_value = mock_response
+
+        attachments = client.get_card_attachments("card123")
+
+        assert len(attachments) == 1
+        assert attachments[0]["name"] == "file1.pdf"
+
+    def test_upload_card_attachment(self, client, mock_session, tmp_path):
+        """Should upload file attachment."""
+        test_file = tmp_path / "test.txt"
+        test_file.write_text("Test content")
+
+        mock_response = MagicMock()
+        mock_response.ok = True
+        mock_response.status_code = 200
+        mock_response.json.return_value = {
+            "id": "att123",
+            "name": "test.txt",
+            "url": "https://trello.com/att123",
+        }
+        mock_response.headers = {}
+        mock_session.post.return_value = mock_response
+
+        result = client.upload_card_attachment("card123", str(test_file))
+
+        assert result["id"] == "att123"
+        assert result["name"] == "test.txt"
+        mock_session.post.assert_called_once()
+
+    def test_upload_attachment_file_not_found(self, client, tmp_path):
+        """Should raise NotFoundError if file doesn't exist."""
+        non_existent_file = tmp_path / "nonexistent.txt"
+
+        with pytest.raises(NotFoundError):
+            client.upload_card_attachment("card123", str(non_existent_file))
+
+    def test_delete_card_attachment(self, client, mock_session):
+        """Should delete attachment."""
+        mock_response = MagicMock()
+        mock_response.ok = True
+        mock_response.status_code = 200
+        mock_response.headers = {}
+        mock_session.delete.return_value = mock_response
+
+        result = client.delete_card_attachment("att123")
+
+        assert result is True
+        mock_session.delete.assert_called_once()
+
+    def test_delete_attachment_not_found(self, client, mock_session):
+        """Should raise NotFoundError for non-existent attachment."""
+        mock_response = MagicMock()
+        mock_response.ok = False
+        mock_response.status_code = 404
+        mock_response.text = "Not Found"
+        mock_session.delete.return_value = mock_response
+
+        with pytest.raises(NotFoundError):
+            client.delete_card_attachment("att123")

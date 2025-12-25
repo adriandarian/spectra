@@ -193,14 +193,14 @@ Each tracker adapter requires:
   - [x] Webhooks support (create, list, get, update, delete webhooks)
 
 - [x] **Advanced Features**
-  - [ ] Card attachments (future enhancement)
+  - [x] Card attachments ✅ **COMPLETED** - Full support for get/upload/delete attachments
   - [x] Comments sync
   - [x] Due dates (supported via API, not yet mapped in adapter)
   - [x] Labels and custom fields
   - [x] Power-Ups integration (list Power-Ups, custom fields support)
 
 - [x] **Testing**
-  - [x] Unit tests for adapter methods (43 tests including webhooks and Power-Ups)
+  - [x] Unit tests for adapter methods (54 tests including webhooks, Power-Ups, and attachments)
   - [x] Integration tests with Trello API (mocked)
   - [x] Test checklist-based subtasks
   - [x] Test webhook operations
@@ -216,7 +216,7 @@ Each tracker adapter requires:
   - [x] Added to main configuration guide (`docs/guide/configuration.md`)
   - [x] Updated homepage to include Trello in supported trackers
 
-**Status**: ✅ **Core implementation complete** - 43 unit tests passing (including webhook and Power-Ups support), all linting/type checks passing. Ready for use. Documentation pending.
+**Status**: ✅ **Core implementation complete** - 54 unit tests passing (including webhook, Power-Ups, and attachment support), all linting/type checks passing. Ready for use. Documentation pending.
 
 **Actual Time**: ~4 hours (faster than estimated due to good patterns from Linear/GitHub adapters)
 
