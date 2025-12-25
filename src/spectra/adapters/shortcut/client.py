@@ -530,6 +530,7 @@ class ShortcutApiClient:
         priority: str | None = None,
         owner_ids: list[str] | None = None,
         depends_on: list[int] | None = None,
+        iteration_id: int | None = None,
     ) -> dict[str, Any]:
         """Update an existing story."""
         payload: dict[str, Any] = {}
@@ -549,6 +550,8 @@ class ShortcutApiClient:
             payload["owner_ids"] = owner_ids
         if depends_on is not None:
             payload["depends_on"] = depends_on
+        if iteration_id is not None:
+            payload["iteration_id"] = iteration_id
 
         if not payload:
             return {}
@@ -716,6 +719,210 @@ class ShortcutApiClient:
 
         # Update story with remaining dependencies
         return self.update_story(story_id, depends_on=dep_ids)
+
+    # -------------------------------------------------------------------------
+    # Webhooks API
+    # -------------------------------------------------------------------------
+
+    def create_webhook(
+        self,
+        url: str,
+        events: list[str] | None = None,
+        description: str | None = None,
+    ) -> dict[str, Any]:
+        """
+        Create a webhook subscription.
+
+        Shortcut webhooks notify when changes occur in the workspace.
+        Supported events include: story.create, story.update, story.delete,
+        epic.create, epic.update, etc.
+
+        Args:
+            url: Webhook URL to receive events
+            events: Optional list of event types to subscribe to (defaults to all)
+            description: Optional description for the webhook
+
+        Returns:
+            Webhook subscription data
+        """
+        if self.dry_run:
+            self.logger.info(f"[DRY-RUN] Would create webhook for URL {url}")
+            return {"id": "webhook:dry-run", "url": url, "events": events or []}
+
+        payload: dict[str, Any] = {"url": url}
+        if events:
+            payload["events"] = events
+        if description:
+            payload["description"] = description
+
+        result = self.request("POST", "/webhooks", json=payload)
+        if isinstance(result, dict):
+            return result
+        return {}
+
+    def get_webhook(self, webhook_id: str) -> dict[str, Any]:
+        """Get a webhook by ID."""
+        result = self.request("GET", f"/webhooks/{webhook_id}")
+        if isinstance(result, dict):
+            return result
+        raise IssueTrackerError(f"Unexpected response type: {type(result)}")
+
+    def list_webhooks(self) -> list[dict[str, Any]]:
+        """List all webhooks for the workspace."""
+        data = self.request("GET", "/webhooks")
+        return data if isinstance(data, list) else []
+
+    def update_webhook(
+        self,
+        webhook_id: str,
+        url: str | None = None,
+        events: list[str] | None = None,
+        description: str | None = None,
+        enabled: bool | None = None,
+    ) -> dict[str, Any]:
+        """Update a webhook subscription."""
+        payload: dict[str, Any] = {}
+        if url is not None:
+            payload["url"] = url
+        if events is not None:
+            payload["events"] = events
+        if description is not None:
+            payload["description"] = description
+        if enabled is not None:
+            payload["enabled"] = enabled
+
+        if not payload:
+            return {}
+
+        result = self.request("PUT", f"/webhooks/{webhook_id}", json=payload)
+        if isinstance(result, dict):
+            return result
+        return {}
+
+    def delete_webhook(self, webhook_id: str) -> bool:
+        """Delete a webhook subscription."""
+        if self.dry_run:
+            self.logger.info(f"[DRY-RUN] Would delete webhook {webhook_id}")
+            return True
+
+        self.request("DELETE", f"/webhooks/{webhook_id}")
+        return True
+
+    # -------------------------------------------------------------------------
+    # Iterations (Sprints) API
+    # -------------------------------------------------------------------------
+
+    def list_iterations(self) -> list[dict[str, Any]]:
+        """List all iterations (sprints) for the workspace."""
+        data = self.request("GET", "/iterations")
+        return data if isinstance(data, list) else []
+
+    def get_iteration(self, iteration_id: int) -> dict[str, Any]:
+        """Get an iteration by ID."""
+        result = self.request("GET", f"/iterations/{iteration_id}")
+        if isinstance(result, dict):
+            return result
+        raise IssueTrackerError(f"Unexpected response type: {type(result)}")
+
+    def create_iteration(
+        self,
+        name: str,
+        start_date: str,
+        end_date: str,
+        description: str | None = None,
+    ) -> dict[str, Any]:
+        """
+        Create a new iteration (sprint).
+
+        Args:
+            name: Iteration name
+            start_date: Start date (ISO 8601 format: YYYY-MM-DD)
+            end_date: End date (ISO 8601 format: YYYY-MM-DD)
+            description: Optional description
+
+        Returns:
+            Created iteration data
+        """
+        if self.dry_run:
+            self.logger.info(f"[DRY-RUN] Would create iteration '{name}'")
+            return {
+                "id": 0,
+                "name": name,
+                "start_date": start_date,
+                "end_date": end_date,
+            }
+
+        payload: dict[str, Any] = {
+            "name": name,
+            "start_date": start_date,
+            "end_date": end_date,
+        }
+        if description:
+            payload["description"] = description
+
+        result = self.request("POST", "/iterations", json=payload)
+        if isinstance(result, dict):
+            return result
+        return {}
+
+    def update_iteration(
+        self,
+        iteration_id: int,
+        name: str | None = None,
+        start_date: str | None = None,
+        end_date: str | None = None,
+        description: str | None = None,
+    ) -> dict[str, Any]:
+        """Update an iteration."""
+        payload: dict[str, Any] = {}
+        if name is not None:
+            payload["name"] = name
+        if start_date is not None:
+            payload["start_date"] = start_date
+        if end_date is not None:
+            payload["end_date"] = end_date
+        if description is not None:
+            payload["description"] = description
+
+        if not payload:
+            return self.get_iteration(iteration_id)
+
+        result = self.request("PUT", f"/iterations/{iteration_id}", json=payload)
+        if isinstance(result, dict):
+            return result
+        return {}
+
+    def delete_iteration(self, iteration_id: int) -> bool:
+        """Delete an iteration."""
+        if self.dry_run:
+            self.logger.info(f"[DRY-RUN] Would delete iteration {iteration_id}")
+            return True
+
+        self.request("DELETE", f"/iterations/{iteration_id}")
+        return True
+
+    def get_iteration_stories(self, iteration_id: int) -> list[dict[str, Any]]:
+        """Get all stories assigned to an iteration."""
+        data = self.request("GET", f"/iterations/{iteration_id}/stories")
+        return data if isinstance(data, list) else []
+
+    def assign_story_to_iteration(self, story_id: int, iteration_id: int) -> dict[str, Any]:
+        """Assign a story to an iteration."""
+        if self.dry_run:
+            self.logger.info(f"[DRY-RUN] Would assign story {story_id} to iteration {iteration_id}")
+            return {"id": story_id, "iteration_id": iteration_id}
+
+        # Update story with iteration_id
+        return self.update_story(story_id, iteration_id=iteration_id)
+
+    def remove_story_from_iteration(self, story_id: int) -> dict[str, Any]:
+        """Remove a story from its iteration."""
+        if self.dry_run:
+            self.logger.info(f"[DRY-RUN] Would remove story {story_id} from iteration")
+            return {"id": story_id, "iteration_id": None}
+
+        # Update story to remove iteration_id (set to None)
+        return self.update_story(story_id, iteration_id=None)
 
     # -------------------------------------------------------------------------
     # Comments API

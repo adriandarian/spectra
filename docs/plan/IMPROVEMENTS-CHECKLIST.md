@@ -241,16 +241,16 @@ Each tracker adapter requires:
   - [x] Authentication: API Token
   - [x] Endpoints: `/epics`, `/stories`, `/tasks`
   - [x] Rate limiting: 200 requests per minute
-  - [ ] Webhooks support (future enhancement)
+  - [x] Webhooks support ✅ **COMPLETED** - Full support for create/list/get/update/delete webhooks
 
 - [x] **Advanced Features**
-  - [ ] Iterations (sprints) support (future enhancement)
+  - [x] Iterations (sprints) support ✅ **COMPLETED** - Full support for create/list/get/update/delete iterations and assign/remove stories
   - [x] Story types (feature, bug, chore) - supported via API
   - [x] Story dependencies ✅ **COMPLETED** - Full support for get/create/delete dependencies with LinkType mapping
   - [x] Comments and file attachments (comments supported, attachments future enhancement)
 
 - [x] **Testing**
-  - [x] Unit tests for adapter methods (22 tests)
+  - [x] Unit tests for adapter methods (61 tests including webhooks and iterations)
   - [x] Integration tests with Shortcut API (mocked)
   - [x] Test workflow state transitions
 
@@ -262,7 +262,7 @@ Each tracker adapter requires:
   - [x] Workspace configuration - Comprehensive guide with examples
   - [x] Workflow state mapping - Detailed mapping table and custom state guide
 
-**Status**: ✅ **Core implementation complete** - 22 unit tests passing, all linting/type checks passing. Ready for use. Documentation pending.
+**Status**: ✅ **Core implementation complete** - 61 unit tests passing (including webhooks and iterations), all linting/type checks passing. Ready for use. Documentation pending.
 
 **Actual Time**: ~4 hours (faster than estimated due to good patterns from Linear/GitHub adapters)
 

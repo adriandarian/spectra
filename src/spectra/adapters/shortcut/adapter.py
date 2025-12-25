@@ -393,6 +393,276 @@ class ShortcutAdapter(IssueTrackerPort):
         return markdown
 
     # -------------------------------------------------------------------------
+    # Webhook Methods
+    # -------------------------------------------------------------------------
+
+    def create_webhook(
+        self,
+        url: str,
+        events: list[str] | None = None,
+        description: str | None = None,
+    ) -> dict[str, Any]:
+        """
+        Create a webhook subscription for the workspace.
+
+        Shortcut webhooks notify when changes occur in the workspace.
+        Supported events include:
+        - story.create, story.update, story.delete
+        - epic.create, epic.update, epic.delete
+        - task.create, task.update, task.delete
+        - comment.create, comment.update
+
+        Args:
+            url: Webhook URL to receive events
+            events: Optional list of event types to subscribe to (defaults to all)
+            description: Optional description for the webhook
+
+        Returns:
+            Webhook subscription data
+        """
+        if self._dry_run:
+            self.logger.info(f"[DRY-RUN] Would create webhook for URL {url}")
+            return {"id": "webhook:dry-run", "url": url, "events": events or []}
+
+        return self._client.create_webhook(url=url, events=events, description=description)
+
+    def list_webhooks(self) -> list[dict[str, Any]]:
+        """
+        List webhook subscriptions for the workspace.
+
+        Returns:
+            List of webhook subscriptions
+        """
+        return self._client.list_webhooks()
+
+    def get_webhook(self, webhook_id: str) -> dict[str, Any]:
+        """
+        Get a webhook by ID.
+
+        Args:
+            webhook_id: Webhook ID to retrieve
+
+        Returns:
+            Webhook data
+        """
+        return self._client.get_webhook(webhook_id)
+
+    def update_webhook(
+        self,
+        webhook_id: str,
+        url: str | None = None,
+        events: list[str] | None = None,
+        description: str | None = None,
+        enabled: bool | None = None,
+    ) -> dict[str, Any]:
+        """
+        Update a webhook subscription.
+
+        Args:
+            webhook_id: Webhook ID to update
+            url: New webhook URL (optional)
+            events: New event types (optional)
+            description: New description (optional)
+            enabled: New enabled status (optional)
+
+        Returns:
+            Updated webhook data
+        """
+        if self._dry_run:
+            self.logger.info(f"[DRY-RUN] Would update webhook {webhook_id}")
+            return {"id": webhook_id}
+
+        return self._client.update_webhook(
+            webhook_id=webhook_id,
+            url=url,
+            events=events,
+            description=description,
+            enabled=enabled,
+        )
+
+    def delete_webhook(self, webhook_id: str) -> bool:
+        """
+        Delete a webhook subscription.
+
+        Args:
+            webhook_id: Webhook ID to delete
+
+        Returns:
+            True if successful
+        """
+        if self._dry_run:
+            self.logger.info(f"[DRY-RUN] Would delete webhook {webhook_id}")
+            return True
+
+        return self._client.delete_webhook(webhook_id)
+
+    # -------------------------------------------------------------------------
+    # Iteration (Sprint) Methods
+    # -------------------------------------------------------------------------
+
+    def list_iterations(self) -> list[dict[str, Any]]:
+        """
+        List all iterations (sprints) for the workspace.
+
+        Returns:
+            List of iteration dictionaries
+        """
+        return self._client.list_iterations()
+
+    def get_iteration(self, iteration_id: int) -> dict[str, Any]:
+        """
+        Get an iteration by ID.
+
+        Args:
+            iteration_id: Iteration ID
+
+        Returns:
+            Iteration data
+        """
+        return self._client.get_iteration(iteration_id)
+
+    def create_iteration(
+        self,
+        name: str,
+        start_date: str,
+        end_date: str,
+        description: str | None = None,
+    ) -> dict[str, Any]:
+        """
+        Create a new iteration (sprint).
+
+        Args:
+            name: Iteration name (e.g., "Sprint 2025-W03")
+            start_date: Start date in ISO 8601 format (YYYY-MM-DD)
+            end_date: End date in ISO 8601 format (YYYY-MM-DD)
+            description: Optional description
+
+        Returns:
+            Created iteration data
+        """
+        if self._dry_run:
+            self.logger.info(f"[DRY-RUN] Would create iteration '{name}'")
+            return {
+                "id": 0,
+                "name": name,
+                "start_date": start_date,
+                "end_date": end_date,
+            }
+
+        return self._client.create_iteration(
+            name=name,
+            start_date=start_date,
+            end_date=end_date,
+            description=description,
+        )
+
+    def update_iteration(
+        self,
+        iteration_id: int,
+        name: str | None = None,
+        start_date: str | None = None,
+        end_date: str | None = None,
+        description: str | None = None,
+    ) -> dict[str, Any]:
+        """
+        Update an iteration.
+
+        Args:
+            iteration_id: Iteration ID to update
+            name: New name (optional)
+            start_date: New start date (optional)
+            end_date: New end date (optional)
+            description: New description (optional)
+
+        Returns:
+            Updated iteration data
+        """
+        if self._dry_run:
+            self.logger.info(f"[DRY-RUN] Would update iteration {iteration_id}")
+            return {"id": iteration_id}
+
+        return self._client.update_iteration(
+            iteration_id=iteration_id,
+            name=name,
+            start_date=start_date,
+            end_date=end_date,
+            description=description,
+        )
+
+    def delete_iteration(self, iteration_id: int) -> bool:
+        """
+        Delete an iteration.
+
+        Args:
+            iteration_id: Iteration ID to delete
+
+        Returns:
+            True if successful
+        """
+        if self._dry_run:
+            self.logger.info(f"[DRY-RUN] Would delete iteration {iteration_id}")
+            return True
+
+        return self._client.delete_iteration(iteration_id)
+
+    def get_iteration_stories(self, iteration_id: int) -> list[dict[str, Any]]:
+        """
+        Get all stories assigned to an iteration.
+
+        Args:
+            iteration_id: Iteration ID
+
+        Returns:
+            List of story dictionaries
+        """
+        return self._client.get_iteration_stories(iteration_id)
+
+    def assign_story_to_iteration(self, story_id: int, iteration_id: int) -> bool:
+        """
+        Assign a story to an iteration.
+
+        Args:
+            story_id: Story ID
+            iteration_id: Iteration ID to assign to
+
+        Returns:
+            True if successful
+        """
+        if self._dry_run:
+            self.logger.info(f"[DRY-RUN] Would assign story {story_id} to iteration {iteration_id}")
+            return True
+
+        try:
+            self._client.assign_story_to_iteration(story_id, iteration_id)
+            self.logger.info(f"Assigned story {story_id} to iteration {iteration_id}")
+            return True
+        except (NotFoundError, IssueTrackerError) as e:
+            self.logger.error(f"Failed to assign story to iteration: {e}")
+            return False
+
+    def remove_story_from_iteration(self, story_id: int) -> bool:
+        """
+        Remove a story from its iteration.
+
+        Args:
+            story_id: Story ID
+
+        Returns:
+            True if successful
+        """
+        if self._dry_run:
+            self.logger.info(f"[DRY-RUN] Would remove story {story_id} from iteration")
+            return True
+
+        try:
+            self._client.remove_story_from_iteration(story_id)
+            self.logger.info(f"Removed story {story_id} from iteration")
+            return True
+        except (NotFoundError, IssueTrackerError) as e:
+            self.logger.error(f"Failed to remove story from iteration: {e}")
+            return False
+
+    # -------------------------------------------------------------------------
     # Link Operations (Dependencies)
     # -------------------------------------------------------------------------
 

@@ -503,3 +503,511 @@ class TestShortcutTrackerPlugin:
         plugin = create_plugin({"api_token": "test", "workspace_id": "ws"})
 
         assert isinstance(plugin, ShortcutTrackerPlugin)
+
+
+# =============================================================================
+# Webhook Tests
+# =============================================================================
+
+
+class TestShortcutAdapterWebhooks:
+    """Tests for webhook functionality."""
+
+    @pytest.fixture
+    def adapter(self):
+        """Create an adapter with mocked client."""
+        with patch("spectra.adapters.shortcut.adapter.ShortcutApiClient"):
+            adapter = ShortcutAdapter(
+                api_token="test_token",
+                workspace_id="test_workspace",
+                dry_run=False,
+            )
+            mock_client = MagicMock()
+            adapter._client = mock_client
+            yield adapter
+
+    @pytest.fixture
+    def mock_client(self, adapter):
+        """Get the mocked client."""
+        return adapter._client
+
+    def test_create_webhook(self, adapter, mock_client):
+        """Should create a webhook subscription."""
+        mock_client.create_webhook.return_value = {
+            "id": "webhook-123",
+            "url": "https://example.com/webhook",
+            "events": ["story.create", "story.update"],
+        }
+
+        result = adapter.create_webhook("https://example.com/webhook")
+
+        assert result["id"] == "webhook-123"
+        mock_client.create_webhook.assert_called_once_with(
+            url="https://example.com/webhook", events=None, description=None
+        )
+
+    def test_create_webhook_with_events(self, adapter, mock_client):
+        """Should create webhook with specific events."""
+        mock_client.create_webhook.return_value = {"id": "webhook-123"}
+
+        adapter.create_webhook(
+            "https://example.com/webhook",
+            events=["story.create", "epic.update"],
+        )
+
+        mock_client.create_webhook.assert_called_once_with(
+            url="https://example.com/webhook",
+            events=["story.create", "epic.update"],
+            description=None,
+        )
+
+    def test_list_webhooks(self, adapter, mock_client):
+        """Should list webhook subscriptions."""
+        mock_client.list_webhooks.return_value = [
+            {"id": "webhook-1", "url": "https://example.com/webhook1"},
+            {"id": "webhook-2", "url": "https://example.com/webhook2"},
+        ]
+
+        webhooks = adapter.list_webhooks()
+
+        assert len(webhooks) == 2
+        assert webhooks[0]["id"] == "webhook-1"
+        mock_client.list_webhooks.assert_called_once()
+
+    def test_get_webhook(self, adapter, mock_client):
+        """Should get a webhook by ID."""
+        mock_client.get_webhook.return_value = {
+            "id": "webhook-123",
+            "url": "https://example.com/webhook",
+        }
+
+        webhook = adapter.get_webhook("webhook-123")
+
+        assert webhook["id"] == "webhook-123"
+        mock_client.get_webhook.assert_called_once_with("webhook-123")
+
+    def test_update_webhook(self, adapter, mock_client):
+        """Should update a webhook."""
+        mock_client.update_webhook.return_value = {
+            "id": "webhook-123",
+            "url": "https://example.com/new-webhook",
+        }
+
+        result = adapter.update_webhook("webhook-123", url="https://example.com/new-webhook")
+
+        assert result["url"] == "https://example.com/new-webhook"
+        mock_client.update_webhook.assert_called_once_with(
+            webhook_id="webhook-123",
+            url="https://example.com/new-webhook",
+            events=None,
+            description=None,
+            enabled=None,
+        )
+
+    def test_delete_webhook(self, adapter, mock_client):
+        """Should delete a webhook."""
+        mock_client.delete_webhook.return_value = True
+
+        result = adapter.delete_webhook("webhook-123")
+
+        assert result is True
+        mock_client.delete_webhook.assert_called_once_with("webhook-123")
+
+    def test_create_webhook_dry_run(self, adapter, mock_client):
+        """Should not create webhook in dry-run mode."""
+        adapter._dry_run = True
+
+        result = adapter.create_webhook("https://example.com/webhook")
+
+        assert result["id"] == "webhook:dry-run"
+        mock_client.create_webhook.assert_not_called()
+
+
+class TestShortcutApiClientWebhooks:
+    """Tests for ShortcutApiClient webhook methods."""
+
+    @pytest.fixture
+    def mock_session(self):
+        """Create a mock session for testing."""
+        with patch("spectra.adapters.shortcut.client.requests.Session") as mock:
+            session = MagicMock()
+            mock.return_value = session
+            yield session
+
+    @pytest.fixture
+    def client(self, mock_session):
+        """Create a test client with mocked session."""
+        return ShortcutApiClient(
+            api_token="test_token",
+            workspace_id="test_workspace",
+            dry_run=False,
+        )
+
+    def test_create_webhook(self, client, mock_session):
+        """Should create a webhook."""
+        mock_response = MagicMock()
+        mock_response.ok = True
+        mock_response.status_code = 200
+        mock_response.json.return_value = {
+            "id": "webhook-123",
+            "url": "https://example.com/webhook",
+        }
+        mock_response.headers = {}
+        mock_session.request.return_value = mock_response
+
+        result = client.create_webhook("https://example.com/webhook")
+
+        assert result["id"] == "webhook-123"
+        mock_session.request.assert_called_once()
+
+    def test_list_webhooks(self, client, mock_session):
+        """Should list webhooks."""
+        mock_response = MagicMock()
+        mock_response.ok = True
+        mock_response.status_code = 200
+        mock_response.json.return_value = [
+            {"id": "webhook-1", "url": "https://example.com/webhook1"},
+        ]
+        mock_response.headers = {}
+        mock_session.request.return_value = mock_response
+
+        webhooks = client.list_webhooks()
+
+        assert len(webhooks) == 1
+        assert webhooks[0]["id"] == "webhook-1"
+
+    def test_get_webhook(self, client, mock_session):
+        """Should get a webhook by ID."""
+        mock_response = MagicMock()
+        mock_response.ok = True
+        mock_response.status_code = 200
+        mock_response.json.return_value = {
+            "id": "webhook-123",
+            "url": "https://example.com/webhook",
+        }
+        mock_response.headers = {}
+        mock_session.request.return_value = mock_response
+
+        webhook = client.get_webhook("webhook-123")
+
+        assert webhook["id"] == "webhook-123"
+
+    def test_update_webhook(self, client, mock_session):
+        """Should update a webhook."""
+        mock_response = MagicMock()
+        mock_response.ok = True
+        mock_response.status_code = 200
+        mock_response.json.return_value = {"id": "webhook-123", "enabled": False}
+        mock_response.headers = {}
+        mock_session.request.return_value = mock_response
+
+        result = client.update_webhook("webhook-123", enabled=False)
+
+        assert result["enabled"] is False
+
+    def test_delete_webhook(self, client, mock_session):
+        """Should delete a webhook."""
+        mock_response = MagicMock()
+        mock_response.ok = True
+        mock_response.status_code = 200
+        mock_response.headers = {}
+        mock_session.request.return_value = mock_response
+
+        result = client.delete_webhook("webhook-123")
+
+        assert result is True
+
+
+# =============================================================================
+# Iteration (Sprint) Tests
+# =============================================================================
+
+
+class TestShortcutAdapterIterations:
+    """Tests for iteration (sprint) functionality."""
+
+    @pytest.fixture
+    def adapter(self):
+        """Create an adapter with mocked client."""
+        with patch("spectra.adapters.shortcut.adapter.ShortcutApiClient"):
+            adapter = ShortcutAdapter(
+                api_token="test_token",
+                workspace_id="test_workspace",
+                dry_run=False,
+            )
+            mock_client = MagicMock()
+            adapter._client = mock_client
+            yield adapter
+
+    @pytest.fixture
+    def mock_client(self, adapter):
+        """Get the mocked client."""
+        return adapter._client
+
+    def test_list_iterations(self, adapter, mock_client):
+        """Should list all iterations."""
+        mock_client.list_iterations.return_value = [
+            {
+                "id": 1,
+                "name": "Sprint 2025-W03",
+                "start_date": "2025-01-13",
+                "end_date": "2025-01-24",
+            },
+            {
+                "id": 2,
+                "name": "Sprint 2025-W04",
+                "start_date": "2025-01-27",
+                "end_date": "2025-02-07",
+            },
+        ]
+
+        iterations = adapter.list_iterations()
+
+        assert len(iterations) == 2
+        assert iterations[0]["name"] == "Sprint 2025-W03"
+        mock_client.list_iterations.assert_called_once()
+
+    def test_get_iteration(self, adapter, mock_client):
+        """Should get an iteration by ID."""
+        mock_client.get_iteration.return_value = {
+            "id": 1,
+            "name": "Sprint 2025-W03",
+            "start_date": "2025-01-13",
+            "end_date": "2025-01-24",
+        }
+
+        iteration = adapter.get_iteration(1)
+
+        assert iteration["id"] == 1
+        assert iteration["name"] == "Sprint 2025-W03"
+        mock_client.get_iteration.assert_called_once_with(1)
+
+    def test_create_iteration(self, adapter, mock_client):
+        """Should create a new iteration."""
+        mock_client.create_iteration.return_value = {
+            "id": 1,
+            "name": "Sprint 2025-W03",
+            "start_date": "2025-01-13",
+            "end_date": "2025-01-24",
+        }
+
+        result = adapter.create_iteration(
+            name="Sprint 2025-W03",
+            start_date="2025-01-13",
+            end_date="2025-01-24",
+        )
+
+        assert result["id"] == 1
+        mock_client.create_iteration.assert_called_once_with(
+            name="Sprint 2025-W03",
+            start_date="2025-01-13",
+            end_date="2025-01-24",
+            description=None,
+        )
+
+    def test_update_iteration(self, adapter, mock_client):
+        """Should update an iteration."""
+        mock_client.update_iteration.return_value = {"id": 1, "name": "Updated Sprint"}
+
+        result = adapter.update_iteration(1, name="Updated Sprint")
+
+        assert result["name"] == "Updated Sprint"
+        mock_client.update_iteration.assert_called_once_with(
+            iteration_id=1,
+            name="Updated Sprint",
+            start_date=None,
+            end_date=None,
+            description=None,
+        )
+
+    def test_delete_iteration(self, adapter, mock_client):
+        """Should delete an iteration."""
+        mock_client.delete_iteration.return_value = True
+
+        result = adapter.delete_iteration(1)
+
+        assert result is True
+        mock_client.delete_iteration.assert_called_once_with(1)
+
+    def test_get_iteration_stories(self, adapter, mock_client):
+        """Should get stories in an iteration."""
+        mock_client.get_iteration_stories.return_value = [
+            {"id": 123, "name": "Story 1"},
+            {"id": 456, "name": "Story 2"},
+        ]
+
+        stories = adapter.get_iteration_stories(1)
+
+        assert len(stories) == 2
+        assert stories[0]["id"] == 123
+        mock_client.get_iteration_stories.assert_called_once_with(1)
+
+    def test_assign_story_to_iteration(self, adapter, mock_client):
+        """Should assign a story to an iteration."""
+        mock_client.assign_story_to_iteration.return_value = {"id": 123, "iteration_id": 1}
+
+        result = adapter.assign_story_to_iteration(123, 1)
+
+        assert result is True
+        mock_client.assign_story_to_iteration.assert_called_once_with(123, 1)
+
+    def test_remove_story_from_iteration(self, adapter, mock_client):
+        """Should remove a story from its iteration."""
+        mock_client.remove_story_from_iteration.return_value = {"id": 123, "iteration_id": None}
+
+        result = adapter.remove_story_from_iteration(123)
+
+        assert result is True
+        mock_client.remove_story_from_iteration.assert_called_once_with(123)
+
+    def test_create_iteration_dry_run(self, adapter):
+        """Should not create iteration in dry-run mode."""
+        adapter._dry_run = True
+
+        result = adapter.create_iteration(
+            name="Sprint 2025-W03",
+            start_date="2025-01-13",
+            end_date="2025-01-24",
+        )
+
+        assert result["id"] == 0
+        assert result["name"] == "Sprint 2025-W03"
+        adapter._client.create_iteration.assert_not_called()
+
+
+class TestShortcutApiClientIterations:
+    """Tests for ShortcutApiClient iteration methods."""
+
+    @pytest.fixture
+    def mock_session(self):
+        """Create a mock session for testing."""
+        with patch("spectra.adapters.shortcut.client.requests.Session") as mock:
+            session = MagicMock()
+            mock.return_value = session
+            yield session
+
+    @pytest.fixture
+    def client(self, mock_session):
+        """Create a test client with mocked session."""
+        return ShortcutApiClient(
+            api_token="test_token",
+            workspace_id="test_workspace",
+            dry_run=False,
+        )
+
+    def test_list_iterations(self, client, mock_session):
+        """Should list iterations."""
+        mock_response = MagicMock()
+        mock_response.ok = True
+        mock_response.status_code = 200
+        mock_response.json.return_value = [
+            {
+                "id": 1,
+                "name": "Sprint 2025-W03",
+                "start_date": "2025-01-13",
+                "end_date": "2025-01-24",
+            },
+        ]
+        mock_response.headers = {}
+        mock_session.request.return_value = mock_response
+
+        iterations = client.list_iterations()
+
+        assert len(iterations) == 1
+        assert iterations[0]["name"] == "Sprint 2025-W03"
+
+    def test_get_iteration(self, client, mock_session):
+        """Should get an iteration by ID."""
+        mock_response = MagicMock()
+        mock_response.ok = True
+        mock_response.status_code = 200
+        mock_response.json.return_value = {
+            "id": 1,
+            "name": "Sprint 2025-W03",
+            "start_date": "2025-01-13",
+            "end_date": "2025-01-24",
+        }
+        mock_response.headers = {}
+        mock_session.request.return_value = mock_response
+
+        iteration = client.get_iteration(1)
+
+        assert iteration["id"] == 1
+        assert iteration["name"] == "Sprint 2025-W03"
+
+    def test_create_iteration(self, client, mock_session):
+        """Should create an iteration."""
+        mock_response = MagicMock()
+        mock_response.ok = True
+        mock_response.status_code = 200
+        mock_response.json.return_value = {
+            "id": 1,
+            "name": "Sprint 2025-W03",
+            "start_date": "2025-01-13",
+            "end_date": "2025-01-24",
+        }
+        mock_response.headers = {}
+        mock_session.request.return_value = mock_response
+
+        result = client.create_iteration(
+            name="Sprint 2025-W03",
+            start_date="2025-01-13",
+            end_date="2025-01-24",
+        )
+
+        assert result["id"] == 1
+        mock_session.request.assert_called_once()
+
+    def test_update_iteration(self, client, mock_session):
+        """Should update an iteration."""
+        mock_response = MagicMock()
+        mock_response.ok = True
+        mock_response.status_code = 200
+        mock_response.json.return_value = {"id": 1, "name": "Updated Sprint"}
+        mock_response.headers = {}
+        mock_session.request.return_value = mock_response
+
+        result = client.update_iteration(1, name="Updated Sprint")
+
+        assert result["name"] == "Updated Sprint"
+
+    def test_delete_iteration(self, client, mock_session):
+        """Should delete an iteration."""
+        mock_response = MagicMock()
+        mock_response.ok = True
+        mock_response.status_code = 200
+        mock_response.headers = {}
+        mock_session.request.return_value = mock_response
+
+        result = client.delete_iteration(1)
+
+        assert result is True
+
+    def test_get_iteration_stories(self, client, mock_session):
+        """Should get stories in an iteration."""
+        mock_response = MagicMock()
+        mock_response.ok = True
+        mock_response.status_code = 200
+        mock_response.json.return_value = [{"id": 123, "name": "Story 1"}]
+        mock_response.headers = {}
+        mock_session.request.return_value = mock_response
+
+        stories = client.get_iteration_stories(1)
+
+        assert len(stories) == 1
+        assert stories[0]["id"] == 123
+
+    def test_assign_story_to_iteration(self, client, mock_session):
+        """Should assign story to iteration."""
+        # Mock update_story response (assign_story_to_iteration calls update_story directly)
+        mock_response = MagicMock()
+        mock_response.ok = True
+        mock_response.status_code = 200
+        mock_response.json.return_value = {"id": 123, "name": "Story 1"}
+        mock_response.headers = {}
+        mock_session.request.return_value = mock_response
+
+        result = client.assign_story_to_iteration(123, 1)
+
+        assert result["id"] == 123
+        mock_session.request.assert_called_once()
