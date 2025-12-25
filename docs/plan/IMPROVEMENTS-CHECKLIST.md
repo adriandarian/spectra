@@ -126,46 +126,46 @@ Each tracker adapter requires:
 #### 2. Monday.com Adapter
 **Priority: Medium** | **Effort: High** | **Complexity: High**
 
-- [ ] **Core Implementation**
-  - [ ] Add `MONDAY` to `TrackerType` enum
-  - [ ] Create `MondayConfig` dataclass (api_token, board_id, workspace_id)
-  - [ ] Implement `MondayAdapter` with `IssueTrackerPort`
-  - [ ] Create `MondayApiClient` using Monday.com GraphQL API
-  - [ ] Map Epic → Group (board group)
-  - [ ] Map Story → Item (board item)
-  - [ ] Map Subtask → Subitem or linked item
-  - [ ] Status mapping → Status column
-  - [ ] Priority mapping → Priority column
-  - [ ] Story points → Numbers column
+- [x] **Core Implementation**
+  - [x] Add `MONDAY` to `TrackerType` enum
+  - [x] Create `MondayConfig` dataclass (api_token, board_id, workspace_id)
+  - [x] Implement `MondayAdapter` with `IssueTrackerPort`
+  - [x] Create `MondayApiClient` using Monday.com GraphQL API
+  - [x] Map Epic → Group (board group)
+  - [x] Map Story → Item (board item)
+  - [x] Map Subtask → Subitem or linked item
+  - [x] Status mapping → Status column
+  - [x] Priority mapping → Priority column
+  - [x] Story points → Numbers column
 
-- [ ] **API Integration**
-  - [ ] Authentication: API Token (v2)
-  - [ ] GraphQL API endpoint: `https://api.monday.com/v2`
-  - [ ] Rate limiting: 500 requests per 10 seconds
-  - [ ] Webhooks support for real-time sync
-  - [ ] Custom column mapping configuration
+- [x] **API Integration**
+  - [x] Authentication: API Token (v2)
+  - [x] GraphQL API endpoint: `https://api.monday.com/v2`
+  - [x] Rate limiting: 500 requests per 10 seconds
+  - [x] Webhooks support for real-time sync
+  - [x] Custom column mapping configuration
 
-- [ ] **Advanced Features**
-  - [ ] Board structure mapping
-  - [ ] Custom columns support
-  - [ ] Timeline/Gantt view integration
-  - [ ] File attachments
-  - [ ] Updates (comments) sync
+- [x] **Advanced Features**
+  - [x] Board structure mapping
+  - [x] Custom columns support
+  - [x] Timeline/Gantt view integration
+  - [x] File attachments
+  - [x] Updates (comments) sync
 
-- [ ] **Testing**
-  - [ ] Unit tests for GraphQL queries/mutations
-  - [ ] Integration tests with Monday.com API
-  - [ ] Test custom column mappings
-  - [ ] Test rate limiting
+- [x] **Testing**
+  - [x] Unit tests for GraphQL queries/mutations
+  - [x] Integration tests with Monday.com API
+  - [x] Test custom column mappings
+  - [x] Test rate limiting
 
-- [ ] **Dependencies**
-  - [ ] `requests` + `graphql-core` (or custom GraphQL client)
-  - [ ] Consider: `gql` library for GraphQL
+- [x] **Dependencies**
+  - [x] `requests` + `graphql-core` (or custom GraphQL client)
+  - [x] Consider: `gql` library for GraphQL (using requests directly)
 
-- [ ] **Documentation**
-  - [ ] API token setup
-  - [ ] Board and column configuration
-  - [ ] Custom column mapping guide
+- [x] **Documentation**
+  - [x] API token setup
+  - [x] Board and column configuration
+  - [x] Custom column mapping guide
 
 **Estimated Time**: 4-5 days
 

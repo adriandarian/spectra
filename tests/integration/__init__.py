@@ -8,5 +8,6 @@ using mocked API responses. They cover:
 - Linear integration (test_linear_integration.py)
 - Azure DevOps integration (test_azure_devops_integration.py)
 - Asana integration (test_asana_integration.py)
+- Monday.com integration (test_monday_integration.py)
 - Confluence integration (test_confluence_integration.py)
 """

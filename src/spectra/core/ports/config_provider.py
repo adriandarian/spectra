@@ -21,6 +21,7 @@ class TrackerType(Enum):
     AZURE_DEVOPS = "azure_devops"
     ASANA = "asana"
     GITLAB = "gitlab"
+    MONDAY = "monday"
 
 
 @dataclass
@@ -133,6 +134,25 @@ class GitLabConfig:
     def is_valid(self) -> bool:
         """Check if configuration is valid."""
         return bool(self.token and self.project_id)
+
+
+@dataclass
+class MondayConfig:
+    """Configuration for Monday.com tracker."""
+
+    api_token: str
+    board_id: str
+    workspace_id: str | None = None
+    api_url: str = "https://api.monday.com/v2"
+
+    # Column mapping configuration
+    status_column_id: str | None = None  # Status column ID (auto-detected if None)
+    priority_column_id: str | None = None  # Priority column ID (auto-detected if None)
+    story_points_column_id: str | None = None  # Story points column ID (auto-detected if None)
+
+    def is_valid(self) -> bool:
+        """Check if configuration is valid."""
+        return bool(self.api_token and self.board_id)
 
 
 # =============================================================================

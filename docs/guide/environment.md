@@ -17,6 +17,9 @@ These are required for spectra to connect to Jira:
 | Variable | Description | Default |
 |----------|-------------|---------|
 | `JIRA_PROJECT` | Default project key | None |
+| `MONDAY_API_TOKEN` | Monday.com API token (v2) | None |
+| `MONDAY_BOARD_ID` | Monday.com board ID | None |
+| `MONDAY_WORKSPACE_ID` | Monday.com workspace ID | None |
 | `MD2JIRA_VERBOSE` | Enable verbose output | `false` |
 | `MD2JIRA_LOG_LEVEL` | Logging level | `INFO` |
 | `MD2JIRA_NO_COLOR` | Disable colored output | `false` |
@@ -102,15 +105,15 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      
+
       - name: Set up Python
         uses: actions/setup-python@v5
         with:
           python-version: '3.12'
-      
+
       - name: Install spectra
         run: pip install spectra
-      
+
       - name: Sync to Jira
         env:
           JIRA_URL: ${{ secrets.JIRA_URL }}

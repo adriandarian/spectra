@@ -108,6 +108,13 @@ verbose = true
 | `GITLAB_BASE_URL` | GitLab API base URL (default: `https://gitlab.com/api/v4`) |
 | `GITLAB_GROUP_ID` | GitLab group ID for epics (optional) |
 | `GITLAB_USE_SDK` | Use python-gitlab SDK (`true`/`false`) |
+| `MONDAY_API_TOKEN` | Monday.com API token (v2) |
+| `MONDAY_BOARD_ID` | Monday.com board ID (numeric) |
+| `MONDAY_WORKSPACE_ID` | Monday.com workspace ID (optional) |
+| `MONDAY_API_URL` | Monday.com API endpoint (default: `https://api.monday.com/v2`) |
+| `MONDAY_STATUS_COLUMN_ID` | Status column ID (optional, auto-detected) |
+| `MONDAY_PRIORITY_COLUMN_ID` | Priority column ID (optional, auto-detected) |
+| `MONDAY_STORY_POINTS_COLUMN_ID` | Story points column ID (optional, auto-detected) |
 | `MD2JIRA_VERBOSE` | Enable verbose output (`true`/`false`) |
 
 ## .env File
@@ -188,6 +195,20 @@ spectra --markdown epic.md --epic PROJ-123 --project OTHER
 | `gitlab.status_labels` | dict | Status to label mapping (optional) |
 
 See [GitLab Integration Guide](/guide/gitlab) for detailed configuration examples.
+
+### Monday.com Settings
+
+| Setting | Type | Description |
+|---------|------|-------------|
+| `monday.api_token` | string | Monday.com API token (v2) |
+| `monday.board_id` | string | Board ID (numeric) |
+| `monday.workspace_id` | string | Workspace ID (optional) |
+| `monday.api_url` | string | API endpoint (default: `https://api.monday.com/v2`) |
+| `monday.status_column_id` | string | Status column ID (auto-detected if not specified) |
+| `monday.priority_column_id` | string | Priority column ID (auto-detected if not specified) |
+| `monday.story_points_column_id` | string | Story points column ID (auto-detected if not specified) |
+
+See [Monday.com Integration Guide](/guide/monday) for detailed configuration examples.
 
 ### Sync Settings
 

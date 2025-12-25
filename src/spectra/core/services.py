@@ -60,7 +60,7 @@ def create_tracker_factory(
     Create a factory function for the issue tracker.
 
     Args:
-        tracker_type: Type of tracker ('jira', 'github', 'azure', 'linear', 'asana', 'gitlab')
+        tracker_type: Type of tracker ('jira', 'github', 'azure', 'linear', 'asana', 'gitlab', 'monday')
 
     Returns:
         Factory function that creates the tracker
@@ -129,6 +129,22 @@ def create_tracker_factory(
                 subtask_label=config.subtask_label,
                 status_labels=config.status_labels,
                 use_epics=config.use_epics,
+            )
+        if tracker_type == "monday":
+            from spectra.adapters.monday import MondayAdapter
+            from spectra.core.ports.config_provider import MondayConfig
+
+            if not isinstance(config, MondayConfig):
+                raise ValueError("Monday adapter requires MondayConfig")
+            return MondayAdapter(
+                api_token=config.api_token,
+                board_id=config.board_id,
+                workspace_id=config.workspace_id,
+                dry_run=is_dry_run,
+                api_url=config.api_url,
+                status_column_id=config.status_column_id,
+                priority_column_id=config.priority_column_id,
+                story_points_column_id=config.story_points_column_id,
             )
         raise ValueError(f"Unknown tracker type: {tracker_type}")
 
