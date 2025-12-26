@@ -60,7 +60,7 @@ def create_tracker_factory(
     Create a factory function for the issue tracker.
 
     Args:
-        tracker_type: Type of tracker ('jira', 'github', 'azure', 'linear', 'asana', 'gitlab', 'monday', 'trello', 'shortcut', 'clickup', 'bitbucket')
+        tracker_type: Type of tracker ('jira', 'github', 'azure', 'linear', 'asana', 'gitlab', 'monday', 'trello', 'shortcut', 'clickup', 'bitbucket', 'youtrack', 'basecamp')
 
     Returns:
         Factory function that creates the tracker
@@ -210,6 +210,20 @@ def create_tracker_factory(
             return YouTrackAdapter(
                 config=config,
                 dry_run=is_dry_run,
+            )
+        if tracker_type == "basecamp":
+            from spectra.adapters.basecamp import BasecampAdapter
+            from spectra.core.ports.config_provider import BasecampConfig
+
+            if not isinstance(config, BasecampConfig):
+                raise ValueError("Basecamp adapter requires BasecampConfig")
+            return BasecampAdapter(
+                access_token=config.access_token,
+                account_id=config.account_id,
+                project_id=config.project_id,
+                dry_run=is_dry_run,
+                api_url=config.api_url,
+                use_messages_for_stories=config.use_messages_for_stories,
             )
         raise ValueError(f"Unknown tracker type: {tracker_type}")
 

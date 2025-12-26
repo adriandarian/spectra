@@ -12,4 +12,5 @@ using mocked API responses. They cover:
 - Confluence integration (test_confluence_integration.py)
 - Bitbucket integration (test_bitbucket_integration.py)
 - YouTrack integration (test_youtrack_integration.py)
+- Basecamp integration (test_basecamp_integration.py) - supports live API testing
 """

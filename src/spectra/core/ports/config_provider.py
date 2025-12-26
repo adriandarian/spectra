@@ -27,6 +27,7 @@ class TrackerType(Enum):
     CLICKUP = "clickup"
     BITBUCKET = "bitbucket"
     YOUTRACK = "youtrack"
+    BASECAMP = "basecamp"
 
 
 @dataclass
@@ -289,6 +290,31 @@ class YouTrackConfig:
         if self.api_url:
             return self.api_url.rstrip("/")
         return f"{self.url.rstrip('/')}/api"
+
+
+@dataclass
+class BasecampConfig:
+    """Configuration for Basecamp tracker."""
+
+    access_token: str  # OAuth 2.0 access token
+    account_id: str  # Basecamp account ID
+    project_id: str  # Basecamp project ID
+    api_url: str = "https://3.basecampapi.com"  # Basecamp 3 API URL
+
+    # Mapping configuration
+    # Epic -> Project or Message Board category (we'll use Message Board)
+    # Story -> Todo or Message (we'll use Todo)
+    # Subtask -> Todo list item
+    use_messages_for_stories: bool = False  # If True, use Messages instead of Todos
+
+    def is_valid(self) -> bool:
+        """Check if configuration is valid."""
+        return bool(self.access_token and self.account_id and self.project_id)
+
+    @property
+    def effective_api_url(self) -> str:
+        """Get the effective API URL."""
+        return self.api_url.rstrip("/")
 
 
 # =============================================================================

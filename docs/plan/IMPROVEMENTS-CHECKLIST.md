@@ -457,42 +457,45 @@ Each tracker adapter requires:
 #### 8. Basecamp Adapter
 **Priority: Low** | **Effort: Medium** | **Complexity: Medium**
 
-- [ ] **Core Implementation**
-  - [ ] Add `BASECAMP` to `TrackerType` enum
-  - [ ] Create `BasecampConfig` dataclass (access_token, account_id, project_id)
-  - [ ] Implement `BasecampAdapter` with `IssueTrackerPort`
-  - [ ] Create `BasecampApiClient` using Basecamp 3 API
-  - [ ] Map Epic → Project or Message Board category
-  - [ ] Map Story → Todo or Message
-  - [ ] Map Subtask → Todo list item
-  - [ ] Status mapping → Todo completion status
-  - [ ] Priority mapping → Not natively supported (use notes)
-  - [ ] Story points → Not natively supported (use notes)
+- [x] **Core Implementation**
+  - [x] Add `BASECAMP` to `TrackerType` enum
+  - [x] Create `BasecampConfig` dataclass (access_token, account_id, project_id)
+  - [x] Implement `BasecampAdapter` with `IssueTrackerPort`
+  - [x] Create `BasecampApiClient` using Basecamp 3 API
+  - [x] Map Epic → Project or Message Board category
+  - [x] Map Story → Todo or Message
+  - [x] Map Subtask → Todo list item
+  - [x] Status mapping → Todo completion status
+  - [x] Priority mapping → Not natively supported (use notes)
+  - [x] Story points → Not natively supported (use notes)
 
-- [ ] **API Integration**
-  - [ ] Authentication: OAuth 2.0 (access token)
-  - [ ] Endpoints: `/projects/:id/todosets`, `/projects/:id/todos`, `/projects/:id/messages`
-  - [ ] Rate limiting: 40 requests per 10 seconds
-  - [ ] Webhooks support
+- [x] **API Integration**
+  - [x] Authentication: OAuth 2.0 (access token)
+  - [x] Endpoints: `/projects/:id/todosets`, `/projects/:id/todos`, `/projects/:id/messages`
+  - [x] Rate limiting: 40 requests per 10 seconds
+  - [x] Webhooks support
 
-- [ ] **Advanced Features**
-  - [ ] Todo lists and todos
-  - [ ] Message boards
-  - [ ] Comments and file attachments
-  - [ ] Campfire (chat) integration (optional)
+- [x] **Advanced Features**
+  - [x] Todo lists and todos
+  - [x] Message boards
+  - [x] Comments and file attachments
+  - [x] Campfire (chat) integration (optional)
 
-- [ ] **Testing**
-  - [ ] Unit tests for adapter methods
-  - [ ] Integration tests with Basecamp API
-  - [ ] Test OAuth flow
+- [x] **Testing**
+  - [x] Unit tests for adapter methods
+  - [x] Integration tests with Basecamp API
+  - [x] Test OAuth flow
+  - [x] Test API client integration
+  - [x] Test adapter integration
+  - [x] Test end-to-end workflows
 
-- [ ] **Dependencies**
-  - [ ] `requests` + `requests-oauthlib` for OAuth
+- [x] **Dependencies**
+  - [x] `requests` (OAuth handled via Bearer token, no oauthlib needed)
 
-- [ ] **Documentation**
-  - [ ] OAuth setup
-  - [ ] Account and project configuration
-  - [ ] Todo vs Message mapping
+- [x] **Documentation**
+  - [x] OAuth setup
+  - [x] Account and project configuration
+  - [x] Todo vs Message mapping
 
 **Estimated Time**: 2-3 days
 
