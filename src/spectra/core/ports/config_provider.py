@@ -29,6 +29,7 @@ class TrackerType(Enum):
     YOUTRACK = "youtrack"
     BASECAMP = "basecamp"
     PLANE = "plane"
+    PIVOTAL = "pivotal"
 
 
 @dataclass
