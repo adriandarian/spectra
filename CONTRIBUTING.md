@@ -146,10 +146,27 @@ src/spectra/
 
 ### Adding New Features
 
-- **New tracker?** → Implement `IssueTrackerPort` in `adapters/`
+- **New tracker?** → See the [Adapter Development Guide](docs/guide/adapter-development.md) for comprehensive instructions
 - **New parser?** → Implement `DocumentParserPort` in `adapters/parsers/`
 - **New formatter?** → Implement `DocumentFormatterPort` in `adapters/formatters/`
 - **New command?** → Add to `application/commands/`
+
+### Adding a New Issue Tracker
+
+If you want to add support for a new issue tracker (e.g., your company's internal tool):
+
+1. **Read the guide** - See [`docs/guide/adapter-development.md`](docs/guide/adapter-development.md) for complete instructions
+2. **Create the adapter** - Implement `IssueTrackerPort` interface
+3. **Add tests** - Aim for 50+ unit tests with good coverage
+4. **Validate** - Run `ruff format`, `ruff check`, `mypy`, and `pytest`
+5. **Document** - Add a guide in `docs/guide/`
+
+The adapter development guide includes:
+- Complete code templates for client, adapter, and plugin
+- Rate limiting and retry patterns
+- Status mapping best practices
+- Testing examples
+- Validation checklist
 
 ---
 

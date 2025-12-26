@@ -3,7 +3,7 @@ import { defineConfig } from 'vitepress'
 export default defineConfig({
   title: 'md2jira',
   description: 'Sync markdown documentation to Jira with ease',
-  
+
   head: [
     ['link', { rel: 'icon', type: 'image/svg+xml', href: '/logo.svg' }],
     ['meta', { name: 'theme-color', content: '#0052cc' }],
@@ -14,10 +14,10 @@ export default defineConfig({
   ],
 
   base: '/md2jira/',
-  
+
   themeConfig: {
     logo: '/logo.svg',
-    
+
     nav: [
       { text: 'Guide', link: '/guide/getting-started' },
       { text: 'Tutorials', link: '/tutorials/' },
@@ -63,6 +63,7 @@ export default defineConfig({
           items: [
             { text: 'Architecture', link: '/guide/architecture' },
             { text: 'Plugins', link: '/guide/plugins' },
+            { text: 'Adapter Development', link: '/guide/adapter-development' },
             { text: 'Docker', link: '/guide/docker' },
             { text: 'AI Agents', link: '/guide/agents' },
           ]

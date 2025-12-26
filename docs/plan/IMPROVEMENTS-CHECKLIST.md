@@ -597,6 +597,8 @@ Each tracker adapter requires:
 
 ### Implementation Checklist Template
 
+> 📖 **Full Guide Available**: See [`docs/guide/adapter-development.md`](/docs/guide/adapter-development.md) for comprehensive implementation instructions with code templates, best practices, and examples.
+
 For each new tracker adapter, follow this checklist:
 
 - [ ] **1. Core Setup**
