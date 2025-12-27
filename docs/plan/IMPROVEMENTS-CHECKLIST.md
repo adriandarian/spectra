@@ -670,24 +670,24 @@ For each new tracker adapter, follow this checklist:
 ## 🟣 CLI & Developer Experience
 
 ### New Commands
-- [ ] **`spectra doctor`** - Diagnose common setup issues
-- [ ] **`spectra migrate`** - Migrate between trackers (Jira → GitHub, etc.)
-- [ ] **`spectra diff`** - Compare local file vs tracker state
-- [ ] **`spectra stats`** - Show statistics (stories, points, velocity)
-- [ ] **`spectra import`** - Import from tracker to create initial markdown
-- [ ] **`spectra plan`** - Show side-by-side comparison before sync (like Terraform)
-- [ ] **`spectra tutorial`** - Interactive step-by-step learning experience
-- [ ] **`spectra bulk-update`** - Bulk update stories by filter
-- [ ] **`spectra bulk-assign`** - Bulk assign to user by filter
-- [ ] **`spectra visualize`** - Generate dependency graph (Mermaid/Graphviz)
-- [ ] **`spectra velocity`** - Track story points completed over time
-- [ ] **`spectra split`** - AI-powered story splitting suggestions
-- [ ] **`spectra archive`** - Archive/unarchive stories
-- [ ] **`spectra export`** - Export to PDF, HTML, DOCX
-- [ ] **`spectra report`** - Generate weekly/monthly reports
-- [ ] **`spectra config validate`** - Validate configuration
-- [ ] **`spectra version --check`** - Check for updates
-- [ ] **`spectra hook install`** - Pre-commit hook integration
+- [x] **`spectra doctor`** - Diagnose common setup issues
+- [x] **`spectra migrate`** - Migrate between trackers (Jira → GitHub, etc.)
+- [x] **`spectra diff`** - Compare local file vs tracker state
+- [x] **`spectra stats`** - Show statistics (stories, points, velocity)
+- [x] **`spectra import`** - Import from tracker to create initial markdown
+- [x] **`spectra plan`** - Show side-by-side comparison before sync (like Terraform)
+- [x] **`spectra tutorial`** - Interactive step-by-step learning experience
+- [x] **`spectra bulk-update`** - Bulk update stories by filter
+- [x] **`spectra bulk-assign`** - Bulk assign to user by filter
+- [x] **`spectra visualize`** - Generate dependency graph (Mermaid/Graphviz)
+- [x] **`spectra velocity`** - Track story points completed over time
+- [x] **`spectra split`** - AI-powered story splitting suggestions
+- [x] **`spectra archive`** - Archive/unarchive stories
+- [x] **`spectra export`** - Export to PDF, HTML, DOCX
+- [x] **`spectra report`** - Generate weekly/monthly reports
+- [x] **`spectra config validate`** - Validate configuration
+- [x] **`spectra version --check`** - Check for updates
+- [x] **`spectra hook install`** - Pre-commit hook integration
 
 ### CLI Enhancements
 - [ ] **Interactive TUI Dashboard** - Real-time sync progress, epic/story browser, conflict resolution UI

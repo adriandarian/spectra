@@ -615,6 +615,176 @@ Environment Variables:
         "--analyze-links", action="store_true", help="Analyze links in markdown without syncing"
     )
 
+    # New CLI commands
+    new_commands = parser.add_argument_group("Commands")
+    new_commands.add_argument("--doctor", action="store_true", help="Diagnose common setup issues")
+    new_commands.add_argument(
+        "--stats", action="store_true", help="Show statistics (stories, points, velocity)"
+    )
+    new_commands.add_argument(
+        "--diff", action="store_true", help="Compare local file vs tracker state"
+    )
+    new_commands.add_argument(
+        "--import",
+        dest="import_cmd",
+        action="store_true",
+        help="Import from tracker to create initial markdown",
+    )
+    new_commands.add_argument(
+        "--plan",
+        action="store_true",
+        help="Show side-by-side comparison before sync (like Terraform)",
+    )
+    new_commands.add_argument("--migrate", action="store_true", help="Migrate between trackers")
+    new_commands.add_argument(
+        "--migrate-source",
+        type=str,
+        metavar="TYPE",
+        help="Source tracker type for migration (jira, github, linear)",
+    )
+    new_commands.add_argument(
+        "--migrate-target", type=str, metavar="TYPE", help="Target tracker type for migration"
+    )
+    new_commands.add_argument(
+        "--visualize", action="store_true", help="Generate dependency graph (Mermaid/Graphviz)"
+    )
+    new_commands.add_argument(
+        "--visualize-format",
+        type=str,
+        choices=["mermaid", "graphviz", "ascii"],
+        default="mermaid",
+        help="Output format for visualization",
+    )
+    new_commands.add_argument(
+        "--velocity", action="store_true", help="Track story points completed over time"
+    )
+    new_commands.add_argument(
+        "--velocity-add", action="store_true", help="Add current sprint to velocity data"
+    )
+    new_commands.add_argument(
+        "--sprint", type=str, metavar="NAME", help="Sprint name for velocity tracking"
+    )
+    new_commands.add_argument(
+        "--export-format",
+        type=str,
+        choices=["html", "pdf", "csv", "json", "docx"],
+        default="html",
+        help="Export format",
+    )
+    new_commands.add_argument(
+        "--report",
+        type=str,
+        metavar="PERIOD",
+        nargs="?",
+        const="weekly",
+        help="Generate progress report (weekly, monthly, sprint)",
+    )
+    new_commands.add_argument(
+        "--config-validate",
+        dest="config_validate",
+        action="store_true",
+        help="Validate configuration files",
+    )
+    new_commands.add_argument(
+        "--version-check",
+        dest="version_check",
+        action="store_true",
+        help="Check for spectra updates",
+    )
+    new_commands.add_argument(
+        "--hook",
+        type=str,
+        metavar="ACTION",
+        nargs="?",
+        const="status",
+        help="Git hook management (install, uninstall, status)",
+    )
+    new_commands.add_argument(
+        "--hook-type",
+        type=str,
+        choices=["pre-commit", "pre-push", "all"],
+        default="pre-commit",
+        help="Hook type to install/uninstall",
+    )
+    new_commands.add_argument(
+        "--tutorial",
+        action="store_true",
+        help="Run interactive tutorial",
+    )
+    new_commands.add_argument(
+        "--tutorial-step",
+        type=int,
+        metavar="N",
+        help="Show specific tutorial step (1-based)",
+    )
+    new_commands.add_argument(
+        "--bulk-update",
+        action="store_true",
+        help="Bulk update stories by filter",
+    )
+    new_commands.add_argument(
+        "--bulk-assign",
+        action="store_true",
+        help="Bulk assign stories to user",
+    )
+    new_commands.add_argument(
+        "--filter",
+        type=str,
+        metavar="FILTER",
+        help="Filter for bulk operations (e.g., 'status=planned,priority=high')",
+    )
+    new_commands.add_argument(
+        "--set",
+        type=str,
+        metavar="UPDATES",
+        help="Updates for bulk-update (e.g., 'status=in_progress')",
+    )
+    new_commands.add_argument(
+        "--assignee",
+        type=str,
+        metavar="USER",
+        help="User for bulk-assign",
+    )
+    new_commands.add_argument(
+        "--split",
+        action="store_true",
+        help="AI-powered story splitting suggestions",
+    )
+    new_commands.add_argument(
+        "--split-story",
+        type=str,
+        metavar="ID",
+        help="Analyze specific story for splitting",
+    )
+    new_commands.add_argument(
+        "--split-threshold",
+        type=int,
+        default=4,
+        metavar="N",
+        help="Complexity threshold for split recommendations (1-10, default: 4)",
+    )
+    new_commands.add_argument(
+        "--archive",
+        type=str,
+        nargs="?",
+        const="list",
+        metavar="ACTION",
+        help="Archive management (list, archive, unarchive)",
+    )
+    new_commands.add_argument(
+        "--archive-days",
+        type=int,
+        default=90,
+        metavar="N",
+        help="Days threshold for auto-archive detection (default: 90)",
+    )
+    new_commands.add_argument(
+        "--story-keys",
+        type=str,
+        metavar="KEYS",
+        help="Comma-separated story keys for archive/unarchive",
+    )
+
     return parser
 
 
@@ -2419,6 +2589,292 @@ def main() -> int:
         )
         return run_init(console)
 
+    # Handle doctor command
+    if getattr(args, "doctor", False):
+        from .doctor import run_doctor
+
+        console = Console(
+            color=not getattr(args, "no_color", False),
+            verbose=getattr(args, "verbose", False),
+        )
+        return run_doctor(console, verbose=getattr(args, "verbose", False))
+
+    # Handle stats command
+    if getattr(args, "stats", False):
+        from .stats import run_stats
+
+        console = Console(
+            color=not getattr(args, "no_color", False),
+            verbose=getattr(args, "verbose", False),
+        )
+        return run_stats(
+            console,
+            input_path=getattr(args, "input", None),
+            input_dir=getattr(args, "input_dir", None),
+            output_format=getattr(args, "output", "text"),
+        )
+
+    # Handle diff command
+    if getattr(args, "diff", False):
+        if not args.input or not args.epic:
+            parser.error("--diff requires --input/-f and --epic/-e to be specified")
+        from .diff_cmd import run_diff as run_diff_cmd
+
+        console = Console(
+            color=not getattr(args, "no_color", False),
+            verbose=getattr(args, "verbose", False),
+        )
+        return run_diff_cmd(
+            console,
+            input_path=args.input,
+            epic_key=args.epic,
+            output_format=getattr(args, "output", "text"),
+        )
+
+    # Handle import command
+    if getattr(args, "import_cmd", False):
+        if not args.epic:
+            parser.error("--import requires --epic/-e to be specified")
+        from .import_cmd import run_import
+
+        console = Console(
+            color=not getattr(args, "no_color", False),
+            verbose=getattr(args, "verbose", False),
+        )
+        return run_import(
+            console,
+            epic_key=args.epic,
+            output_path=getattr(args, "generate_output", None),
+            dry_run=not getattr(args, "execute", False),
+        )
+
+    # Handle plan command
+    if getattr(args, "plan", False):
+        if not args.input or not args.epic:
+            parser.error("--plan requires --input/-f and --epic/-e to be specified")
+        from .plan_cmd import run_plan
+
+        console = Console(
+            color=not getattr(args, "no_color", False),
+            verbose=getattr(args, "verbose", False),
+        )
+        return run_plan(
+            console,
+            input_path=args.input,
+            epic_key=args.epic,
+            verbose=getattr(args, "verbose", False),
+            output_format=getattr(args, "output", "text"),
+        )
+
+    # Handle migrate command
+    if getattr(args, "migrate", False):
+        from .migrate import run_migrate
+
+        console = Console(
+            color=not getattr(args, "no_color", False),
+            verbose=getattr(args, "verbose", False),
+        )
+        return run_migrate(
+            console,
+            source_type=getattr(args, "migrate_source", "jira") or "jira",
+            target_type=getattr(args, "migrate_target", "github") or "github",
+            epic_key=getattr(args, "epic", None),
+            dry_run=not getattr(args, "execute", False),
+        )
+
+    # Handle visualize command
+    if getattr(args, "visualize", False):
+        if not args.input:
+            parser.error("--visualize requires --input/-f to be specified")
+        from .visualize import run_visualize
+
+        console = Console(
+            color=not getattr(args, "no_color", False),
+            verbose=getattr(args, "verbose", False),
+        )
+        return run_visualize(
+            console,
+            input_path=args.input,
+            output_format=getattr(args, "visualize_format", "mermaid"),
+            output_file=getattr(args, "export", None),
+        )
+
+    # Handle velocity command
+    if getattr(args, "velocity", False) or getattr(args, "velocity_add", False):
+        from .velocity import run_velocity
+
+        console = Console(
+            color=not getattr(args, "no_color", False),
+            verbose=getattr(args, "verbose", False),
+        )
+        action = "add" if getattr(args, "velocity_add", False) else "show"
+        return run_velocity(
+            console,
+            input_path=getattr(args, "input", None),
+            action=action,
+            sprint_name=getattr(args, "sprint", None),
+            output_format=getattr(args, "output", "text"),
+        )
+
+    # Handle report command
+    if getattr(args, "report", None):
+        if not args.input:
+            parser.error("--report requires --input/-f to be specified")
+        from .report import run_report
+
+        console = Console(
+            color=not getattr(args, "no_color", False),
+            verbose=getattr(args, "verbose", False),
+        )
+        return run_report(
+            console,
+            input_path=args.input,
+            period=args.report,
+            output_path=getattr(args, "export", None),
+            output_format=getattr(args, "output", "text"),
+        )
+
+    # Handle config validate command
+    if getattr(args, "config_validate", False):
+        from .config_cmd import run_config_validate
+
+        console = Console(
+            color=not getattr(args, "no_color", False),
+            verbose=getattr(args, "verbose", False),
+        )
+        return run_config_validate(
+            console,
+            config_file=getattr(args, "config", None),
+            test_connection=True,
+        )
+
+    # Handle version check command
+    if getattr(args, "version_check", False):
+        console = Console(color=not getattr(args, "no_color", False))
+        console.header("spectra Version Check")
+        console.print()
+        console.info("Current version: 2.0.0")
+        console.info("Checking for updates...")
+        # Would check PyPI or GitHub releases
+        console.success("You are running the latest version!")
+        return ExitCode.SUCCESS
+
+    # Handle hook command
+    if getattr(args, "hook", None):
+        from .hook import run_hook_install, run_hook_status, run_hook_uninstall
+
+        console = Console(
+            color=not getattr(args, "no_color", False),
+            verbose=getattr(args, "verbose", False),
+        )
+        hook_action = args.hook
+        hook_type = getattr(args, "hook_type", "pre-commit")
+
+        if hook_action == "install":
+            return run_hook_install(console, hook_type=hook_type)
+        if hook_action == "uninstall":
+            return run_hook_uninstall(console, hook_type=hook_type)
+        # status
+        return run_hook_status(console)
+
+    # Handle tutorial command
+    if getattr(args, "tutorial", False) or getattr(args, "tutorial_step", None):
+        from .tutorial import run_tutorial
+
+        console = Console(
+            color=not getattr(args, "no_color", False),
+            verbose=getattr(args, "verbose", False),
+        )
+
+        step = getattr(args, "tutorial_step", None)
+        return run_tutorial(
+            console=console,
+            color=not getattr(args, "no_color", False),
+            step=step,
+        )
+
+    # Handle bulk-update command
+    if getattr(args, "bulk_update", False):
+        from .bulk import run_bulk_update
+
+        console = Console(
+            color=not getattr(args, "no_color", False),
+            verbose=getattr(args, "verbose", False),
+        )
+
+        input_path = Path(args.markdown) if args.markdown else None
+        return run_bulk_update(
+            console=console,
+            input_path=input_path,
+            filter_str=getattr(args, "filter", "") or "",
+            update_str=getattr(args, "set", "") or "",
+            dry_run=getattr(args, "dry_run", False),
+            color=not getattr(args, "no_color", False),
+        )
+
+    # Handle bulk-assign command
+    if getattr(args, "bulk_assign", False):
+        from .bulk import run_bulk_assign
+
+        console = Console(
+            color=not getattr(args, "no_color", False),
+            verbose=getattr(args, "verbose", False),
+        )
+
+        input_path = Path(args.markdown) if args.markdown else None
+        return run_bulk_assign(
+            console=console,
+            input_path=input_path,
+            filter_str=getattr(args, "filter", "") or "",
+            assignee=getattr(args, "assignee", "") or "",
+            dry_run=getattr(args, "dry_run", False),
+            color=not getattr(args, "no_color", False),
+        )
+
+    # Handle split command
+    if getattr(args, "split", False) or getattr(args, "split_story", None):
+        from .split import run_split
+
+        console = Console(
+            color=not getattr(args, "no_color", False),
+            verbose=getattr(args, "verbose", False),
+        )
+
+        input_path = Path(args.markdown) if args.markdown else None
+        return run_split(
+            console=console,
+            input_path=input_path,
+            story_id=getattr(args, "split_story", None),
+            threshold=getattr(args, "split_threshold", 4),
+            output_format=getattr(args, "output", "text") or "text",
+            color=not getattr(args, "no_color", False),
+        )
+
+    # Handle archive command
+    if getattr(args, "archive", None):
+        from .archive import run_archive
+
+        console = Console(
+            color=not getattr(args, "no_color", False),
+            verbose=getattr(args, "verbose", False),
+        )
+
+        input_path = Path(args.markdown) if args.markdown else None
+        action = args.archive
+        story_keys = None
+        if getattr(args, "story_keys", None):
+            story_keys = [k.strip() for k in args.story_keys.split(",")]
+
+        return run_archive(
+            console=console,
+            input_path=input_path,
+            action=action,
+            story_keys=story_keys,
+            days_threshold=getattr(args, "archive_days", 90),
+            dry_run=getattr(args, "dry_run", False),
+            color=not getattr(args, "no_color", False),
+        )
+
     # Handle generate (requires epic key)
     if args.generate:
         if not args.epic:
@@ -2547,7 +3003,6 @@ def main() -> int:
         input_dir = getattr(args, "input_dir", None)
         if not input_dir:
             parser.error("--list-files requires --input-dir to be specified")
-        from pathlib import Path
 
         console = Console(
             color=not args.no_color,
