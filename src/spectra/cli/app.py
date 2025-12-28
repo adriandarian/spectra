@@ -481,6 +481,16 @@ Environment Variables:
         metavar="SHELL",
         help="Generate shell completion script (bash, zsh, fish, powershell)",
     )
+    parser.add_argument(
+        "--man",
+        action="store_true",
+        help="Display the man page (Unix systems)",
+    )
+    parser.add_argument(
+        "--install-man",
+        action="store_true",
+        help="Install man page to system (may require sudo)",
+    )
     parser.add_argument("--version", action="version", version="%(prog)s 2.0.0")
 
     # Template generation
@@ -2654,6 +2664,21 @@ def main() -> int:
         from .completions import print_completion
 
         success = print_completion(args.completions)
+        return ExitCode.SUCCESS if success else ExitCode.ERROR
+
+    # Handle man page display
+    if getattr(args, "man", False):
+        from .manpage import show_man_page
+
+        success = show_man_page()
+        return ExitCode.SUCCESS if success else ExitCode.ERROR
+
+    # Handle man page installation
+    if getattr(args, "install_man", False):
+        from .manpage import install_man_page
+
+        success, message = install_man_page()
+        print(message)
         return ExitCode.SUCCESS if success else ExitCode.ERROR
 
     # Handle init wizard (doesn't require other args)
