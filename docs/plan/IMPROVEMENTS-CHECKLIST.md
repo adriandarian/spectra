@@ -699,7 +699,6 @@ For each new tracker adapter, follow this checklist:
 - [x] **Color Themes** - Support different color schemes
 - [x] **PowerShell Completions** - Windows shell completion
 - [x] **Man Pages** - Install man pages for Unix systems
-- [ ] **Default Epic from Git Branch** - Parse `feature/PROJ-123-foo` automatically
 
 ---
 
