@@ -697,7 +697,7 @@ For each new tracker adapter, follow this checklist:
 - [x] **JSON/YAML/Markdown Output** - Preview output formats for CI pipelines
 - [x] **Emoji Toggle** - Option to disable emojis in output
 - [x] **Color Themes** - Support different color schemes
-- [ ] **PowerShell Completions** - Windows shell completion
+- [x] **PowerShell Completions** - Windows shell completion
 - [ ] **Man Pages** - Install man pages for Unix systems
 - [ ] **Default Epic from Git Branch** - Parse `feature/PROJ-123-foo` automatically
 

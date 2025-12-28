@@ -477,9 +477,9 @@ Environment Variables:
     parser.add_argument(
         "--completions",
         type=str,
-        choices=["bash", "zsh", "fish"],
+        choices=["bash", "zsh", "fish", "powershell"],
         metavar="SHELL",
-        help="Generate shell completion script (bash, zsh, fish)",
+        help="Generate shell completion script (bash, zsh, fish, powershell)",
     )
     parser.add_argument("--version", action="version", version="%(prog)s 2.0.0")
 
