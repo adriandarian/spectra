@@ -206,6 +206,28 @@ Environment Variables:
         "--incremental", action="store_true", help="Only sync changed stories (skip unchanged)"
     )
     execution_group.add_argument(
+        "--delta-sync",
+        action="store_true",
+        help="Only sync changed fields (more granular than --incremental)",
+    )
+    execution_group.add_argument(
+        "--sync-fields",
+        type=str,
+        nargs="+",
+        choices=[
+            "title",
+            "description",
+            "status",
+            "story_points",
+            "priority",
+            "assignee",
+            "labels",
+            "subtasks",
+            "comments",
+        ],
+        help="Specific fields to sync (use with --delta-sync)",
+    )
+    execution_group.add_argument(
         "--force-full-sync",
         action="store_true",
         help="Force full sync even when --incremental is set",

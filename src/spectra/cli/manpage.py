@@ -64,6 +64,12 @@ Skip confirmation prompts.
 .B \\-\\-incremental
 Only sync changed stories (skip unchanged).
 .TP
+.B \\-\\-delta\\-sync
+Only sync changed fields (more granular than \\-\\-incremental).
+.TP
+.B \\-\\-sync\\-fields " " \\fIFIELD\\fR ...
+Specific fields to sync (use with \\-\\-delta\\-sync). Valid fields: title, description, status, story_points, priority, assignee, labels, subtasks, comments.
+.TP
 .B \\-\\-force\\-full\\-sync
 Force full sync even when \\-\\-incremental is set.
 .TP

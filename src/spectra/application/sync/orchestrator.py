@@ -17,6 +17,7 @@ from spectra.core.ports.issue_tracker import IssueData, IssueTrackerPort
 
 if TYPE_CHECKING:
     from .backup import Backup, BackupManager
+    from .delta import DeltaSyncResult, DeltaTracker
     from .incremental import ChangeTracker
     from .state import StateStore, SyncState
 
@@ -308,6 +309,10 @@ class SyncOrchestrator:
         self._change_tracker: ChangeTracker | None = None
         self._changed_story_ids: set[str] = set()
 
+        # Delta sync support (field-level)
+        self._delta_tracker: DeltaTracker | None = None
+        self._delta_result: DeltaSyncResult | None = None
+
         # Progress reporting
         self._progress: ProgressReporter | None = None
         if self.config.incremental:
@@ -315,6 +320,25 @@ class SyncOrchestrator:
 
             state_dir = self.config.incremental_state_dir or "~/.spectra/sync"
             self._change_tracker = ChangeTracker(storage_dir=state_dir)
+
+        if self.config.delta_sync:
+            from .delta import DeltaTracker, SyncableField
+
+            # Parse sync fields if specified
+            sync_fields = None
+            if self.config.delta_sync_fields:
+                sync_fields = set()
+                for name in self.config.delta_sync_fields:
+                    try:
+                        sync_fields.add(SyncableField(name))
+                    except ValueError:
+                        self.logger.warning(f"Unknown sync field: {name}")
+
+            baseline_dir = self.config.delta_baseline_dir or "~/.spectra/delta"
+            self._delta_tracker = DeltaTracker(
+                baseline_dir=baseline_dir,
+                sync_fields=sync_fields,
+            )
 
     # -------------------------------------------------------------------------
     # Main Entry Points
@@ -500,6 +524,26 @@ class SyncOrchestrator:
             # Full sync - all stories are "changed"
             self._changed_story_ids = {str(s.id) for s in self._md_stories}
 
+        # Phase 1c: Delta sync analysis (field-level)
+        if self.config.delta_sync and self._delta_tracker and not self.config.force_full_sync:
+            self._delta_tracker.load_baseline(epic_key)
+            self._delta_result = self._delta_tracker.analyze(
+                local_stories=self._md_stories,
+                remote_issues=self._jira_issues,
+                matches=self._matches,
+            )
+            self.logger.info(
+                f"Delta sync: {self._delta_result.fields_to_push} fields to push, "
+                f"{self._delta_result.stories_unchanged} stories unchanged"
+            )
+
+            # Further filter changed story IDs based on delta
+            if self._delta_result.stories_unchanged > 0:
+                stories_with_field_changes = {
+                    d.story_id for d in self._delta_result.deltas if d.has_changes or d.is_new
+                }
+                self._changed_story_ids &= stories_with_field_changes
+
         # Phase 2: Update descriptions
         if self.config.sync_descriptions:
             if self._progress:
@@ -541,6 +585,15 @@ class SyncOrchestrator:
             and result.success
         ):
             self._change_tracker.save(epic_key, markdown_path)
+
+        # Save delta sync baseline (on successful non-dry-run)
+        if (
+            self.config.delta_sync
+            and self._delta_tracker
+            and not self.config.dry_run
+            and result.success
+        ):
+            self._delta_tracker.save_baseline(epic_key, self._md_stories, self._matches)
 
         # Phase N: Update source file with tracker info
         if self.config.update_source_file:

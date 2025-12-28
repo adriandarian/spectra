@@ -981,6 +981,11 @@ class SyncConfig:
     incremental_state_dir: str | None = None  # Dir to store sync state
     force_full_sync: bool = False  # Force full sync even if incremental enabled
 
+    # Delta sync settings (field-level)
+    delta_sync: bool = False  # Enable delta sync (only changed fields)
+    delta_sync_fields: list[str] | None = None  # Specific fields to sync (None = all)
+    delta_baseline_dir: str | None = None  # Dir to store delta baselines
+
     # Source file update settings
     update_source_file: bool = False  # Write tracker info back to source file
 
