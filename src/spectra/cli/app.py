@@ -260,6 +260,29 @@ Environment Variables:
         help="Disable emojis in output (use ASCII alternatives)",
     )
     parser.add_argument(
+        "--theme",
+        type=str,
+        choices=[
+            "default",
+            "dark",
+            "light",
+            "monokai",
+            "solarized",
+            "nord",
+            "dracula",
+            "gruvbox",
+            "ocean",
+            "minimal",
+        ],
+        default=None,
+        help="Color theme for output (default, dark, light, monokai, solarized, nord, dracula, gruvbox, ocean, minimal)",
+    )
+    parser.add_argument(
+        "--list-themes",
+        action="store_true",
+        help="List available color themes and exit",
+    )
+    parser.add_argument(
         "--log-format",
         type=str,
         choices=["text", "json"],
@@ -2609,6 +2632,22 @@ def main() -> int:
         from .output import set_emoji_mode
 
         set_emoji_mode(False)
+
+    # Set color theme based on --theme flag
+    if getattr(args, "theme", None):
+        from .output import set_theme
+
+        set_theme(args.theme)
+
+    # Handle --list-themes
+    if getattr(args, "list_themes", False):
+        from .output import list_themes
+
+        print("Available color themes:\n")
+        for name, desc in list_themes():
+            print(f"  {name:12} - {desc}")
+        print("\nUsage: spectra --theme <name> ...")
+        return ExitCode.SUCCESS
 
     # Handle completions first (doesn't require other args)
     if args.completions:

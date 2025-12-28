@@ -9,11 +9,17 @@ import pytest
 
 from spectra.cli.output import (
     Colors,
+    ColorTheme,
     Console,
     Symbols,
+    ThemeName,
     get_emoji_mode,
     get_symbol,
+    get_theme,
+    get_theme_name,
+    list_themes,
     set_emoji_mode,
+    set_theme,
 )
 
 
@@ -173,6 +179,113 @@ class TestEmojiToggle:
         assert Symbols.DOWNLOAD == "[v]"
         assert Symbols.SYNC == "[~]"
         assert Symbols.DIFF == "[D]"
+
+
+class TestColorThemes:
+    """Tests for color theme functionality."""
+
+    @pytest.fixture(autouse=True)
+    def reset_theme(self):
+        """Reset theme to default before and after each test."""
+        set_theme(ThemeName.DEFAULT)
+        yield
+        set_theme(ThemeName.DEFAULT)
+
+    def test_default_theme(self):
+        """Test that default theme is set initially."""
+        assert get_theme_name() == "default"
+
+    def test_set_theme_by_enum(self):
+        """Test setting theme by enum value."""
+        set_theme(ThemeName.MONOKAI)
+        assert get_theme_name() == "monokai"
+
+    def test_set_theme_by_string(self):
+        """Test setting theme by string name."""
+        set_theme("dracula")
+        assert get_theme_name() == "dracula"
+
+    def test_set_theme_case_insensitive(self):
+        """Test theme names are case insensitive."""
+        set_theme("NORD")
+        assert get_theme_name() == "nord"
+
+    def test_invalid_theme_falls_back_to_default(self):
+        """Test that invalid theme name falls back to default."""
+        set_theme("nonexistent")
+        assert get_theme_name() == "default"
+
+    def test_get_theme_returns_theme_object(self):
+        """Test get_theme returns ColorTheme object."""
+        theme = get_theme()
+        assert isinstance(theme, ColorTheme)
+        assert theme.name == "default"
+
+    def test_list_themes(self):
+        """Test listing all available themes."""
+        themes = list_themes()
+        assert len(themes) == 10  # 10 themes defined
+        names = [name for name, _ in themes]
+        assert "default" in names
+        assert "monokai" in names
+        assert "dracula" in names
+
+    def test_theme_name_from_string(self):
+        """Test ThemeName.from_string parsing."""
+        assert ThemeName.from_string("default") == ThemeName.DEFAULT
+        assert ThemeName.from_string("MONOKAI") == ThemeName.MONOKAI
+        assert ThemeName.from_string("  nord  ") == ThemeName.NORD
+        assert ThemeName.from_string("invalid") == ThemeName.DEFAULT
+
+    def test_colors_change_with_theme(self):
+        """Test Colors class values change based on theme."""
+        set_theme(ThemeName.DEFAULT)
+        default_green = Colors.GREEN
+
+        set_theme(ThemeName.DARK)
+        dark_green = Colors.GREEN
+
+        # Dark theme uses bright colors
+        assert default_green != dark_green
+
+    def test_colors_static_values_unchanged(self):
+        """Test that RESET, BOLD, DIM are theme-independent."""
+        set_theme(ThemeName.DEFAULT)
+        default_reset = Colors.RESET
+        default_bold = Colors.BOLD
+
+        set_theme(ThemeName.MONOKAI)
+        monokai_reset = Colors.RESET
+        monokai_bold = Colors.BOLD
+
+        assert default_reset == monokai_reset == "\033[0m"
+        assert default_bold == monokai_bold == "\033[1m"
+
+    def test_colors_semantic_names(self):
+        """Test semantic color names work."""
+        assert Colors.SUCCESS == Colors.GREEN
+        assert Colors.ERROR == Colors.RED
+        assert Colors.WARNING == Colors.YELLOW
+        assert Colors.INFO == Colors.CYAN
+
+    def test_all_themes_have_required_colors(self):
+        """Test all themes define required color properties."""
+        for theme_name in ThemeName:
+            set_theme(theme_name)
+            theme = get_theme()
+            assert theme.success
+            assert theme.error
+            assert theme.warning
+            assert theme.info
+            assert theme.accent
+            assert theme.muted
+            assert theme.highlight
+            assert theme.text
+
+    def test_theme_description_not_empty(self):
+        """Test all themes have descriptions."""
+        for name, description in list_themes():
+            assert description, f"Theme {name} has no description"
 
 
 class TestConsoleInit:

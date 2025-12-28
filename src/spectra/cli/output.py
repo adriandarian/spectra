@@ -5,50 +5,343 @@ Provides pretty-printed output with colors and formatting.
 """
 
 import sys
+from dataclasses import dataclass
+from enum import Enum
 
 from spectra.application.sync import SyncResult
 
 
-class Colors:
+# =============================================================================
+# Color Theme System
+# =============================================================================
+
+
+class ThemeName(Enum):
+    """Available color themes."""
+
+    DEFAULT = "default"
+    DARK = "dark"
+    LIGHT = "light"
+    MONOKAI = "monokai"
+    SOLARIZED = "solarized"
+    NORD = "nord"
+    DRACULA = "dracula"
+    GRUVBOX = "gruvbox"
+    OCEAN = "ocean"
+    MINIMAL = "minimal"
+
+    @classmethod
+    def from_string(cls, value: str) -> "ThemeName":
+        """Parse theme name from string."""
+        normalized = value.lower().strip()
+        for theme in cls:
+            if theme.value == normalized:
+                return theme
+        return cls.DEFAULT
+
+
+@dataclass(frozen=True)
+class ColorTheme:
+    """
+    A color theme definition.
+
+    Defines semantic colors for different output types (success, error, etc.)
+    rather than raw color names, allowing themes to customize the palette.
+    """
+
+    name: str
+    description: str
+
+    # Text styles (always the same across themes)
+    reset: str = "\033[0m"
+    bold: str = "\033[1m"
+    dim: str = "\033[2m"
+    underline: str = "\033[4m"
+
+    # Semantic colors - what they mean, not what color they are
+    success: str = "\033[32m"  # Default: green
+    error: str = "\033[31m"  # Default: red
+    warning: str = "\033[33m"  # Default: yellow
+    info: str = "\033[36m"  # Default: cyan
+    accent: str = "\033[34m"  # Default: blue
+    muted: str = "\033[90m"  # Default: gray
+    highlight: str = "\033[35m"  # Default: magenta
+    text: str = "\033[37m"  # Default: white
+
+    # Background colors
+    bg_success: str = "\033[42m"
+    bg_error: str = "\033[41m"
+    bg_warning: str = "\033[43m"
+    bg_info: str = "\033[44m"
+
+
+# Theme definitions
+THEMES: dict[ThemeName, ColorTheme] = {
+    ThemeName.DEFAULT: ColorTheme(
+        name="default",
+        description="Classic terminal colors",
+        success="\033[32m",  # Green
+        error="\033[31m",  # Red
+        warning="\033[33m",  # Yellow
+        info="\033[36m",  # Cyan
+        accent="\033[34m",  # Blue
+        muted="\033[90m",  # Gray
+        highlight="\033[35m",  # Magenta
+        text="\033[37m",  # White
+    ),
+    ThemeName.DARK: ColorTheme(
+        name="dark",
+        description="High contrast for dark terminals",
+        success="\033[92m",  # Bright green
+        error="\033[91m",  # Bright red
+        warning="\033[93m",  # Bright yellow
+        info="\033[96m",  # Bright cyan
+        accent="\033[94m",  # Bright blue
+        muted="\033[90m",  # Gray
+        highlight="\033[95m",  # Bright magenta
+        text="\033[97m",  # Bright white
+    ),
+    ThemeName.LIGHT: ColorTheme(
+        name="light",
+        description="Optimized for light terminals",
+        success="\033[32m",  # Green
+        error="\033[31m",  # Red
+        warning="\033[33m",  # Yellow (darker for light bg)
+        info="\033[34m",  # Blue (instead of cyan)
+        accent="\033[35m",  # Magenta
+        muted="\033[90m",  # Gray
+        highlight="\033[36m",  # Cyan
+        text="\033[30m",  # Black (for light background)
+    ),
+    ThemeName.MONOKAI: ColorTheme(
+        name="monokai",
+        description="Inspired by Monokai editor theme",
+        success="\033[38;5;148m",  # Monokai green
+        error="\033[38;5;197m",  # Monokai pink/red
+        warning="\033[38;5;208m",  # Monokai orange
+        info="\033[38;5;81m",  # Monokai blue
+        accent="\033[38;5;141m",  # Monokai purple
+        muted="\033[38;5;242m",  # Gray
+        highlight="\033[38;5;186m",  # Monokai yellow
+        text="\033[38;5;231m",  # White
+    ),
+    ThemeName.SOLARIZED: ColorTheme(
+        name="solarized",
+        description="Solarized color palette",
+        success="\033[38;5;64m",  # Solarized green
+        error="\033[38;5;160m",  # Solarized red
+        warning="\033[38;5;136m",  # Solarized yellow
+        info="\033[38;5;37m",  # Solarized cyan
+        accent="\033[38;5;33m",  # Solarized blue
+        muted="\033[38;5;240m",  # Solarized base01
+        highlight="\033[38;5;125m",  # Solarized magenta
+        text="\033[38;5;245m",  # Solarized base0
+    ),
+    ThemeName.NORD: ColorTheme(
+        name="nord",
+        description="Arctic, north-bluish color palette",
+        success="\033[38;5;108m",  # Nord green
+        error="\033[38;5;131m",  # Nord red
+        warning="\033[38;5;179m",  # Nord yellow
+        info="\033[38;5;110m",  # Nord frost blue
+        accent="\033[38;5;67m",  # Nord blue
+        muted="\033[38;5;59m",  # Nord polar night
+        highlight="\033[38;5;139m",  # Nord purple
+        text="\033[38;5;188m",  # Nord snow storm
+    ),
+    ThemeName.DRACULA: ColorTheme(
+        name="dracula",
+        description="Dark theme with vibrant colors",
+        success="\033[38;5;84m",  # Dracula green
+        error="\033[38;5;203m",  # Dracula red
+        warning="\033[38;5;228m",  # Dracula yellow
+        info="\033[38;5;117m",  # Dracula cyan
+        accent="\033[38;5;141m",  # Dracula purple
+        muted="\033[38;5;61m",  # Dracula comment
+        highlight="\033[38;5;212m",  # Dracula pink
+        text="\033[38;5;231m",  # Dracula foreground
+    ),
+    ThemeName.GRUVBOX: ColorTheme(
+        name="gruvbox",
+        description="Retro groove color scheme",
+        success="\033[38;5;142m",  # Gruvbox green
+        error="\033[38;5;167m",  # Gruvbox red
+        warning="\033[38;5;214m",  # Gruvbox yellow
+        info="\033[38;5;109m",  # Gruvbox aqua
+        accent="\033[38;5;109m",  # Gruvbox blue
+        muted="\033[38;5;245m",  # Gruvbox gray
+        highlight="\033[38;5;175m",  # Gruvbox purple
+        text="\033[38;5;223m",  # Gruvbox fg
+    ),
+    ThemeName.OCEAN: ColorTheme(
+        name="ocean",
+        description="Deep ocean blues and teals",
+        success="\033[38;5;43m",  # Teal
+        error="\033[38;5;167m",  # Coral
+        warning="\033[38;5;215m",  # Sandy
+        info="\033[38;5;75m",  # Ocean blue
+        accent="\033[38;5;32m",  # Deep blue
+        muted="\033[38;5;60m",  # Deep slate
+        highlight="\033[38;5;44m",  # Turquoise
+        text="\033[38;5;195m",  # Pale blue
+    ),
+    ThemeName.MINIMAL: ColorTheme(
+        name="minimal",
+        description="Subtle, low-contrast colors",
+        success="\033[38;5;71m",  # Muted green
+        error="\033[38;5;131m",  # Muted red
+        warning="\033[38;5;172m",  # Muted orange
+        info="\033[38;5;67m",  # Muted blue
+        accent="\033[38;5;103m",  # Muted purple
+        muted="\033[38;5;244m",  # Gray
+        highlight="\033[38;5;139m",  # Muted pink
+        text="\033[38;5;250m",  # Light gray
+    ),
+}
+
+# Current theme (module-level for global access)
+_current_theme: ColorTheme = THEMES[ThemeName.DEFAULT]
+
+
+def set_theme(theme: ThemeName | str) -> None:
+    """
+    Set the current color theme.
+
+    Args:
+        theme: Theme name or ThemeName enum value.
+    """
+    global _current_theme
+    if isinstance(theme, str):
+        theme = ThemeName.from_string(theme)
+    _current_theme = THEMES.get(theme, THEMES[ThemeName.DEFAULT])
+
+
+def get_theme() -> ColorTheme:
+    """Get the current color theme."""
+    return _current_theme
+
+
+def get_theme_name() -> str:
+    """Get the current theme name."""
+    return _current_theme.name
+
+
+def list_themes() -> list[tuple[str, str]]:
+    """
+    List all available themes.
+
+    Returns:
+        List of (name, description) tuples.
+    """
+    return [(t.name, t.description) for t in THEMES.values()]
+
+
+class _ColorsMeta(type):
+    """Metaclass for dynamic color access based on current theme."""
+
+    def __getattr__(cls, name: str) -> str:
+        # Static values (not theme-dependent)
+        static = {
+            "RESET": "\033[0m",
+            "BOLD": "\033[1m",
+            "DIM": "\033[2m",
+            "UNDERLINE": "\033[4m",
+        }
+        if name in static:
+            return static[name]
+
+        # Map old color names to semantic theme colors
+        theme = get_theme()
+        color_map = {
+            # Text colors -> semantic mapping
+            "RED": theme.error,
+            "GREEN": theme.success,
+            "YELLOW": theme.warning,
+            "BLUE": theme.accent,
+            "MAGENTA": theme.highlight,
+            "CYAN": theme.info,
+            "WHITE": theme.text,
+            "GRAY": theme.muted,
+            "GREY": theme.muted,
+            # Background colors
+            "BG_RED": theme.bg_error,
+            "BG_GREEN": theme.bg_success,
+            "BG_YELLOW": theme.bg_warning,
+            "BG_BLUE": theme.bg_info,
+            # Semantic names (preferred)
+            "SUCCESS": theme.success,
+            "ERROR": theme.error,
+            "WARNING": theme.warning,
+            "INFO": theme.info,
+            "ACCENT": theme.accent,
+            "MUTED": theme.muted,
+            "HIGHLIGHT": theme.highlight,
+            "TEXT": theme.text,
+        }
+        if name in color_map:
+            return color_map[name]
+
+        raise AttributeError(f"'{cls.__name__}' has no attribute '{name}'")
+
+
+class Colors(metaclass=_ColorsMeta):
     """
     ANSI color codes for terminal output.
 
     Provides constants for text colors, background colors, and text styles
     that can be used to format terminal output.
 
+    Colors are now theme-aware - the actual ANSI codes returned depend
+    on the currently active theme. Use `set_theme()` to change themes.
+
     Attributes:
         RESET: Reset all formatting to default.
         BOLD: Make text bold.
         DIM: Make text dimmed/faded.
-        RED: Red text color.
-        GREEN: Green text color.
-        YELLOW: Yellow text color.
-        BLUE: Blue text color.
-        MAGENTA: Magenta text color.
-        CYAN: Cyan text color.
-        WHITE: White text color.
-        BG_RED: Red background color.
-        BG_GREEN: Green background color.
-        BG_YELLOW: Yellow background color.
-        BG_BLUE: Blue background color.
+        UNDERLINE: Underline text.
+        RED/ERROR: Error/failure color.
+        GREEN/SUCCESS: Success color.
+        YELLOW/WARNING: Warning color.
+        BLUE/ACCENT: Accent/primary color.
+        MAGENTA/HIGHLIGHT: Highlight color.
+        CYAN/INFO: Informational color.
+        WHITE/TEXT: Default text color.
+        GRAY/MUTED: Muted/secondary text color.
+        BG_RED, BG_GREEN, BG_YELLOW, BG_BLUE: Background colors.
     """
 
-    RESET = "\033[0m"
-    BOLD = "\033[1m"
-    DIM = "\033[2m"
+    # Type hints for IDE support (actual values from metaclass)
+    RESET: str
+    BOLD: str
+    DIM: str
+    UNDERLINE: str
 
-    RED = "\033[31m"
-    GREEN = "\033[32m"
-    YELLOW = "\033[33m"
-    BLUE = "\033[34m"
-    MAGENTA = "\033[35m"
-    CYAN = "\033[36m"
-    WHITE = "\033[37m"
+    # Traditional color names (mapped to semantic colors via theme)
+    RED: str
+    GREEN: str
+    YELLOW: str
+    BLUE: str
+    MAGENTA: str
+    CYAN: str
+    WHITE: str
+    GRAY: str
+    GREY: str
 
-    BG_RED = "\033[41m"
-    BG_GREEN = "\033[42m"
-    BG_YELLOW = "\033[43m"
-    BG_BLUE = "\033[44m"
+    # Semantic color names (preferred)
+    SUCCESS: str
+    ERROR: str
+    WARNING: str
+    INFO: str
+    ACCENT: str
+    MUTED: str
+    HIGHLIGHT: str
+    TEXT: str
+
+    # Background colors
+    BG_RED: str
+    BG_GREEN: str
+    BG_YELLOW: str
+    BG_BLUE: str
 
 
 # Global emoji toggle (module-level for persistence)
