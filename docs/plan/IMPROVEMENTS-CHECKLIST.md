@@ -732,7 +732,7 @@ For each new tracker adapter, follow this checklist:
 
 ## 🔶 AI & Intelligence Features
 
-- [ ] **Native LLM Integration** - Direct Anthropic/OpenAI/Google API integration
+- [x] **Native LLM Integration** - Direct Anthropic/OpenAI/Google API integration
 - [ ] **LLM Provider Abstraction** - Support multiple LLM providers + local models
 - [ ] **AI Story Generation** - Generate stories from high-level descriptions
 - [ ] **AI Story Refiner** - Analyze stories for ambiguity or missing AC

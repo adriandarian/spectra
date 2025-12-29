@@ -790,6 +790,51 @@ Environment Variables:
         help="Disable notifications on successful sync",
     )
 
+    # Native LLM integration options
+    parser.add_argument(
+        "--llm-provider",
+        type=str,
+        choices=["anthropic", "openai", "google"],
+        metavar="PROVIDER",
+        help="LLM provider to use (anthropic, openai, google)",
+    )
+    parser.add_argument(
+        "--anthropic-api-key",
+        type=str,
+        metavar="KEY",
+        help="Anthropic API key (or set ANTHROPIC_API_KEY env var)",
+    )
+    parser.add_argument(
+        "--openai-api-key",
+        type=str,
+        metavar="KEY",
+        help="OpenAI API key (or set OPENAI_API_KEY env var)",
+    )
+    parser.add_argument(
+        "--google-api-key",
+        type=str,
+        metavar="KEY",
+        help="Google API key (or set GOOGLE_API_KEY env var)",
+    )
+    parser.add_argument(
+        "--llm-model",
+        type=str,
+        metavar="MODEL",
+        help="LLM model to use (e.g., claude-3-5-sonnet, gpt-4o, gemini-1.5-pro)",
+    )
+    parser.add_argument(
+        "--llm-temperature",
+        type=float,
+        default=0.7,
+        metavar="TEMP",
+        help="LLM temperature (0.0-1.0, default: 0.7)",
+    )
+    parser.add_argument(
+        "--list-llm-providers",
+        action="store_true",
+        help="List available LLM providers and models",
+    )
+
     # Multi-epic support
     parser.add_argument(
         "--multi-epic",

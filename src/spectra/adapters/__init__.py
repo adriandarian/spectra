@@ -26,6 +26,17 @@ from .config import EnvironmentConfigProvider
 from .formatters import ADFFormatter
 from .jira import BatchOperation, BatchResult, JiraAdapter, JiraBatchClient
 
+# LLM Providers (optional, requires anthropic/openai/google-generativeai)
+from .llm import (
+    LLMConfig,
+    LLMManager,
+    LLMMessage,
+    LLMProvider,
+    LLMResponse,
+    LLMRole,
+    create_llm_manager,
+)
+
 # Parsers & Formatters
 from .parsers import MarkdownParser
 
@@ -63,7 +74,15 @@ __all__ = [
     # Trackers
     "JiraAdapter",
     "JiraBatchClient",
+    # LLM
+    "LLMConfig",
+    "LLMManager",
+    "LLMMessage",
+    "LLMProvider",
+    "LLMResponse",
+    "LLMRole",
     # Parsers & Formatters
     "MarkdownParser",
     "MemoryCache",
+    "create_llm_manager",
 ]
