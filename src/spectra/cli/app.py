@@ -862,6 +862,35 @@ Environment Variables:
         help="Hours per work day for time calculations (default: 8)",
     )
 
+    # Sprint sync options
+    parser.add_argument(
+        "--sync-sprints",
+        action="store_true",
+        help="Enable sprint/iteration synchronization",
+    )
+    parser.add_argument(
+        "--list-sprints",
+        action="store_true",
+        help="List available sprints from the tracker",
+    )
+    parser.add_argument(
+        "--sprint-board",
+        type=str,
+        metavar="BOARD_ID",
+        help="Jira board ID for sprint operations",
+    )
+    parser.add_argument(
+        "--default-sprint",
+        type=str,
+        metavar="NAME",
+        help="Default sprint for stories without one",
+    )
+    parser.add_argument(
+        "--use-active-sprint",
+        action="store_true",
+        help="Assign to active sprint if none specified",
+    )
+
     # New CLI commands
     new_commands = parser.add_argument_group("Commands")
     new_commands.add_argument("--doctor", action="store_true", help="Diagnose common setup issues")
@@ -3260,6 +3289,107 @@ def run_generate_field_mapping(args) -> int:
     return ExitCode.SUCCESS
 
 
+def run_list_sprints(args) -> int:
+    """
+    List available sprints from the tracker.
+
+    Args:
+        args: Parsed command-line arguments.
+
+    Returns:
+        Exit code.
+    """
+    from spectra.application.sync.sprint_sync import Sprint, SprintState
+
+    console = Console(verbose=args.verbose)
+
+    console.header("Available Sprints")
+
+    # Load config and create adapter
+    config_provider = EnvironmentConfigProvider()
+    try:
+        tracker_config = config_provider.get_tracker_config()
+    except Exception as e:
+        console.error(f"Failed to load configuration: {e}")
+        return ExitCode.CONFIG_ERROR
+
+    adapter = JiraAdapter(tracker_config, dry_run=True)
+
+    # Test connection
+    if not adapter.test_connection():
+        console.error("Failed to connect to Jira")
+        return ExitCode.CONNECTION_ERROR
+
+    console.info("Connected to Jira")
+    console.print()
+
+    # Get sprints
+    board_id = args.sprint_board if hasattr(args, "sprint_board") else None
+
+    try:
+        raw_sprints = adapter.get_sprints(board_id=board_id)
+
+        if not raw_sprints:
+            console.warning("No sprints found")
+            return ExitCode.SUCCESS
+
+        sprints = [Sprint.from_jira_sprint(s) for s in raw_sprints]
+
+        # Group by state
+        by_state: dict[SprintState, list[Sprint]] = {}
+        for sprint in sprints:
+            if sprint.state not in by_state:
+                by_state[sprint.state] = []
+            by_state[sprint.state].append(sprint)
+
+        # Display sprints
+        state_order = [SprintState.ACTIVE, SprintState.FUTURE, SprintState.CLOSED, SprintState.UNKNOWN]
+
+        for state in state_order:
+            if state not in by_state:
+                continue
+
+            state_sprints = by_state[state]
+            state_name = state.value.upper()
+            state_emoji = {
+                SprintState.ACTIVE: Symbols.IN_PROGRESS,
+                SprintState.FUTURE: Symbols.PLANNED,
+                SprintState.CLOSED: Symbols.DONE,
+                SprintState.UNKNOWN: Symbols.BULLET,
+            }.get(state, Symbols.BULLET)
+
+            console.section(f"{state_emoji} {state_name} ({len(state_sprints)})")
+            console.print()
+
+            for sprint in state_sprints:
+                # Format dates
+                date_info = ""
+                if sprint.start_date and sprint.end_date:
+                    start = sprint.start_date.strftime("%Y-%m-%d")
+                    end = sprint.end_date.strftime("%Y-%m-%d")
+                    date_info = f" ({start} - {end})"
+
+                    if sprint.is_active():
+                        days = sprint.days_remaining()
+                        if days is not None:
+                            date_info += f" - {days} days remaining"
+
+                console.print(f"    {sprint.id}: {sprint.name}{date_info}")
+
+                if sprint.goal:
+                    console.print(f"        Goal: {sprint.goal[:60]}...")
+
+            console.print()
+
+        console.info(f"Total: {len(sprints)} sprints")
+
+    except Exception as e:
+        console.error(f"Failed to get sprints: {e}")
+        return ExitCode.ERROR
+
+    return ExitCode.SUCCESS
+
+
 def run_sync(
     console: Console,
     args: argparse.Namespace,
@@ -4018,6 +4148,10 @@ def main() -> int:
 
     if args.generate_field_mapping:
         return run_generate_field_mapping(args)
+
+    # Handle sprint listing
+    if args.list_sprints:
+        return run_list_sprints(args)
 
     # Handle resume-session (loads args from session)
     if args.resume_session:

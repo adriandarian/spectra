@@ -124,6 +124,7 @@ class UserStory:
     status: Status = Status.PLANNED
     assignee: str | None = None
     labels: list[str] = field(default_factory=list)
+    sprint: str | None = None  # Sprint/iteration name
 
     # Children
     subtasks: list[Subtask] = field(default_factory=list)

@@ -5,6 +5,7 @@ This is the main entry point for Jira integration.
 """
 
 import logging
+import re
 from typing import Any
 
 from spectra.adapters.formatters.adf import ADFFormatter
@@ -1277,3 +1278,190 @@ class JiraAdapter(IssueTrackerPort):
         except Exception as e:
             self.logger.error(f"Failed to add work log to {issue_key}: {e}")
             return None
+
+    # -------------------------------------------------------------------------
+    # Sprint/Iteration Operations
+    # -------------------------------------------------------------------------
+
+    def get_sprints(
+        self,
+        board_id: str | None = None,
+        state: str | None = None,
+    ) -> list[dict[str, Any]]:
+        """
+        Get available sprints from Jira.
+
+        Note: Requires Jira Software (Agile) API.
+
+        Args:
+            board_id: Board ID to get sprints from
+            state: Optional state filter (active, closed, future)
+
+        Returns:
+            List of sprint dictionaries
+        """
+        if not board_id:
+            # Try to get board from project
+            boards = self._get_boards_for_project()
+            if not boards:
+                self.logger.warning("No boards found for project")
+                return []
+            board_id = str(boards[0].get("id", ""))
+
+        try:
+            # Use Jira Agile API endpoint
+            params: dict[str, Any] = {}
+            if state:
+                params["state"] = state
+
+            # Jira Agile API uses /rest/agile/1.0/board/{boardId}/sprint
+            result = self._client.get(
+                f"board/{board_id}/sprint",
+                params=params,
+                base_url_override=self._get_agile_base_url(),
+            )
+
+            sprints = result.get("values", []) if isinstance(result, dict) else []
+            return [
+                {
+                    "id": s.get("id"),
+                    "name": s.get("name", ""),
+                    "state": s.get("state", "").lower(),
+                    "startDate": s.get("startDate"),
+                    "endDate": s.get("endDate"),
+                    "goal": s.get("goal", ""),
+                    "originBoardId": board_id,
+                }
+                for s in sprints
+            ]
+        except Exception as e:
+            self.logger.error(f"Failed to get sprints: {e}")
+            return []
+
+    def get_issue_sprint(self, issue_key: str) -> dict[str, Any] | None:
+        """
+        Get sprint assignment for an issue.
+
+        Args:
+            issue_key: Issue key
+
+        Returns:
+            Sprint dictionary or None
+        """
+        try:
+            # Sprint is typically in a custom field (customfield_10020 by default)
+            sprint_field = getattr(self, "SPRINT_FIELD", "customfield_10020")
+            data = self._client.get(
+                f"issue/{issue_key}",
+                params={"fields": sprint_field},
+            )
+
+            sprints = data.get("fields", {}).get(sprint_field, [])
+            if sprints:
+                # Get the most recent active sprint
+                for sprint in sprints:
+                    if isinstance(sprint, dict):
+                        return sprint
+                    # Handle string format (older Jira versions)
+                    if isinstance(sprint, str):
+                        # Parse sprint string like "com.atlassian.greenhopper.service.sprint.Sprint@..."
+                        match = re.search(r"name=([^,\]]+)", sprint)
+                        if match:
+                            return {"name": match.group(1)}
+
+            return None
+        except Exception as e:
+            self.logger.error(f"Failed to get sprint for {issue_key}: {e}")
+            return None
+
+    def set_sprint(self, issue_key: str, sprint_id: str) -> bool:
+        """
+        Assign an issue to a sprint.
+
+        Args:
+            issue_key: Issue key
+            sprint_id: Sprint ID
+
+        Returns:
+            True if successful
+        """
+        return self.move_to_sprint(issue_key, sprint_id)
+
+    def move_to_sprint(self, issue_key: str, sprint_id: str) -> bool:
+        """
+        Move an issue to a sprint using Jira Agile API.
+
+        Args:
+            issue_key: Issue key
+            sprint_id: Sprint ID
+
+        Returns:
+            True if successful
+        """
+        if self._dry_run:
+            self.logger.info(
+                f"[DRY-RUN] Would move {issue_key} to sprint {sprint_id}"
+            )
+            return True
+
+        try:
+            # Use Jira Agile API: POST /rest/agile/1.0/sprint/{sprintId}/issue
+            self._client.post(
+                f"sprint/{sprint_id}/issue",
+                json={"issues": [issue_key]},
+                base_url_override=self._get_agile_base_url(),
+            )
+            self.logger.info(f"Moved {issue_key} to sprint {sprint_id}")
+            return True
+        except Exception as e:
+            self.logger.error(f"Failed to move {issue_key} to sprint: {e}")
+            return False
+
+    def remove_from_sprint(self, issue_key: str) -> bool:
+        """
+        Remove an issue from its current sprint.
+
+        Args:
+            issue_key: Issue key
+
+        Returns:
+            True if successful
+        """
+        if self._dry_run:
+            self.logger.info(f"[DRY-RUN] Would remove {issue_key} from sprint")
+            return True
+
+        try:
+            # Set sprint field to null
+            sprint_field = getattr(self, "SPRINT_FIELD", "customfield_10020")
+            self._client.put(
+                f"issue/{issue_key}",
+                json={"fields": {sprint_field: None}},
+            )
+            self.logger.info(f"Removed {issue_key} from sprint")
+            return True
+        except Exception as e:
+            self.logger.error(f"Failed to remove {issue_key} from sprint: {e}")
+            return False
+
+    def _get_boards_for_project(self) -> list[dict[str, Any]]:
+        """Get boards for the current project."""
+        try:
+            project_key = self._config.project_key
+            if not project_key:
+                return []
+
+            result = self._client.get(
+                "board",
+                params={"projectKeyOrId": project_key},
+                base_url_override=self._get_agile_base_url(),
+            )
+            return result.get("values", []) if isinstance(result, dict) else []
+        except Exception as e:
+            self.logger.warning(f"Failed to get boards: {e}")
+            return []
+
+    def _get_agile_base_url(self) -> str:
+        """Get the base URL for Jira Agile API."""
+        base = self._config.url.rstrip("/")
+        return f"{base}/rest/agile/1.0"

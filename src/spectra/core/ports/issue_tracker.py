@@ -169,6 +169,8 @@ class IssueData:
     comments: list[dict[str, Any]] = field(default_factory=list)
     links: list[IssueLink] = field(default_factory=list)
     labels: list[str] = field(default_factory=list)
+    sprint: str | None = None  # Sprint/iteration name
+    sprint_id: str | None = None  # Tracker-specific sprint ID
 
     # Time tracking fields
     original_estimate: int | None = None  # In minutes
@@ -615,3 +617,80 @@ class IssueTrackerPort(ABC):
             Created work log data, or None on failure
         """
         return None
+
+    # -------------------------------------------------------------------------
+    # Sprint/Iteration Operations (Optional - default implementations provided)
+    # -------------------------------------------------------------------------
+
+    def get_sprints(
+        self,
+        board_id: str | None = None,
+        state: str | None = None,
+    ) -> list[dict[str, Any]]:
+        """
+        Get available sprints.
+
+        Args:
+            board_id: Optional board ID to filter sprints
+            state: Optional state filter (active, closed, future)
+
+        Returns:
+            List of sprint dictionaries with:
+            - id: Sprint ID
+            - name: Sprint name
+            - state: Sprint state (active, closed, future)
+            - startDate: Start date (ISO 8601)
+            - endDate: End date (ISO 8601)
+            - goal: Sprint goal
+        """
+        return []
+
+    def get_issue_sprint(self, issue_key: str) -> dict[str, Any] | None:
+        """
+        Get sprint assignment for an issue.
+
+        Args:
+            issue_key: Issue key
+
+        Returns:
+            Sprint dictionary or None if not assigned
+        """
+        return None
+
+    def set_sprint(self, issue_key: str, sprint_id: str) -> bool:
+        """
+        Assign an issue to a sprint.
+
+        Args:
+            issue_key: Issue key
+            sprint_id: Sprint ID to assign to
+
+        Returns:
+            True if successful
+        """
+        return False
+
+    def move_to_sprint(self, issue_key: str, sprint_id: str) -> bool:
+        """
+        Move an issue to a sprint (Jira Agile API).
+
+        Args:
+            issue_key: Issue key
+            sprint_id: Sprint ID
+
+        Returns:
+            True if successful
+        """
+        return False
+
+    def remove_from_sprint(self, issue_key: str) -> bool:
+        """
+        Remove an issue from its current sprint.
+
+        Args:
+            issue_key: Issue key
+
+        Returns:
+            True if successful
+        """
+        return False

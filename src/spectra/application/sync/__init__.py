@@ -143,6 +143,17 @@ from .source_updater import (
     compute_story_content_hash,
     detect_sync_conflicts,
 )
+from .sprint_sync import (
+    Sprint,
+    SprintAssignment,
+    SprintExtractor,
+    SprintState,
+    SprintSyncConfig,
+    SprintSyncer,
+    SprintSyncResult,
+    extract_sprint,
+    parse_sprint_name,
+)
 from .state import OperationRecord, StateStore, SyncPhase, SyncState
 from .time_tracking import (
     TimeTrackingExtractor,
@@ -260,6 +271,13 @@ __all__ = [
     "SnapshotStore",
     "SourceFileUpdater",
     "SourceUpdateResult",
+    "Sprint",
+    "SprintAssignment",
+    "SprintExtractor",
+    "SprintState",
+    "SprintSyncConfig",
+    "SprintSyncResult",
+    "SprintSyncer",
     "StateStore",
     "StoryDelta",
     "StoryFingerprint",
@@ -308,9 +326,11 @@ __all__ = [
     "create_transactional_sync",
     "detect_sync_conflicts",
     "extract_attachments_from_markdown",
+    "extract_sprint",
     "extract_time_tracking",
     "format_time_for_markdown",
     "is_content_unchanged",
+    "parse_sprint_name",
     "parse_time_estimate",
     "resolve_conflict_with_merge",
     "restore_from_backup",
