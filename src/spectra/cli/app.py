@@ -801,6 +801,43 @@ Environment Variables:
         help="Maximum attachment size in bytes (default: 50MB)",
     )
 
+    # Custom field mapping options
+    parser.add_argument(
+        "--field-mapping",
+        type=str,
+        metavar="FILE",
+        help="Path to YAML field mapping configuration file",
+    )
+    parser.add_argument(
+        "--story-points-field",
+        type=str,
+        metavar="FIELD_ID",
+        help="Custom field ID for story points (e.g., customfield_10014)",
+    )
+    parser.add_argument(
+        "--sprint-field",
+        type=str,
+        metavar="FIELD_ID",
+        help="Custom field ID for sprint (e.g., customfield_10020)",
+    )
+    parser.add_argument(
+        "--epic-link-field",
+        type=str,
+        metavar="FIELD_ID",
+        help="Custom field ID for epic link (e.g., customfield_10008)",
+    )
+    parser.add_argument(
+        "--list-custom-fields",
+        action="store_true",
+        help="List available custom fields from the tracker",
+    )
+    parser.add_argument(
+        "--generate-field-mapping",
+        type=str,
+        metavar="FILE",
+        help="Generate a field mapping template YAML file",
+    )
+
     # New CLI commands
     new_commands = parser.add_argument_group("Commands")
     new_commands.add_argument("--doctor", action="store_true", help="Diagnose common setup issues")
@@ -3005,6 +3042,200 @@ def run_attachment_sync(args) -> int:
     return ExitCode.SUCCESS
 
 
+def run_list_custom_fields(args) -> int:
+    """
+    List available custom fields from the tracker.
+
+    Connects to the tracker and retrieves all custom fields,
+    displaying their IDs, names, and types.
+
+    Args:
+        args: Parsed command-line arguments.
+
+    Returns:
+        Exit code.
+    """
+    console = Console(verbose=args.verbose)
+
+    console.header("Custom Fields Discovery")
+
+    # Load config and create adapter
+    config_provider = EnvironmentConfigProvider()
+    try:
+        tracker_config = config_provider.get_tracker_config()
+    except Exception as e:
+        console.error(f"Failed to load configuration: {e}")
+        return ExitCode.CONFIG_ERROR
+
+    adapter = JiraAdapter(tracker_config, dry_run=True)
+
+    # Test connection
+    if not adapter.test_connection():
+        console.error("Failed to connect to Jira")
+        return ExitCode.CONNECTION_ERROR
+
+    console.info("Connected to Jira")
+    console.print()
+
+    # Get custom fields from Jira
+    try:
+        fields = adapter._client.get("field")
+        if not isinstance(fields, list):
+            console.error("Unexpected response from Jira")
+            return ExitCode.ERROR
+
+        # Filter to custom fields
+        custom_fields = [f for f in fields if f.get("custom", False)]
+
+        console.section(f"Custom Fields ({len(custom_fields)} found)")
+        console.print()
+
+        # Group by schema type
+        by_type: dict[str, list] = {}
+        for field in custom_fields:
+            schema = field.get("schema", {})
+            field_type = schema.get("type", "unknown")
+            if field_type not in by_type:
+                by_type[field_type] = []
+            by_type[field_type].append(field)
+
+        for field_type, type_fields in sorted(by_type.items()):
+            console.info(f"{Symbols.BULLET} {field_type.upper()} fields:")
+            for field in type_fields:
+                field_id = field.get("id", "")
+                field_name = field.get("name", "")
+                console.print(f"    {field_id}: {field_name}")
+            console.print()
+
+        # Show common field mappings
+        console.section("Common Field Usage")
+        common = [
+            ("Story Points", "customfield_10014", "story_points_field"),
+            ("Sprint", "customfield_10020", "sprint_field"),
+            ("Epic Link", "customfield_10008", "epic_link_field"),
+        ]
+        for name, default_id, cli_arg in common:
+            matches = [f for f in custom_fields if name.lower() in f.get("name", "").lower()]
+            if matches:
+                field = matches[0]
+                console.info(f"{name}: {field.get('id')} (--{cli_arg.replace('_', '-')})")
+            else:
+                console.warning(f"{name}: Not found (default: {default_id})")
+
+    except Exception as e:
+        console.error(f"Failed to retrieve fields: {e}")
+        return ExitCode.ERROR
+
+    return ExitCode.SUCCESS
+
+
+def run_generate_field_mapping(args) -> int:
+    """
+    Generate a field mapping template YAML file.
+
+    Creates a sample field mapping configuration that can be customized.
+
+    Args:
+        args: Parsed command-line arguments.
+
+    Returns:
+        Exit code.
+    """
+    from spectra.application.sync.field_mapping import (
+        FieldDefinition,
+        FieldMappingLoader,
+        FieldType,
+        FieldValueMapping,
+        TrackerFieldMappingConfig,
+    )
+
+    console = Console(verbose=args.verbose)
+
+    output_path = Path(args.generate_field_mapping)
+
+    console.header("Generate Field Mapping Template")
+
+    # Create sample configuration
+    config = TrackerFieldMappingConfig(
+        tracker_type="jira",
+        project_key="PROJ",
+        story_points_field="customfield_10014",
+        priority_field="priority",
+        status_field="status",
+        assignee_field="assignee",
+        labels_field="labels",
+        due_date_field="duedate",
+        sprint_field="customfield_10020",
+        status_mapping={
+            "Planned": "To Do",
+            "Open": "To Do",
+            "In Progress": "In Progress",
+            "Done": "Done",
+            "Blocked": "On Hold",
+        },
+        priority_mapping={
+            "Critical": "Highest",
+            "High": "High",
+            "Medium": "Medium",
+            "Low": "Low",
+        },
+        custom_fields=[
+            FieldDefinition(
+                name="team",
+                markdown_name="Team",
+                tracker_field_id="customfield_10050",
+                tracker_field_name="Team",
+                description="Development team assignment",
+                field_type=FieldType.DROPDOWN,
+                value_mappings=[
+                    FieldValueMapping(
+                        markdown_value="Backend",
+                        tracker_value="10001",
+                        aliases=["BE", "Server"],
+                    ),
+                    FieldValueMapping(
+                        markdown_value="Frontend",
+                        tracker_value="10002",
+                        aliases=["FE", "UI"],
+                    ),
+                ],
+            ),
+            FieldDefinition(
+                name="target_release",
+                markdown_name="Target Release",
+                tracker_field_id="customfield_10060",
+                tracker_field_name="Target Release",
+                description="Target release version",
+                field_type=FieldType.TEXT,
+                required=True,
+                pattern=r"^v\d+\.\d+\.\d+$",
+            ),
+            FieldDefinition(
+                name="business_value",
+                markdown_name="Business Value",
+                tracker_field_id="customfield_10070",
+                tracker_field_name="Business Value",
+                description="Business value score",
+                field_type=FieldType.NUMBER,
+                min_value=1,
+                max_value=100,
+            ),
+        ],
+    )
+
+    try:
+        FieldMappingLoader.save_to_yaml(config, output_path)
+        console.success(f"Generated field mapping template: {output_path}")
+        console.print()
+        console.info("Edit this file to customize field mappings for your project.")
+        console.info("Use with: spectra --field-mapping field_mapping.yaml ...")
+    except Exception as e:
+        console.error(f"Failed to write file: {e}")
+        return ExitCode.ERROR
+
+    return ExitCode.SUCCESS
+
+
 def run_sync(
     console: Console,
     args: argparse.Namespace,
@@ -3756,6 +3987,13 @@ def main() -> int:
         if not args.input or not args.epic:
             parser.error("--sync-attachments requires --input/-f and --epic/-e to be specified")
         return run_attachment_sync(args)
+
+    # Handle field mapping commands
+    if args.list_custom_fields:
+        return run_list_custom_fields(args)
+
+    if args.generate_field_mapping:
+        return run_generate_field_mapping(args)
 
     # Handle resume-session (loads args from session)
     if args.resume_session:

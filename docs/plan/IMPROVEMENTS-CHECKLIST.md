@@ -716,7 +716,7 @@ For each new tracker adapter, follow this checklist:
 
 ### Data Sync
 - [x] **Attachment Sync** - Upload/download attachments between markdown and trackers
-- [ ] **Custom Field Mapping** - Map custom fields per tracker (via config)
+- [x] **Custom Field Mapping** - Map custom fields per tracker (via config)
 - [ ] **Time Tracking Sync** - Parse/sync time estimates and logged time
 - [ ] **Sprint/Iteration Sync** - Parse and sync sprint assignments
 - [ ] **Story Dependencies/Relationships** - Parse blocks/depends-on relationships
