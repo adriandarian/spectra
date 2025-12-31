@@ -8,6 +8,16 @@ This layer contains:
 - watch: File watching for auto-sync
 """
 
+from .ai_acceptance import (
+    ACCategory,
+    ACGenerationOptions,
+    ACGenerationResult,
+    ACGenerationSuggestion,
+    ACStyle,
+    AIAcceptanceCriteriaGenerator,
+    GeneratedAC,
+    generate_acceptance_criteria,
+)
 from .ai_estimate import (
     AIEstimator,
     ComplexityBreakdown,
@@ -123,6 +133,12 @@ from .webhook_multi import (
 
 
 __all__ = [
+    "ACCategory",
+    "ACGenerationOptions",
+    "ACGenerationResult",
+    "ACGenerationSuggestion",
+    "ACStyle",
+    "AIAcceptanceCriteriaGenerator",
     "AIEstimator",
     "AILabeler",
     "AIStoryGenerator",
@@ -144,6 +160,7 @@ __all__ = [
     "EstimationSuggestion",
     "FileChange",
     "FileWatcher",
+    "GeneratedAC",
     "GeneratedStory",
     "GenerationOptions",
     "GenerationResult",
@@ -209,6 +226,7 @@ __all__ = [
     "create_multi_tracker_server",
     "create_notification_manager",
     "estimate_stories",
+    "generate_acceptance_criteria",
     "generate_stories_from_description",
     "label_stories",
     "parse_schedule",

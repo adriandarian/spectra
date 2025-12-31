@@ -124,6 +124,21 @@ Examples:
   # Generate markdown for split stories
   spectra --split -f EPIC.md --generate-markdown
 
+  # AI acceptance criteria generation
+  spectra --generate-ac -f EPIC.md
+
+  # Generate AC for specific stories
+  spectra --generate-ac -f EPIC.md --ac-story US-001,US-002
+
+  # Generate AC in Gherkin format
+  spectra --generate-ac -f EPIC.md --use-gherkin
+
+  # Generate AC with security considerations
+  spectra --generate-ac -f EPIC.md --include-security
+
+  # Apply generated AC to file
+  spectra --generate-ac -f EPIC.md --apply-ac
+
   # Show status dashboard (static)
   spectra --dashboard -f EPIC.md --epic PROJ-123
 
@@ -1562,6 +1577,46 @@ Environment Variables:
         "--generate-markdown",
         action="store_true",
         help="Generate markdown for suggested split stories",
+    )
+    new_commands.add_argument(
+        "--generate-ac",
+        action="store_true",
+        help="AI-powered acceptance criteria generation from story descriptions",
+    )
+    new_commands.add_argument(
+        "--ac-story",
+        type=str,
+        metavar="IDS",
+        help="Comma-separated story IDs to generate AC for (default: stories missing AC)",
+    )
+    new_commands.add_argument(
+        "--use-gherkin",
+        action="store_true",
+        help="Generate AC in Gherkin (Given/When/Then) format",
+    )
+    new_commands.add_argument(
+        "--include-security",
+        action="store_true",
+        help="Include security-related acceptance criteria",
+    )
+    new_commands.add_argument(
+        "--min-ac",
+        type=int,
+        default=3,
+        metavar="N",
+        help="Minimum acceptance criteria per story (default: 3)",
+    )
+    new_commands.add_argument(
+        "--max-ac",
+        type=int,
+        default=8,
+        metavar="N",
+        help="Maximum acceptance criteria per story (default: 8)",
+    )
+    new_commands.add_argument(
+        "--apply-ac",
+        action="store_true",
+        help="Apply generated acceptance criteria to the markdown file",
     )
     new_commands.add_argument(
         "--archive",
@@ -4684,6 +4739,36 @@ def main() -> int:
             tech_stack=getattr(args, "tech_stack", None),
             output_format=getattr(args, "output", "text") or "text",
             generate_markdown=getattr(args, "generate_markdown", False),
+        )
+
+    # Handle generate-ac command (AI acceptance criteria generation)
+    if getattr(args, "generate_ac", False) or getattr(args, "ac_story", None):
+        from .ai_acceptance import run_ai_acceptance
+
+        console = Console(
+            color=not getattr(args, "no_color", False),
+            verbose=getattr(args, "verbose", False),
+        )
+
+        story_ids = None
+        if getattr(args, "ac_story", None):
+            story_ids = [s.strip() for s in args.ac_story.split(",")]
+
+        return run_ai_acceptance(
+            console=console,
+            markdown_path=args.input or getattr(args, "markdown", None),
+            story_ids=story_ids,
+            use_gherkin=getattr(args, "use_gherkin", False),
+            include_validation=True,
+            include_error_handling=True,
+            include_edge_cases=True,
+            include_security=getattr(args, "include_security", False),
+            min_ac=getattr(args, "min_ac", 3),
+            max_ac=getattr(args, "max_ac", 8),
+            project_context=getattr(args, "project_context", None),
+            tech_stack=getattr(args, "tech_stack", None),
+            output_format=getattr(args, "output", "text") or "text",
+            apply_changes=getattr(args, "apply_ac", False),
         )
 
     # Handle archive command
