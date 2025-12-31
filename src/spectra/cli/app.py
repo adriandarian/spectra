@@ -97,6 +97,21 @@ Examples:
   # Apply suggested estimates to file
   spectra --estimate -f EPIC.md --apply-estimates
 
+  # AI labeling - suggest labels based on content
+  spectra --label -f EPIC.md
+
+  # AI labeling with existing labels to prefer
+  spectra --label -f EPIC.md --existing-labels frontend,backend,api,security
+
+  # AI labeling for specific stories
+  spectra --label -f EPIC.md --label-story US-001,US-002
+
+  # AI labeling with constraints
+  spectra --label -f EPIC.md --max-labels 3 --no-new-labels
+
+  # Apply suggested labels to file
+  spectra --label -f EPIC.md --apply-labels
+
   # Show status dashboard (static)
   spectra --dashboard -f EPIC.md --epic PROJ-123
 
@@ -1453,6 +1468,48 @@ Environment Variables:
         "--no-reasoning",
         action="store_true",
         help="Hide estimation reasoning in output",
+    )
+    new_commands.add_argument(
+        "--label",
+        action="store_true",
+        help="AI-powered label suggestions based on story content",
+    )
+    new_commands.add_argument(
+        "--label-story",
+        type=str,
+        metavar="IDS",
+        help="Comma-separated story IDs to label (default: all stories)",
+    )
+    new_commands.add_argument(
+        "--existing-labels",
+        type=str,
+        metavar="LABELS",
+        help="Comma-separated list of existing labels to prefer",
+    )
+    new_commands.add_argument(
+        "--max-labels",
+        type=int,
+        default=5,
+        metavar="N",
+        help="Maximum labels per story (default: 5)",
+    )
+    new_commands.add_argument(
+        "--no-new-labels",
+        action="store_true",
+        help="Only suggest from existing labels, don't create new ones",
+    )
+    new_commands.add_argument(
+        "--label-style",
+        type=str,
+        choices=["kebab-case", "snake_case", "camelCase"],
+        default="kebab-case",
+        metavar="STYLE",
+        help="Label formatting style (default: kebab-case)",
+    )
+    new_commands.add_argument(
+        "--apply-labels",
+        action="store_true",
+        help="Apply suggested labels to the markdown file",
     )
     new_commands.add_argument(
         "--archive",
@@ -4513,6 +4570,41 @@ def main() -> int:
             show_reasoning=not getattr(args, "no_reasoning", False),
             output_format=getattr(args, "output", "text") or "text",
             apply_changes=getattr(args, "apply_estimates", False),
+        )
+
+    # Handle label command (AI labeling/categorization)
+    if getattr(args, "label", False) or getattr(args, "label_story", None):
+        from .ai_label import run_ai_label
+
+        console = Console(
+            color=not getattr(args, "no_color", False),
+            verbose=getattr(args, "verbose", False),
+        )
+
+        story_ids = None
+        if getattr(args, "label_story", None):
+            story_ids = [s.strip() for s in args.label_story.split(",")]
+
+        existing_labels = None
+        if getattr(args, "existing_labels", None):
+            existing_labels = [l.strip() for l in args.existing_labels.split(",")]
+
+        return run_ai_label(
+            console=console,
+            markdown_path=args.input or getattr(args, "markdown", None),
+            story_ids=story_ids,
+            existing_labels=existing_labels,
+            suggest_features=True,
+            suggest_components=True,
+            suggest_types=True,
+            suggest_nfr=True,
+            max_labels=getattr(args, "max_labels", 5),
+            allow_new=not getattr(args, "no_new_labels", False),
+            label_style=getattr(args, "label_style", "kebab-case"),
+            project_context=getattr(args, "project_context", None),
+            tech_stack=getattr(args, "tech_stack", None),
+            output_format=getattr(args, "output", "text") or "text",
+            apply_changes=getattr(args, "apply_labels", False),
         )
 
     # Handle archive command

@@ -737,7 +737,7 @@ For each new tracker adapter, follow this checklist:
 - [x] **AI Story Generation** - Generate stories from high-level descriptions
 - [x] **AI Story Refiner** - Analyze stories for ambiguity or missing AC
 - [x] **AI Estimation** - Suggest story points based on complexity
-- [ ] **AI Labeling/Auto-categorization** - Suggest labels/categories based on content
+- [x] **AI Labeling/Auto-categorization** - Suggest labels/categories based on content
 - [ ] **Smart Splitting** - AI suggests splitting large stories
 - [ ] **Acceptance Criteria Generation** - AI writes AC from story description
 - [ ] **Dependency Detection** - AI identifies blocked-by relationships

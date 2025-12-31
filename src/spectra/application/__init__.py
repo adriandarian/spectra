@@ -26,6 +26,15 @@ from .ai_generate import (
     GenerationStyle,
     generate_stories_from_description,
 )
+from .ai_label import (
+    AILabeler,
+    LabelCategory,
+    LabelingOptions,
+    LabelingResult,
+    LabelingSuggestion,
+    SuggestedLabel,
+    label_stories,
+)
 from .ai_refine import (
     AIStoryRefiner,
     IssueCategory,
@@ -106,6 +115,7 @@ from .webhook_multi import (
 
 __all__ = [
     "AIEstimator",
+    "AILabeler",
     "AIStoryGenerator",
     "AIStoryRefiner",
     "AddCommentCommand",
@@ -136,6 +146,10 @@ __all__ = [
     "IssueCategory",
     "IssueSeverity",
     "JiraWebhookParser",
+    "LabelCategory",
+    "LabelingOptions",
+    "LabelingResult",
+    "LabelingSuggestion",
     "LinearWebhookParser",
     "MultiTrackerEvent",
     "MultiTrackerStats",
@@ -157,6 +171,7 @@ __all__ = [
     "ScheduledSyncRunner",
     "SlackNotifier",
     "StoryAnalysis",
+    "SuggestedLabel",
     "SyncOrchestrator",
     "SyncResult",
     "TeamsNotifier",
@@ -180,6 +195,7 @@ __all__ = [
     "create_notification_manager",
     "estimate_stories",
     "generate_stories_from_description",
+    "label_stories",
     "parse_schedule",
     "refine_stories",
 ]
