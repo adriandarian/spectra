@@ -61,6 +61,15 @@ Examples:
   # List detected AI CLI tools for auto-fix
   spectra --list-ai-tools
 
+  # AI story generation from high-level description
+  spectra --generate-stories --description "Build user authentication with OAuth"
+
+  # AI story generation with context and output file
+  spectra --generate-stories --description-file feature.txt --project-context "E-commerce app" --generation-output stories.md --execute
+
+  # AI story generation with detailed style
+  spectra --generate-stories --description "Implement checkout flow" --generation-style detailed --max-stories 8
+
   # Show status dashboard (static)
   spectra --dashboard -f EPIC.md --epic PROJ-123
 
@@ -1279,6 +1288,63 @@ Environment Variables:
         default=4,
         metavar="N",
         help="Complexity threshold for split recommendations (1-10, default: 4)",
+    )
+    new_commands.add_argument(
+        "--generate-stories",
+        action="store_true",
+        help="Generate user stories from a high-level description using AI",
+    )
+    new_commands.add_argument(
+        "--description",
+        type=str,
+        metavar="TEXT",
+        help="High-level feature description for AI story generation",
+    )
+    new_commands.add_argument(
+        "--description-file",
+        type=str,
+        metavar="FILE",
+        help="File containing high-level feature description for AI story generation",
+    )
+    new_commands.add_argument(
+        "--generation-style",
+        type=str,
+        choices=["detailed", "standard", "minimal"],
+        default="standard",
+        metavar="STYLE",
+        help="Story generation style: detailed, standard, minimal (default: standard)",
+    )
+    new_commands.add_argument(
+        "--max-stories",
+        type=int,
+        default=5,
+        metavar="N",
+        help="Maximum number of stories to generate (default: 5)",
+    )
+    new_commands.add_argument(
+        "--story-prefix",
+        type=str,
+        default="US",
+        metavar="PREFIX",
+        help="Story ID prefix (default: US)",
+    )
+    new_commands.add_argument(
+        "--project-context",
+        type=str,
+        metavar="TEXT",
+        help="Project context to help AI generate better stories",
+    )
+    new_commands.add_argument(
+        "--tech-stack",
+        type=str,
+        metavar="TEXT",
+        help="Tech stack info for AI story generation (e.g., 'React, Node.js, PostgreSQL')",
+    )
+    new_commands.add_argument(
+        "--generation-output",
+        type=str,
+        metavar="FILE",
+        help="Output file for generated stories (default: stdout)",
     )
     new_commands.add_argument(
         "--archive",
@@ -4258,6 +4324,29 @@ def main() -> int:
             threshold=getattr(args, "split_threshold", 4),
             output_format=getattr(args, "output", "text") or "text",
             color=not getattr(args, "no_color", False),
+        )
+
+    # Handle generate-stories command (AI story generation)
+    if getattr(args, "generate_stories", False):
+        from .ai_generate import run_ai_generate
+
+        console = Console(
+            color=not getattr(args, "no_color", False),
+            verbose=getattr(args, "verbose", False),
+        )
+
+        return run_ai_generate(
+            console=console,
+            description=getattr(args, "description", None),
+            description_file=getattr(args, "description_file", None),
+            style=getattr(args, "generation_style", "standard"),
+            max_stories=getattr(args, "max_stories", 5),
+            story_prefix=getattr(args, "story_prefix", "US"),
+            project_context=getattr(args, "project_context", None),
+            tech_stack=getattr(args, "tech_stack", None),
+            output_file=getattr(args, "generation_output", None),
+            output_format=getattr(args, "output", "text") or "text",
+            dry_run=not getattr(args, "execute", False),
         )
 
     # Handle archive command

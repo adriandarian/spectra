@@ -8,6 +8,14 @@ This layer contains:
 - watch: File watching for auto-sync
 """
 
+from .ai_generate import (
+    AIStoryGenerator,
+    GeneratedStory,
+    GenerationOptions,
+    GenerationResult,
+    GenerationStyle,
+    generate_stories_from_description,
+)
 from .commands import (
     AddCommentCommand,
     Command,
@@ -77,8 +85,8 @@ from .webhook_multi import (
 
 
 __all__ = [
+    "AIStoryGenerator",
     "AddCommentCommand",
-    # Multi-tracker webhooks
     "AzureDevOpsWebhookParser",
     "Command",
     "CommandResult",
@@ -87,8 +95,11 @@ __all__ = [
     "DailySchedule",
     "DiscordNotifier",
     "FileChange",
-    # Watch mode
     "FileWatcher",
+    "GeneratedStory",
+    "GenerationOptions",
+    "GenerationResult",
+    "GenerationStyle",
     "GenericWebhookNotifier",
     "GitHubWebhookParser",
     "GitLabWebhookParser",
@@ -106,7 +117,6 @@ __all__ = [
     "NotificationManager",
     "NotificationProvider",
     "NotificationType",
-    # Scheduled sync
     "Schedule",
     "ScheduleDisplay",
     "ScheduleStats",
@@ -130,10 +140,10 @@ __all__ = [
     "WebhookHandler",
     "WebhookParser",
     "WebhookPayloadParser",
-    # Webhook receiver
     "WebhookServer",
     "WebhookStats",
     "create_multi_tracker_server",
     "create_notification_manager",
+    "generate_stories_from_description",
     "parse_schedule",
 ]
