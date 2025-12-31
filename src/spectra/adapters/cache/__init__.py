@@ -75,6 +75,7 @@ except ImportError:
     create_redis_cluster_cache = None  # type: ignore[misc,assignment]
 
 __all__ = [
+    "DEFAULT_METADATA_TTLS",
     "CacheBackend",
     "CacheEntry",
     "CacheKeyBuilder",
@@ -82,15 +83,12 @@ __all__ = [
     "CacheStats",
     "FileCache",
     "MemoryCache",
-    # Metadata cache exports
-    "DEFAULT_METADATA_TTLS",
     "MetadataCache",
     "MetadataCacheEntry",
     "MetadataCacheStats",
     "MetadataType",
-    "create_metadata_cache",
-    # Redis exports (may be None if redis not installed)
     "RedisCache",
+    "create_metadata_cache",
     "create_redis_cache",
     "create_redis_cluster_cache",
 ]

@@ -407,11 +407,7 @@ class MetadataCache:
             return 0
 
         with self._lock:
-            tag = (
-                f"metadata:{metadata_type.value}"
-                if metadata_type
-                else f"metadata:{self.tracker}"
-            )
+            tag = f"metadata:{metadata_type.value}" if metadata_type else f"metadata:{self.tracker}"
 
             return self.backend.invalidate_by_tag(tag)
 
