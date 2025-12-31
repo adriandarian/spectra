@@ -1,548 +1,482 @@
 """
-Parallel Sync - High-level parallel operations for sync workflows.
+Parallel Epic Sync - Process multiple epics simultaneously.
 
-Provides async-enabled batch operations for sync tasks:
-- Parallel issue fetching
-- Parallel description updates
-- Parallel subtask creation
-- Parallel comment addition
-- Parallel status transitions
-
-Can be used with or without asyncio - provides both sync and async interfaces.
+Uses concurrent execution to sync multiple epics in parallel,
+significantly reducing total sync time for multi-epic files.
 """
 
-import asyncio
 import logging
+import threading
 from collections.abc import Callable
+from concurrent.futures import ThreadPoolExecutor, as_completed
 from dataclasses import dataclass, field
-from typing import TYPE_CHECKING, Any, cast
+from datetime import datetime
+from enum import Enum
+from typing import TYPE_CHECKING, Any
+
+from spectra.core.domain.entities import Epic
+from spectra.core.domain.events import EventBus
+from spectra.core.ports.document_formatter import DocumentFormatterPort
+from spectra.core.ports.document_parser import DocumentParserPort
+from spectra.core.ports.issue_tracker import IssueTrackerPort
+
+from .multi_epic import EpicSyncResult, MultiEpicSyncResult
 
 
 if TYPE_CHECKING:
-    from spectra.adapters.jira.async_client import AsyncJiraApiClient
+    from spectra.core.domain.config import SyncConfig
+
+logger = logging.getLogger(__name__)
 
 
-logger = logging.getLogger("parallel_sync")
+class ParallelStrategy(Enum):
+    """Strategy for parallel execution."""
+
+    THREAD_POOL = "thread_pool"  # Use thread pool executor
+    SEQUENTIAL = "sequential"  # Fall back to sequential (for testing)
 
 
 @dataclass
-class ParallelSyncResult:
+class ParallelSyncConfig:
+    """Configuration for parallel sync."""
+
+    max_workers: int = 4  # Maximum concurrent syncs
+    strategy: ParallelStrategy = ParallelStrategy.THREAD_POOL
+    timeout_per_epic: float = 300.0  # 5 minutes per epic
+    fail_fast: bool = False  # Stop all on first failure
+    rate_limit_delay: float = 0.1  # Delay between starting workers
+
+
+@dataclass
+class EpicProgress:
+    """Progress tracking for a single epic."""
+
+    epic_key: str
+    epic_title: str
+    status: str = "pending"  # pending, running, completed, failed
+    phase: str = ""
+    progress: float = 0.0  # 0.0 to 1.0
+    started_at: datetime | None = None
+    completed_at: datetime | None = None
+    error: str | None = None
+
+
+@dataclass
+class ParallelSyncResult(MultiEpicSyncResult):
+    """Extended result for parallel sync."""
+
+    parallel_config: ParallelSyncConfig = field(default_factory=ParallelSyncConfig)
+    workers_used: int = 0
+    peak_concurrency: int = 0
+    epic_progress: list[EpicProgress] = field(default_factory=list)
+
+    def summary(self) -> str:
+        """Generate a summary including parallel info."""
+        base = super().summary()
+        parallel_info = [
+            "",
+            "Parallel Execution:",
+            f"  Workers: {self.workers_used}",
+            f"  Peak concurrency: {self.peak_concurrency}",
+            f"  Duration: {self.duration_seconds:.1f}s",
+        ]
+
+        # Calculate speedup estimate
+        if self.epic_results:
+            sequential_time = sum(r.duration_seconds for r in self.epic_results)
+            if sequential_time > 0 and self.duration_seconds > 0:
+                speedup = sequential_time / self.duration_seconds
+                parallel_info.append(f"  Estimated speedup: {speedup:.1f}x")
+
+        return base + "\n" + "\n".join(parallel_info)
+
+
+class ParallelSyncOrchestrator:
     """
-    Result of a parallel sync operation.
+    Orchestrates parallel synchronization of multiple epics.
 
-    Tracks successes, failures, and provides summary statistics.
-    """
-
-    operation: str
-    total: int = 0
-    successful: int = 0
-    failed: int = 0
-    results: list[dict[str, Any]] = field(default_factory=list)
-    errors: list[tuple[str, str]] = field(default_factory=list)  # (key, error_message)
-
-    @property
-    def success_rate(self) -> float:
-        """Calculate success rate (0.0 to 1.0)."""
-        if self.total == 0:
-            return 1.0
-        return self.successful / self.total
-
-    @property
-    def all_succeeded(self) -> bool:
-        """Check if all operations succeeded."""
-        return self.failed == 0
-
-    def __str__(self) -> str:
-        return f"{self.operation}: {self.successful}/{self.total} succeeded ({self.failed} failed)"
-
-
-def _get_or_create_event_loop() -> asyncio.AbstractEventLoop:
-    """Get existing event loop or create a new one."""
-    try:
-        return asyncio.get_running_loop()
-    except RuntimeError:
-        return asyncio.new_event_loop()
-
-
-def run_async(coro: Any) -> Any:
-    """
-    Run an async coroutine from sync code.
-
-    Handles event loop creation and cleanup.
-    """
-    try:
-        asyncio.get_running_loop()
-        # Already in an async context - can't use run()
-        # This shouldn't happen in normal usage
-        raise RuntimeError(
-            "Cannot run parallel operations from within an async context. "
-            "Use the async methods directly instead."
-        )
-    except RuntimeError:
-        # No running loop - safe to create one
-        return asyncio.run(coro)
-
-
-class ParallelSyncOperations:
-    """
-    High-level parallel sync operations.
-
-    Provides both sync and async interfaces for common sync tasks.
-    Uses AsyncJiraApiClient internally for parallel requests.
-
-    Example (sync usage):
-        >>> ops = ParallelSyncOperations(
-        ...     base_url="https://company.atlassian.net",
-        ...     email="user@example.com",
-        ...     api_token="token",
-        ... )
-        >>> result = ops.fetch_issues_parallel(
-        ...     ["PROJ-1", "PROJ-2", "PROJ-3"]
-        ... )
-        >>> print(f"Fetched {result.successful} issues")
-
-    Example (async usage):
-        >>> async with ParallelSyncOperations(...) as ops:
-        ...     result = await ops.fetch_issues_parallel_async(...)
+    Uses thread pool executor to process multiple epics concurrently,
+    with configurable worker count and timeout handling.
     """
 
     def __init__(
         self,
-        base_url: str,
-        email: str,
-        api_token: str,
-        dry_run: bool = True,
-        concurrency: int = 5,
-        requests_per_second: float = 5.0,
+        tracker: IssueTrackerPort,
+        parser: DocumentParserPort,
+        formatter: DocumentFormatterPort,
+        config: "SyncConfig",
+        parallel_config: ParallelSyncConfig | None = None,
+        event_bus: EventBus | None = None,
     ):
         """
-        Initialize parallel sync operations.
+        Initialize the parallel sync orchestrator.
 
         Args:
-            base_url: Jira instance URL
-            email: User email
-            api_token: API token
-            dry_run: If True, don't make writes
-            concurrency: Max parallel requests
-            requests_per_second: Rate limit
+            tracker: Issue tracker port
+            parser: Document parser port
+            formatter: Document formatter port
+            config: Sync configuration
+            parallel_config: Parallel execution configuration
+            event_bus: Optional event bus
         """
-        self.base_url = base_url
-        self.email = email
-        self.api_token = api_token
-        self.dry_run = dry_run
-        self.concurrency = concurrency
-        self.requests_per_second = requests_per_second
+        self.tracker = tracker
+        self.parser = parser
+        self.formatter = formatter
+        self.config = config
+        self.parallel_config = parallel_config or ParallelSyncConfig()
+        self.event_bus = event_bus or EventBus()
+        self.logger = logging.getLogger("ParallelSyncOrchestrator")
 
-        self._client: AsyncJiraApiClient | None = None
+        # Thread-safe state
+        self._lock = threading.Lock()
+        self._active_workers = 0
+        self._peak_concurrency = 0
+        self._cancelled = False
+        self._progress_map: dict[str, EpicProgress] = {}
 
-    def _get_client(self) -> "AsyncJiraApiClient":
-        """Get or create the async client."""
-        if self._client is None:
-            from spectra.adapters.jira.async_client import AsyncJiraApiClient
+    def sync(
+        self,
+        markdown_path: str,
+        epic_filter: list[str] | None = None,
+        progress_callback: Callable[[str, str, float], None] | None = None,
+    ) -> ParallelSyncResult:
+        """
+        Sync multiple epics in parallel.
 
-            self._client = AsyncJiraApiClient(
-                base_url=self.base_url,
-                email=self.email,
-                api_token=self.api_token,
-                dry_run=self.dry_run,
-                concurrency=self.concurrency,
-                requests_per_second=self.requests_per_second,
+        Args:
+            markdown_path: Path to markdown file
+            epic_filter: Optional list of epic keys to include
+            progress_callback: Callback for progress (epic_key, status, progress)
+
+        Returns:
+            ParallelSyncResult with sync details
+        """
+        result = ParallelSyncResult(
+            dry_run=self.config.dry_run,
+            parallel_config=self.parallel_config,
+        )
+
+        # Reset state
+        self._cancelled = False
+        self._active_workers = 0
+        self._peak_concurrency = 0
+        self._progress_map.clear()
+
+        # Parse epics from file
+        self.logger.info(f"Parsing epics from {markdown_path}")
+        epics = self.parser.parse_epics(markdown_path)
+
+        if not epics:
+            self.logger.warning("No epics found in file")
+            return result
+
+        # Filter if specified
+        if epic_filter:
+            epics = [e for e in epics if str(e.key) in epic_filter]
+            self.logger.info(f"Filtered to {len(epics)} epics")
+
+        result.epics_total = len(epics)
+
+        # Initialize progress tracking
+        for epic in epics:
+            progress = EpicProgress(
+                epic_key=str(epic.key),
+                epic_title=epic.title,
             )
-        return self._client
+            self._progress_map[str(epic.key)] = progress
+            result.epic_progress.append(progress)
 
-    # -------------------------------------------------------------------------
-    # Async Methods
-    # -------------------------------------------------------------------------
+        # Choose strategy
+        if self.parallel_config.strategy == ParallelStrategy.SEQUENTIAL:
+            self._sync_sequential(epics, markdown_path, result, progress_callback)
+        else:
+            self._sync_parallel(epics, markdown_path, result, progress_callback)
 
-    async def fetch_issues_parallel_async(
-        self,
-        issue_keys: list[str],
-        fields: list[str] | None = None,
-        progress_callback: Callable[[int, int], None] | None = None,
-    ) -> ParallelSyncResult:
-        """
-        Fetch multiple issues in parallel (async).
-
-        Args:
-            issue_keys: Issue keys to fetch
-            fields: Fields to include
-            progress_callback: Optional progress callback
-
-        Returns:
-            ParallelSyncResult with fetched issues
-        """
-        client = self._get_client()
-        result = ParallelSyncResult(operation="fetch_issues", total=len(issue_keys))
-
-        if not issue_keys:
-            return result
-
-        from spectra.adapters.async_base import batch_execute
-
-        async def fetch_issue(key: str) -> dict[str, Any]:
-            return await client.get_issue(key, fields=fields)
-
-        batch_result = await batch_execute(
-            items=issue_keys,
-            operation=fetch_issue,
-            batch_size=50,
-            concurrency=self.concurrency,
-            rate_limiter=client._rate_limiter,
-            progress_callback=progress_callback,
-        )
-
-        result.results = batch_result.results
-        result.successful = len(batch_result.results)
-
-        for idx, exc in batch_result.errors:
-            key = issue_keys[idx] if idx < len(issue_keys) else f"index_{idx}"
-            result.errors.append((key, str(exc)))
-            result.failed += 1
+        result.completed_at = datetime.now()
+        result.workers_used = min(self.parallel_config.max_workers, len(epics))
+        result.peak_concurrency = self._peak_concurrency
 
         return result
 
-    async def update_descriptions_parallel_async(
+    def _sync_parallel(
         self,
-        updates: list[tuple[str, Any]],
-        progress_callback: Callable[[int, int], None] | None = None,
-    ) -> ParallelSyncResult:
-        """
-        Update multiple issue descriptions in parallel (async).
-
-        Args:
-            updates: List of (issue_key, description) tuples
-            progress_callback: Optional progress callback
-
-        Returns:
-            ParallelSyncResult with update results
-        """
-        client = self._get_client()
-        result = ParallelSyncResult(operation="update_descriptions", total=len(updates))
-
-        if not updates:
-            return result
-
-        from spectra.adapters.async_base import batch_execute
-
-        async def update_desc(item: tuple[str, Any]) -> dict[str, Any]:
-            key, desc = item
-            await client.update_issue(key, {"description": desc})
-            return {"key": key, "success": True}
-
-        batch_result = await batch_execute(
-            items=updates,
-            operation=update_desc,
-            batch_size=20,
-            concurrency=self.concurrency,
-            rate_limiter=client._rate_limiter,
-            progress_callback=progress_callback,
-        )
-
-        result.results = batch_result.results
-        result.successful = len(batch_result.results)
-
-        for idx, exc in batch_result.errors:
-            key = updates[idx][0] if idx < len(updates) else f"index_{idx}"
-            result.errors.append((key, str(exc)))
-            result.failed += 1
-
-        return result
-
-    async def create_subtasks_parallel_async(
-        self,
-        subtasks: list[dict[str, Any]],
-        progress_callback: Callable[[int, int], None] | None = None,
-    ) -> ParallelSyncResult:
-        """
-        Create multiple subtasks in parallel (async).
-
-        Args:
-            subtasks: List of subtask field dicts (must include project, parent, etc.)
-            progress_callback: Optional progress callback
-
-        Returns:
-            ParallelSyncResult with created subtask keys
-        """
-        client = self._get_client()
-        result = ParallelSyncResult(operation="create_subtasks", total=len(subtasks))
-
-        if not subtasks:
-            return result
-
-        from spectra.adapters.async_base import batch_execute
-
-        async def create_subtask(fields: dict[str, Any]) -> dict[str, Any]:
-            return await client.create_issue(fields)
-
-        batch_result = await batch_execute(
-            items=subtasks,
-            operation=create_subtask,
-            batch_size=10,
-            concurrency=self.concurrency,
-            rate_limiter=client._rate_limiter,
-            progress_callback=progress_callback,
-        )
-
-        result.results = batch_result.results
-        result.successful = len(batch_result.results)
-        result.failed = len(batch_result.errors)
-
-        for idx, exc in batch_result.errors:
-            parent_key = subtasks[idx].get("parent", {}).get("key", f"index_{idx}")
-            result.errors.append((parent_key, str(exc)))
-
-        return result
-
-    async def add_comments_parallel_async(
-        self,
-        comments: list[tuple[str, Any]],
-        progress_callback: Callable[[int, int], None] | None = None,
-    ) -> ParallelSyncResult:
-        """
-        Add comments to multiple issues in parallel (async).
-
-        Args:
-            comments: List of (issue_key, comment_body) tuples
-            progress_callback: Optional progress callback
-
-        Returns:
-            ParallelSyncResult with comment results
-        """
-        client = self._get_client()
-        result = ParallelSyncResult(operation="add_comments", total=len(comments))
-
-        if not comments:
-            return result
-
-        from spectra.adapters.async_base import batch_execute
-
-        async def add_comment(item: tuple[str, Any]) -> dict[str, Any]:
-            key, body = item
-            await client.add_comment(key, body)
-            return {"key": key, "success": True}
-
-        batch_result = await batch_execute(
-            items=comments,
-            operation=add_comment,
-            batch_size=20,
-            concurrency=self.concurrency,
-            rate_limiter=client._rate_limiter,
-            progress_callback=progress_callback,
-        )
-
-        result.results = batch_result.results
-        result.successful = len(batch_result.results)
-
-        for idx, exc in batch_result.errors:
-            key = comments[idx][0] if idx < len(comments) else f"index_{idx}"
-            result.errors.append((key, str(exc)))
-            result.failed += 1
-
-        return result
-
-    async def transition_issues_parallel_async(
-        self,
-        transitions: list[tuple[str, str]],
-        progress_callback: Callable[[int, int], None] | None = None,
-    ) -> ParallelSyncResult:
-        """
-        Transition multiple issues in parallel (async).
-
-        Args:
-            transitions: List of (issue_key, transition_id) tuples
-            progress_callback: Optional progress callback
-
-        Returns:
-            ParallelSyncResult with transition results
-        """
-        client = self._get_client()
-        result = ParallelSyncResult(operation="transition_issues", total=len(transitions))
-
-        if not transitions:
-            return result
-
-        from spectra.adapters.async_base import batch_execute
-
-        async def do_transition(item: tuple[str, str]) -> dict[str, Any]:
-            key, transition_id = item
-            await client.transition_issue(key, transition_id)
-            return {"key": key, "success": True}
-
-        batch_result = await batch_execute(
-            items=transitions,
-            operation=do_transition,
-            batch_size=10,
-            concurrency=self.concurrency,
-            rate_limiter=client._rate_limiter,
-            progress_callback=progress_callback,
-        )
-
-        result.results = batch_result.results
-        result.successful = len(batch_result.results)
-
-        for idx, exc in batch_result.errors:
-            key = transitions[idx][0] if idx < len(transitions) else f"index_{idx}"
-            result.errors.append((key, str(exc)))
-            result.failed += 1
-
-        return result
-
-    async def close_async(self) -> None:
-        """Close the async client."""
-        if self._client is not None:
-            await self._client.close()
-            self._client = None
-
-    async def __aenter__(self) -> "ParallelSyncOperations":
-        """Async context manager entry."""
-        self._get_client()
-        return self
-
-    async def __aexit__(
-        self,
-        exc_type: type | None,
-        exc_val: Exception | None,
-        exc_tb: Any,
+        epics: list[Epic],
+        markdown_path: str,
+        result: ParallelSyncResult,
+        progress_callback: Callable[[str, str, float], None] | None,
     ) -> None:
-        """Async context manager exit."""
-        await self.close_async()
+        """Execute sync in parallel using thread pool."""
+        max_workers = min(self.parallel_config.max_workers, len(epics))
+        self.logger.info(f"Starting parallel sync with {max_workers} workers")
 
-    # -------------------------------------------------------------------------
-    # Sync Methods (wrappers around async methods)
-    # -------------------------------------------------------------------------
+        with ThreadPoolExecutor(max_workers=max_workers) as executor:
+            # Submit all tasks
+            futures = {}
+            for epic in epics:
+                future = executor.submit(
+                    self._sync_single_epic_safe,
+                    epic,
+                    markdown_path,
+                    progress_callback,
+                )
+                futures[future] = epic
 
-    def fetch_issues_parallel(
+            # Collect results as they complete
+            for future in as_completed(futures):
+                epic = futures[future]
+                epic_key = str(epic.key)
+
+                try:
+                    epic_result = future.result(timeout=self.parallel_config.timeout_per_epic)
+                    result.add_epic_result(epic_result)
+
+                    if progress_callback:
+                        status = "completed" if epic_result.success else "failed"
+                        progress_callback(epic_key, status, 1.0)
+
+                    # Check fail-fast
+                    if not epic_result.success and self.parallel_config.fail_fast:
+                        self.logger.warning(f"Fail-fast triggered by {epic_key}")
+                        self._cancelled = True
+                        executor.shutdown(wait=False, cancel_futures=True)
+                        break
+
+                except TimeoutError:
+                    self.logger.error(f"Timeout syncing epic {epic_key}")
+                    epic_result = EpicSyncResult(
+                        epic_key=epic_key,
+                        epic_title=epic.title,
+                        success=False,
+                        errors=[f"Sync timed out after {self.parallel_config.timeout_per_epic}s"],
+                    )
+                    result.add_epic_result(epic_result)
+
+                    if progress_callback:
+                        progress_callback(epic_key, "timeout", 1.0)
+
+                except Exception as e:
+                    self.logger.error(f"Error syncing {epic_key}: {e}")
+                    epic_result = EpicSyncResult(
+                        epic_key=epic_key,
+                        epic_title=epic.title,
+                        success=False,
+                        errors=[str(e)],
+                    )
+                    result.add_epic_result(epic_result)
+
+                    if progress_callback:
+                        progress_callback(epic_key, "error", 1.0)
+
+    def _sync_sequential(
         self,
-        issue_keys: list[str],
-        fields: list[str] | None = None,
-        progress_callback: Callable[[int, int], None] | None = None,
-    ) -> ParallelSyncResult:
-        """
-        Fetch multiple issues in parallel (sync wrapper).
+        epics: list[Epic],
+        markdown_path: str,
+        result: ParallelSyncResult,
+        progress_callback: Callable[[str, str, float], None] | None,
+    ) -> None:
+        """Execute sync sequentially (fallback/testing)."""
+        self.logger.info("Running sequential sync")
+        self._peak_concurrency = 1
 
-        Args:
-            issue_keys: Issue keys to fetch
-            fields: Fields to include
-            progress_callback: Optional progress callback
+        for i, epic in enumerate(epics):
+            if self._cancelled:
+                break
 
-        Returns:
-            ParallelSyncResult with fetched issues
-        """
+            epic_key = str(epic.key)
+            self.logger.info(f"[{i + 1}/{len(epics)}] Syncing {epic_key}")
 
-        async def _run() -> ParallelSyncResult:
-            try:
-                return await self.fetch_issues_parallel_async(issue_keys, fields, progress_callback)
-            finally:
-                await self.close_async()
+            if progress_callback:
+                progress_callback(epic_key, "running", 0.0)
 
-        return cast(ParallelSyncResult, run_async(_run()))
+            epic_result = self._sync_single_epic_safe(epic, markdown_path, progress_callback)
+            result.add_epic_result(epic_result)
 
-    def update_descriptions_parallel(
+            if progress_callback:
+                status = "completed" if epic_result.success else "failed"
+                progress_callback(epic_key, status, 1.0)
+
+            if not epic_result.success and self.parallel_config.fail_fast:
+                self._cancelled = True
+                break
+
+    def _sync_single_epic_safe(
         self,
-        updates: list[tuple[str, Any]],
-        progress_callback: Callable[[int, int], None] | None = None,
-    ) -> ParallelSyncResult:
+        epic: Epic,
+        markdown_path: str,
+        progress_callback: Callable[[str, str, float], None] | None,
+    ) -> EpicSyncResult:
         """
-        Update multiple issue descriptions in parallel (sync wrapper).
+        Safely sync a single epic with error handling.
 
-        Args:
-            updates: List of (issue_key, description) tuples
-            progress_callback: Optional progress callback
-
-        Returns:
-            ParallelSyncResult with update results
+        Thread-safe wrapper around the sync logic.
         """
+        from .orchestrator import SyncOrchestrator, SyncResult
 
-        async def _run() -> ParallelSyncResult:
-            try:
-                return await self.update_descriptions_parallel_async(updates, progress_callback)
-            finally:
-                await self.close_async()
+        epic_key = str(epic.key)
 
-        return cast(ParallelSyncResult, run_async(_run()))
+        # Track worker
+        with self._lock:
+            if self._cancelled:
+                return EpicSyncResult(
+                    epic_key=epic_key,
+                    epic_title=epic.title,
+                    success=False,
+                    errors=["Sync cancelled"],
+                )
 
-    def create_subtasks_parallel(
-        self,
-        subtasks: list[dict[str, Any]],
-        progress_callback: Callable[[int, int], None] | None = None,
-    ) -> ParallelSyncResult:
-        """
-        Create multiple subtasks in parallel (sync wrapper).
+            self._active_workers += 1
+            self._peak_concurrency = max(self._peak_concurrency, self._active_workers)
 
-        Args:
-            subtasks: List of subtask field dicts
-            progress_callback: Optional progress callback
+            if epic_key in self._progress_map:
+                self._progress_map[epic_key].status = "running"
+                self._progress_map[epic_key].started_at = datetime.now()
 
-        Returns:
-            ParallelSyncResult with created subtask keys
-        """
+        try:
+            result = EpicSyncResult(
+                epic_key=epic_key,
+                epic_title=epic.title,
+                dry_run=self.config.dry_run,
+                started_at=datetime.now(),
+            )
 
-        async def _run() -> ParallelSyncResult:
-            try:
-                return await self.create_subtasks_parallel_async(subtasks, progress_callback)
-            finally:
-                await self.close_async()
+            result.stories_total = len(epic.stories)
 
-        return cast(ParallelSyncResult, run_async(_run()))
+            if not epic.stories:
+                result.add_warning(f"No stories found for epic {epic_key}")
+                result.completed_at = datetime.now()
+                return result
 
-    def add_comments_parallel(
-        self,
-        comments: list[tuple[str, Any]],
-        progress_callback: Callable[[int, int], None] | None = None,
-    ) -> ParallelSyncResult:
-        """
-        Add comments to multiple issues in parallel (sync wrapper).
+            if progress_callback:
+                progress_callback(epic_key, "fetching", 0.2)
 
-        Args:
-            comments: List of (issue_key, comment_body) tuples
-            progress_callback: Optional progress callback
+            # Create orchestrator for this epic
+            orchestrator = SyncOrchestrator(
+                tracker=self.tracker,
+                parser=self.parser,
+                formatter=self.formatter,
+                config=self.config,
+                event_bus=self.event_bus,
+            )
 
-        Returns:
-            ParallelSyncResult with comment results
-        """
+            # Inject pre-parsed stories
+            orchestrator._md_stories = epic.stories
 
-        async def _run() -> ParallelSyncResult:
-            try:
-                return await self.add_comments_parallel_async(comments, progress_callback)
-            finally:
-                await self.close_async()
+            # Fetch and match
+            orchestrator._fetch_jira_state(epic_key)
+            orchestrator._match_stories()
 
-        return cast(ParallelSyncResult, run_async(_run()))
+            result.stories_matched = len(orchestrator._matches)
 
-    def transition_issues_parallel(
-        self,
-        transitions: list[tuple[str, str]],
-        progress_callback: Callable[[int, int], None] | None = None,
-    ) -> ParallelSyncResult:
-        """
-        Transition multiple issues in parallel (sync wrapper).
+            if progress_callback:
+                progress_callback(epic_key, "syncing", 0.5)
 
-        Args:
-            transitions: List of (issue_key, transition_id) tuples
-            progress_callback: Optional progress callback
+            # Create sync result
+            sync_result = SyncResult(dry_run=self.config.dry_run)
+            sync_result.stories_matched = result.stories_matched
 
-        Returns:
-            ParallelSyncResult with transition results
-        """
+            # Sync descriptions
+            if self.config.sync_descriptions:
+                orchestrator._sync_descriptions(sync_result)
 
-        async def _run() -> ParallelSyncResult:
-            try:
-                return await self.transition_issues_parallel_async(transitions, progress_callback)
-            finally:
-                await self.close_async()
+            if progress_callback:
+                progress_callback(epic_key, "subtasks", 0.7)
 
-        return cast(ParallelSyncResult, run_async(_run()))
+            # Sync subtasks
+            if self.config.sync_subtasks:
+                orchestrator._sync_subtasks(sync_result)
+
+            # Transfer results
+            result.stories_updated = sync_result.stories_updated
+            result.subtasks_created = sync_result.subtasks_created
+            result.subtasks_updated = sync_result.subtasks_updated
+            result.errors.extend(sync_result.errors)
+            result.warnings.extend(sync_result.warnings)
+            result.success = sync_result.success
+
+            if progress_callback:
+                progress_callback(epic_key, "completing", 0.9)
+
+        except Exception as e:
+            result.add_error(f"Sync failed: {e!s}")
+            self.logger.error(f"Error syncing {epic_key}: {e}")
+
+            with self._lock:
+                if epic_key in self._progress_map:
+                    self._progress_map[epic_key].error = str(e)
+
+        finally:
+            with self._lock:
+                self._active_workers -= 1
+
+                if epic_key in self._progress_map:
+                    self._progress_map[epic_key].status = (
+                        "completed" if result.success else "failed"
+                    )
+                    self._progress_map[epic_key].completed_at = datetime.now()
+                    self._progress_map[epic_key].progress = 1.0
+
+            result.completed_at = datetime.now()
+
+        return result
+
+    def cancel(self) -> None:
+        """Cancel ongoing parallel sync."""
+        self._cancelled = True
+        self.logger.info("Parallel sync cancelled")
+
+    def get_progress(self) -> dict[str, EpicProgress]:
+        """Get current progress for all epics."""
+        with self._lock:
+            return dict(self._progress_map)
+
+    def get_stats(self) -> dict[str, Any]:
+        """Get current sync statistics."""
+        with self._lock:
+            return {
+                "active_workers": self._active_workers,
+                "peak_concurrency": self._peak_concurrency,
+                "cancelled": self._cancelled,
+                "epics_in_progress": sum(
+                    1 for p in self._progress_map.values() if p.status == "running"
+                ),
+                "epics_completed": sum(
+                    1 for p in self._progress_map.values() if p.status == "completed"
+                ),
+                "epics_failed": sum(1 for p in self._progress_map.values() if p.status == "failed"),
+            }
 
 
-def is_parallel_available() -> bool:
+def create_parallel_orchestrator(
+    tracker: IssueTrackerPort,
+    parser: DocumentParserPort,
+    formatter: DocumentFormatterPort,
+    config: "SyncConfig",
+    max_workers: int = 4,
+    fail_fast: bool = False,
+) -> ParallelSyncOrchestrator:
     """
-    Check if parallel operations are available.
+    Factory function to create a parallel sync orchestrator.
 
-    Requires aiohttp to be installed.
+    Args:
+        tracker: Issue tracker port
+        parser: Document parser port
+        formatter: Document formatter port
+        config: Sync configuration
+        max_workers: Maximum concurrent workers
+        fail_fast: Stop on first failure
+
+    Returns:
+        Configured ParallelSyncOrchestrator
     """
-    try:
-        import aiohttp  # noqa: F401
+    parallel_config = ParallelSyncConfig(
+        max_workers=max_workers,
+        fail_fast=fail_fast,
+    )
 
-        return True
-    except ImportError:
-        return False
+    return ParallelSyncOrchestrator(
+        tracker=tracker,
+        parser=parser,
+        formatter=formatter,
+        config=config,
+        parallel_config=parallel_config,
+    )

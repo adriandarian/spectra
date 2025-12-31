@@ -205,6 +205,15 @@ Examples:
   # Use custom prompts config
   spectra --prompts-config my-prompts.json --generate-stories -d "Feature X"
 
+  # Parallel multi-epic sync
+  spectra --sync --parallel -f MULTI_EPIC.md
+
+  # Parallel sync with 8 workers
+  spectra --sync --parallel --workers 8 -f MULTI_EPIC.md
+
+  # Parallel sync with fail-fast
+  spectra --sync --parallel --fail-fast -f MULTI_EPIC.md
+
   # Show status dashboard (static)
   spectra --dashboard -f EPIC.md --epic PROJ-123
 
@@ -1854,6 +1863,23 @@ Environment Variables:
         type=str,
         metavar="PATH",
         help="Export default prompts to file for customization",
+    )
+    new_commands.add_argument(
+        "--parallel",
+        action="store_true",
+        help="Enable parallel sync for multiple epics",
+    )
+    new_commands.add_argument(
+        "--workers",
+        type=int,
+        default=4,
+        metavar="N",
+        help="Number of parallel workers for multi-epic sync (default: 4)",
+    )
+    new_commands.add_argument(
+        "--fail-fast",
+        action="store_true",
+        help="Stop parallel sync on first failure",
     )
     new_commands.add_argument(
         "--archive",

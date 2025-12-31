@@ -139,6 +139,14 @@ from .multi_tracker import (
     create_multi_tracker_orchestrator,
 )
 from .orchestrator import FailedOperation, SyncOrchestrator, SyncResult
+from .parallel import (
+    EpicProgress,
+    ParallelStrategy,
+    ParallelSyncConfig,
+    ParallelSyncOrchestrator,
+    ParallelSyncResult,
+    create_parallel_orchestrator,
+)
 from .progress import (
     ProgressCallback,
     ProgressReporter,
@@ -224,17 +232,7 @@ from .worklog_sync import (
 )
 
 
-# Parallel operations (optional, requires aiohttp)
-try:
-    from .parallel import (
-        ParallelSyncOperations,
-        ParallelSyncResult,
-        is_parallel_available,
-    )
-
-    PARALLEL_AVAILABLE = True
-except ImportError:
-    PARALLEL_AVAILABLE = False
+PARALLEL_AVAILABLE = True
 
 __all__ = [
     "PARALLEL_AVAILABLE",
@@ -279,6 +277,7 @@ __all__ = [
     "EpicHierarchy",
     "EpicLevel",
     "EpicNode",
+    "EpicProgress",
     "EpicSyncResult",
     "EpicTrackerInfo",
     "FailedOperation",
@@ -315,6 +314,10 @@ __all__ = [
     "MultiTrackerSyncOrchestrator",
     "MultiTrackerSyncResult",
     "OperationRecord",
+    "ParallelStrategy",
+    "ParallelSyncConfig",
+    "ParallelSyncOrchestrator",
+    "ParallelSyncResult",
     "ProgressCallback",
     "ProgressReporter",
     "ProgressState",
@@ -396,6 +399,7 @@ __all__ = [
     "create_delta_tracker",
     "create_field_mapper_from_config",
     "create_multi_tracker_orchestrator",
+    "create_parallel_orchestrator",
     "create_pre_sync_backup",
     "create_progress_reporter",
     "create_snapshot_from_sync",
