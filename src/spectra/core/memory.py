@@ -840,11 +840,13 @@ def make_slots_dataclass(cls: type[T]) -> type[T]:
         ...     x: float
         ...     y: float
     """
-    if not hasattr(cls, "__dataclass_fields__"):
+    from dataclasses import fields, is_dataclass
+
+    if not is_dataclass(cls):
         raise TypeError(f"{cls.__name__} must be a dataclass")
 
-    # Get field names
-    field_names = tuple(cls.__dataclass_fields__.keys())
+    # Get field names from dataclass fields function
+    field_names = tuple(f.name for f in fields(cls))
 
     # Create new class with slots
     class SlotClass(cls):  # type: ignore[valid-type,misc]

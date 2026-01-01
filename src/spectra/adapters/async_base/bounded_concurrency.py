@@ -255,7 +255,7 @@ class ResourceLock:
     are serialized to maintain consistency.
     """
 
-    def __init__(self):
+    def __init__(self) -> None:
         """Initialize the resource lock manager."""
         self._locks: dict[str, threading.Lock] = {}
         self._async_locks: dict[str, asyncio.Lock] = {}
@@ -664,7 +664,7 @@ class OrderedTaskQueue(Generic[T]):
     in submission order (FIFO).
     """
 
-    def __init__(self):
+    def __init__(self) -> None:
         """Initialize the ordered task queue."""
         self._heap: list[PrioritizedTask] = []
         self._sequence = 0

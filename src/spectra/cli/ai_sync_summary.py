@@ -4,11 +4,18 @@ AI Sync Summary CLI - Command handler for generating sync summaries.
 Generates human-readable summaries of sync operations using LLM.
 """
 
+from __future__ import annotations
+
 import json
 from pathlib import Path
+from typing import TYPE_CHECKING
 
 from .exit_codes import ExitCode
 from .output import Colors, Console, Symbols
+
+
+if TYPE_CHECKING:
+    from spectra.application.ai_sync_summary import SyncOperation
 
 
 def run_ai_sync_summary(
@@ -122,7 +129,7 @@ def run_ai_sync_summary(
     return ExitCode.SUCCESS
 
 
-def _parse_sync_log(data: dict) -> "SyncOperation":
+def _parse_sync_log(data: dict) -> SyncOperation:
     """Parse sync log data into SyncOperation."""
     from datetime import datetime
 

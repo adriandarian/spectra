@@ -382,18 +382,27 @@ class TestParallelSyncOperations:
 
     def test_parallel_sync_result_properties(self):
         """Test ParallelSyncResult properties."""
-        from spectra.application.sync.parallel import ParallelSyncResult
-
-        result = ParallelSyncResult(
-            operation="test",
-            total=10,
-            successful=7,
-            failed=3,
+        from spectra.application.sync.parallel import (
+            EpicProgress,
+            ParallelSyncConfig,
+            ParallelSyncResult,
         )
 
-        assert result.success_rate == 0.7
-        assert not result.all_succeeded
-        assert "7/10" in str(result)
+        progress = [
+            EpicProgress(epic_key="PROJ-1", epic_title="Epic 1", status="completed"),
+            EpicProgress(epic_key="PROJ-2", epic_title="Epic 2", status="failed"),
+        ]
+        result = ParallelSyncResult(
+            parallel_config=ParallelSyncConfig(max_workers=4),
+            workers_used=4,
+            peak_concurrency=2,
+            epic_progress=progress,
+        )
+
+        assert result.workers_used == 4
+        assert result.peak_concurrency == 2
+        assert len(result.epic_progress) == 2
+        assert "Workers: 4" in result.summary()
 
 
 class TestRateLimiterIntegration:

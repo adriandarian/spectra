@@ -3,6 +3,8 @@
 import pytest
 
 from spectra.application.sync.parallel import (
+    EpicProgress,
+    ParallelSyncConfig,
     ParallelSyncResult,
     is_parallel_available,
     run_async,
@@ -14,67 +16,47 @@ class TestParallelSyncResult:
 
     def test_default_values(self) -> None:
         """Test default values."""
-        result = ParallelSyncResult(operation="test")
+        result = ParallelSyncResult()
 
-        assert result.operation == "test"
-        assert result.total == 0
-        assert result.successful == 0
-        assert result.failed == 0
-        assert result.results == []
-        assert result.errors == []
+        assert result.workers_used == 0
+        assert result.peak_concurrency == 0
+        assert result.epic_progress == []
 
     def test_with_data(self) -> None:
         """Test with data."""
+        progress = [
+            EpicProgress(epic_key="PROJ-1", epic_title="Epic 1", status="completed"),
+            EpicProgress(epic_key="PROJ-2", epic_title="Epic 2", status="completed"),
+        ]
         result = ParallelSyncResult(
-            operation="fetch_issues",
-            total=10,
-            successful=8,
-            failed=2,
-            results=[{"key": "PROJ-1"}, {"key": "PROJ-2"}],
-            errors=[("PROJ-3", "Not found"), ("PROJ-4", "Timeout")],
+            workers_used=4,
+            peak_concurrency=2,
+            epic_progress=progress,
         )
 
-        assert result.total == 10
-        assert result.successful == 8
-        assert result.failed == 2
-        assert len(result.results) == 2
-        assert len(result.errors) == 2
+        assert result.workers_used == 4
+        assert result.peak_concurrency == 2
+        assert len(result.epic_progress) == 2
 
-    def test_success_rate(self) -> None:
-        """Test success rate calculation."""
-        result = ParallelSyncResult(operation="test", total=10, successful=8, failed=2)
+    def test_parallel_config(self) -> None:
+        """Test parallel config is included."""
+        config = ParallelSyncConfig(max_workers=8, fail_fast=True)
+        result = ParallelSyncResult(parallel_config=config)
 
-        assert result.success_rate == 0.8
+        assert result.parallel_config.max_workers == 8
+        assert result.parallel_config.fail_fast is True
 
-    def test_success_rate_no_total(self) -> None:
-        """Test success rate with zero total."""
-        result = ParallelSyncResult(operation="test", total=0)
-
-        assert result.success_rate == 1.0
-
-    def test_all_succeeded_true(self) -> None:
-        """Test all_succeeded when no failures."""
-        result = ParallelSyncResult(operation="test", total=5, successful=5, failed=0)
-
-        assert result.all_succeeded is True
-
-    def test_all_succeeded_false(self) -> None:
-        """Test all_succeeded when has failures."""
-        result = ParallelSyncResult(operation="test", total=5, successful=4, failed=1)
-
-        assert result.all_succeeded is False
-
-    def test_str_representation(self) -> None:
-        """Test string representation."""
+    def test_summary(self) -> None:
+        """Test summary method."""
         result = ParallelSyncResult(
-            operation="update_descriptions", total=10, successful=8, failed=2
+            workers_used=4,
+            peak_concurrency=2,
         )
 
-        result_str = str(result)
+        summary = result.summary()
 
-        assert "update_descriptions" in result_str
-        assert "8/10" in result_str
-        assert "2 failed" in result_str
+        assert "Workers: 4" in summary
+        assert "Peak concurrency: 2" in summary
 
 
 class TestRunAsync:

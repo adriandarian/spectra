@@ -838,7 +838,7 @@ class TestYouTrackAttachments:
 
         result = adapter.download_attachment("PROJ-123", "att1", output_path)
 
-        assert result == output_path
+        assert result is True
         mock_client.download_attachment.assert_called_once()
 
 

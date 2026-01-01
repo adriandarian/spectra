@@ -1623,41 +1623,6 @@ Environment Variables:
         help="Apply suggested labels to the markdown file",
     )
     new_commands.add_argument(
-        "--split",
-        action="store_true",
-        help="AI-powered analysis to suggest splitting large stories",
-    )
-    new_commands.add_argument(
-        "--split-story",
-        type=str,
-        metavar="IDS",
-        help="Comma-separated story IDs to analyze for splitting (default: all)",
-    )
-    new_commands.add_argument(
-        "--max-points",
-        type=int,
-        default=8,
-        metavar="N",
-        help="Maximum story points before suggesting split (default: 8)",
-    )
-    new_commands.add_argument(
-        "--max-ac",
-        type=int,
-        default=8,
-        metavar="N",
-        help="Maximum acceptance criteria before suggesting split (default: 8)",
-    )
-    new_commands.add_argument(
-        "--no-vertical-slices",
-        action="store_true",
-        help="Don't prefer vertical slices when splitting",
-    )
-    new_commands.add_argument(
-        "--no-mvp-first",
-        action="store_true",
-        help="Don't suggest MVP version first",
-    )
-    new_commands.add_argument(
         "--generate-markdown",
         action="store_true",
         help="Generate markdown for suggested split stories",
@@ -1682,20 +1647,6 @@ Environment Variables:
         "--include-security",
         action="store_true",
         help="Include security-related acceptance criteria",
-    )
-    new_commands.add_argument(
-        "--min-ac",
-        type=int,
-        default=3,
-        metavar="N",
-        help="Minimum acceptance criteria per story (default: 3)",
-    )
-    new_commands.add_argument(
-        "--max-ac",
-        type=int,
-        default=8,
-        metavar="N",
-        help="Maximum acceptance criteria per story (default: 8)",
     )
     new_commands.add_argument(
         "--apply-ac",
@@ -1889,11 +1840,6 @@ Environment Variables:
         default=4,
         metavar="N",
         help="Number of parallel workers for multi-epic/file sync (default: 4)",
-    )
-    new_commands.add_argument(
-        "--fail-fast",
-        action="store_true",
-        help="Stop parallel sync on first failure",
     )
     new_commands.add_argument(
         "--file-timeout",
@@ -2884,13 +2830,13 @@ def run_parallel_files(args) -> int:
     config = config_provider.load()
     config.sync.dry_run = dry_run
 
+    # Create tracker config with project key override
+    tracker_config = config.tracker
+    if args.epic:
+        tracker_config.project_key = args.epic.split("-")[0]
+
     # Create tracker
-    tracker = JiraAdapter(
-        url=config.tracker.url,
-        email=config.tracker.email,
-        api_token=config.tracker.api_token,
-        project_key=args.epic.split("-")[0] if args.epic else None,
-    )
+    tracker = JiraAdapter(config=tracker_config, dry_run=dry_run)
 
     # Test connection
     console.section("Connecting to Jira")

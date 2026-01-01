@@ -739,32 +739,32 @@ class YouTrackAdapter(IssueTrackerPort):
         self,
         issue_key: str,
         attachment_id: str,
-        output_path: str,
-    ) -> str | None:
+        download_path: str,
+    ) -> bool:
         """
         Download an attachment to a local file.
 
         Args:
             issue_key: Issue key (e.g., "PROJ-123")
             attachment_id: Attachment ID to download
-            output_path: Path to save the file
+            download_path: Path to save the file
 
         Returns:
-            Path to downloaded file, or None on failure
+            True if download was successful
         """
         if self._dry_run:
             self.logger.info(
-                f"[DRY-RUN] Would download attachment {attachment_id} to {output_path}"
+                f"[DRY-RUN] Would download attachment {attachment_id} to {download_path}"
             )
-            return output_path
+            return True
 
         try:
-            result = self._client.download_attachment(issue_key, attachment_id, output_path)
+            result = self._client.download_attachment(issue_key, attachment_id, download_path)
             self.logger.info(f"Downloaded attachment {attachment_id} to {result}")
-            return result
+            return result is not None
         except (NotFoundError, IssueTrackerError) as e:
             self.logger.error(f"Failed to download attachment: {e}")
-            return None
+            return False
 
     # -------------------------------------------------------------------------
     # Workflow & Commands Operations
@@ -1317,22 +1317,45 @@ class YouTrackAdapter(IssueTrackerPort):
             "spent_display": settings.get("spentTime", {}).get("presentation"),
         }
 
-    def set_time_estimate(self, issue_key: str, estimate_minutes: int | None) -> bool:
+    def set_time_estimate(
+        self,
+        issue_key: str,
+        original_estimate: str | int | None = None,
+        remaining_estimate: str | int | None = None,
+    ) -> bool:
         """
         Set time estimate for an issue.
 
         Args:
             issue_key: Issue key
-            estimate_minutes: Estimate in minutes, or None to clear
+            original_estimate: Estimate in minutes, or string format, or None to clear
+            remaining_estimate: Remaining estimate (not used in YouTrack)
 
         Returns:
             True if successful
         """
         if self._dry_run:
-            self.logger.info(f"[DRY-RUN] Would set estimate for {issue_key} to {estimate_minutes}m")
+            self.logger.info(f"[DRY-RUN] Would set estimate for {issue_key} to {original_estimate}")
             return True
 
         try:
+            # Convert string to minutes if needed
+            estimate_minutes: int | None = None
+            if original_estimate is not None:
+                if isinstance(original_estimate, int):
+                    estimate_minutes = original_estimate
+                elif isinstance(original_estimate, str):
+                    # Parse string format like "2h" or "30m"
+                    import re
+
+                    match = re.match(r"(\d+)([hm])?", original_estimate.lower())
+                    if match:
+                        value = int(match.group(1))
+                        unit = match.group(2) or "m"
+                        estimate_minutes = value * 60 if unit == "h" else value
+                    else:
+                        estimate_minutes = int(original_estimate)
+
             self._client.set_time_estimate(issue_key, estimate_minutes)
             self.logger.info(f"Set estimate for {issue_key} to {estimate_minutes}m")
             return True

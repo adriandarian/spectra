@@ -904,6 +904,9 @@ class ClickUpAdapter(IssueTrackerPort):
             links = []
             for dep in dependencies:
                 dep_task_id = dep.get("task_id") or dep.get("depends_on")
+                if not dep_task_id:
+                    continue  # Skip if no target task ID
+
                 dep_type = dep.get("type", "waiting_on")
 
                 # Map ClickUp dependency types to LinkType
@@ -917,7 +920,7 @@ class ClickUpAdapter(IssueTrackerPort):
                 links.append(
                     IssueLink(
                         link_type=link_type,
-                        target_key=dep_task_id,
+                        target_key=str(dep_task_id),
                         source_key=issue_key,
                     )
                 )

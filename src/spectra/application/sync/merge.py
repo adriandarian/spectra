@@ -500,7 +500,7 @@ class ThreeWayMerger:
         all_changes.sort(key=lambda x: x[0], reverse=True)
 
         # Track which ranges we've modified
-        modified_ranges = []
+        modified_ranges: list[tuple[int, int]] = []
         for i1, i2, new_content, _source in all_changes:
             # Check if this range overlaps with already modified range
             overlaps = False

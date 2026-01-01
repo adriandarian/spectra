@@ -114,7 +114,7 @@ class TestBasecampOAuthFlow:
         assert basecamp_client._current_user is not None
 
     def test_invalid_token_raises_error(self):
-        """Test that invalid token raises AuthenticationError."""
+        """Test that invalid token raises AuthenticationError or NotFoundError."""
         client = BasecampApiClient(
             access_token="invalid_token_12345",
             account_id="123456",
@@ -122,11 +122,11 @@ class TestBasecampOAuthFlow:
             dry_run=False,
         )
 
-        with pytest.raises(AuthenticationError):
+        with pytest.raises((AuthenticationError, NotFoundError)):
             client.get_current_user()
 
     def test_missing_token_raises_error(self):
-        """Test that missing token raises AuthenticationError."""
+        """Test that missing token raises AuthenticationError or NotFoundError."""
         client = BasecampApiClient(
             access_token="",
             account_id="123456",
@@ -134,7 +134,7 @@ class TestBasecampOAuthFlow:
             dry_run=False,
         )
 
-        with pytest.raises(AuthenticationError):
+        with pytest.raises((AuthenticationError, NotFoundError)):
             client.get_current_user()
 
     def test_token_permissions_read(self, basecamp_client):

@@ -365,7 +365,7 @@ class HierarchyExtractor:
 
     CHILD_SECTION_PATTERN = r"#{2,4}\s*(?:Child(?:ren)?|Sub-?Epics?)\s*\n([\s\S]*?)(?=#{2,4}|\Z)"
 
-    def __init__(self):
+    def __init__(self) -> None:
         """Initialize the extractor."""
         self.logger = logging.getLogger("HierarchyExtractor")
         import re
@@ -485,8 +485,8 @@ class HierarchySyncer:
 
     def _validate_hierarchy(self, hierarchy: EpicHierarchy) -> dict[str, list[str]]:
         """Validate the hierarchy structure."""
-        orphaned = []
-        invalid = []
+        orphaned: list[str] = []
+        invalid: list[str] = []
 
         for node in hierarchy.get_all_nodes():
             if node.parent_id:

@@ -570,7 +570,7 @@ class AIStoryRefiner:
         # Parse the markdown file
         try:
             parser = MarkdownParser()
-            epic = parser.parse(Path(markdown_path))
+            epic = parser.parse_epic(Path(markdown_path))
         except Exception as e:
             result.success = False
             result.error = f"Failed to parse markdown file: {e}"

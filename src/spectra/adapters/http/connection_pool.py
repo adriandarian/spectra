@@ -169,7 +169,15 @@ class TunedHTTPAdapter(HTTPAdapter):
             pool_maxsize=self.pool_config.pool_maxsize,
         )
 
-    def send(self, request, stream=False, timeout=None, verify=True, cert=None, proxies=None):
+    def send(
+        self,
+        request: requests.PreparedRequest,
+        stream: bool = False,
+        timeout: float | tuple[float, float] | None = None,
+        verify: bool | str = True,
+        cert: str | tuple[str, str] | None = None,
+        proxies: dict[str, str] | None = None,
+    ) -> requests.Response:
         """Send request with statistics tracking."""
         start_time = time.time()
 
@@ -252,7 +260,7 @@ class ConnectionPoolManager:
                 cls._instance._initialized = False
             return cls._instance
 
-    def __init__(self):
+    def __init__(self) -> None:
         """Initialize the connection pool manager."""
         if getattr(self, "_initialized", False):
             return

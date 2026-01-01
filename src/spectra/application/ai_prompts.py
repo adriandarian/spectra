@@ -16,6 +16,7 @@ from dataclasses import dataclass, field
 from enum import Enum
 from pathlib import Path
 from string import Template
+from typing import Any
 
 
 logger = logging.getLogger(__name__)
@@ -72,7 +73,7 @@ class PromptTemplate:
     author: str = ""
     tags: list[str] = field(default_factory=list)
 
-    def render(self, **kwargs) -> tuple[str, str]:
+    def render(self, **kwargs: Any) -> tuple[str, str]:
         """
         Render the prompt with provided variables.
 
@@ -679,7 +680,7 @@ def get_custom_prompt(
 def render_prompt(
     prompt_type: PromptType,
     name: str | None = None,
-    **kwargs,
+    **kwargs: Any,
 ) -> tuple[str, str]:
     """
     Render a prompt with variables.

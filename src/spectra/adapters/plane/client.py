@@ -1179,13 +1179,13 @@ class PlaneApiClient:
         """
         # Get attachment info to find the download URL
         attachments = self.get_issue_attachments(issue_id)
-        attachment_url = None
-        attachment_name = None
+        attachment_url: str | None = None
+        attachment_name: str = "attachment"
 
         for att in attachments:
             if att.get("id") == attachment_id:
                 attachment_url = att.get("url") or att.get("download_url")
-                attachment_name = att.get("name", "attachment")
+                attachment_name = att.get("name", "attachment") or "attachment"
                 break
 
         if not attachment_url:

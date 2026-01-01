@@ -480,3 +480,54 @@ def create_parallel_orchestrator(
         config=config,
         parallel_config=parallel_config,
     )
+
+
+# =============================================================================
+# Helper Functions
+# =============================================================================
+
+
+def is_parallel_available() -> bool:
+    """
+    Check if parallel processing is available.
+
+    Returns:
+        True if parallel processing can be used.
+    """
+    try:
+        import asyncio
+
+        # Check if we can create an event loop
+        try:
+            asyncio.get_running_loop()
+            return True
+        except RuntimeError:
+            # No running loop, but asyncio is available
+            return True
+    except ImportError:
+        return False
+
+
+def run_async(coro: Any) -> Any:
+    """
+    Run an async coroutine synchronously.
+
+    Args:
+        coro: Coroutine to run.
+
+    Returns:
+        Result of the coroutine.
+    """
+    import asyncio
+
+    try:
+        asyncio.get_running_loop()
+        # Already in async context, run in thread pool
+        import concurrent.futures
+
+        with concurrent.futures.ThreadPoolExecutor() as pool:
+            future = pool.submit(asyncio.run, coro)
+            return future.result()
+    except RuntimeError:
+        # No running loop, create one
+        return asyncio.run(coro)

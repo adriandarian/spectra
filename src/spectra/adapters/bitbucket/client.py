@@ -166,7 +166,7 @@ class BitbucketApiClient:
             try:
                 # Extract base URL without /rest/api/2.0
                 server_base = self.base_url.replace("/rest/api/2.0", "").replace("/rest/api", "")
-                if BitbucketServerClient:
+                if BitbucketServerClient is not None:
                     self._server_client = BitbucketServerClient(
                         url=server_base,
                         username=username,

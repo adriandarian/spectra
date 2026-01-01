@@ -315,7 +315,7 @@ class DependencyExtractor:
         r"#{2,4}\s*(?:Dependencies|Relationships|Links|Blockers)\s*\n([\s\S]*?)(?=#{2,4}|\Z)",
     ]
 
-    def __init__(self):
+    def __init__(self) -> None:
         """Initialize the extractor."""
         self.logger = logging.getLogger("DependencyExtractor")
 

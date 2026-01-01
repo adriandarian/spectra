@@ -559,7 +559,7 @@ class TransactionalSync:
         self.manager.begin(self.epic_key)
         return self
 
-    def __exit__(self, exc_type: Any, exc_val: Any, exc_tb: Any) -> bool:
+    def __exit__(self, exc_type: Any, exc_val: Any, exc_tb: Any) -> None:
         """End the transaction (commit or rollback)."""
         if exc_type is not None:
             # Exception occurred, rollback
@@ -569,11 +569,11 @@ class TransactionalSync:
             self.result.rollback_performed = True
             self.result.rollback_result = rollback_result
             self.result.errors.append(str(exc_val))
-            return False  # Re-raise the exception
+            return  # Re-raise the exception
 
         # No exception, commit
         self.result = self.manager.commit()
-        return False
+        return
 
     def execute_update(
         self,

@@ -107,6 +107,8 @@ class GitLabAdapter(IssueTrackerPort):
         self.status_labels = status_labels or DEFAULT_STATUS_LABELS
 
         # API client - choose between SDK and custom client
+        # Type is a union since both clients implement the same interface
+        self._client: GitLabApiClient | GitLabSdkClient  # type: ignore[valid-type]
         if use_sdk:
             if not GITLAB_SDK_AVAILABLE:
                 raise ImportError(
