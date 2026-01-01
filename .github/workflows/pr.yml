@@ -76,17 +76,17 @@ jobs:
           subjectPattern: ^(?![A-Z]).+$
           subjectPatternError: |
             The subject "{subject}" doesn't match the required format.
-            
+
             ❌ Your PR title: "{title}"
-            
+
             ✅ Expected format: <type>(<scope>): <lowercase description>
-            
+
             Examples:
               • feat: add new sync command
               • fix(cli): resolve argument parsing issue
               • docs(readme): update installation instructions
               • ci: improve test coverage
-            
+
             Valid types: feat, fix, docs, style, refactor, perf, test, build, ci, chore, revert, deps
             Valid scopes (optional): core, adapters, cli, application, plugins, docs, tests, ci, deps, vscode, github-action, config
 
@@ -145,11 +145,11 @@ jobs:
       - run: pip install -e ".[dev,async]" pytest-timeout
 
       # Run tests with coverage only on ubuntu + primary Python
+      # Heavy tests (slow, stress, chaos, e2e, benchmark) are skipped via pyproject.toml
       - name: Run Tests with Coverage
         if: matrix.os == 'ubuntu-latest' && matrix.python-version == '3.11'
         run: |
           pytest tests/ \
-            --ignore=tests/benchmarks/ \
             --ignore=tests/integration/ \
             --ignore=tests/property/ \
             --timeout=60 \
@@ -159,9 +159,10 @@ jobs:
             --cov-fail-under=65
 
       # Run tests without coverage on other matrix combinations
+      # Heavy tests (slow, stress, chaos, e2e, benchmark) are skipped via pyproject.toml
       - name: Run Tests
         if: matrix.os != 'ubuntu-latest' || matrix.python-version != '3.11'
-        run: pytest tests/ -v --tb=short --ignore=tests/benchmarks/ --ignore=tests/integration/ --ignore=tests/property/ --timeout=60
+        run: pytest tests/ -v --tb=short --ignore=tests/integration/ --ignore=tests/property/ --timeout=60
 
       - name: Upload Coverage
         if: matrix.os == 'ubuntu-latest' && matrix.python-version == '3.11'
@@ -327,18 +328,18 @@ jobs:
           script: |
             const pr = context.payload.pull_request;
             const author = pr.user.login;
-            
+
             // Skip if author is a bot or PR already has assignees
             if (author.includes('[bot]')) {
               console.log('Skipping: author is a bot');
               return;
             }
-            
+
             if (pr.assignees && pr.assignees.length > 0) {
               console.log('Skipping: PR already has assignees:', pr.assignees.map(a => a.login));
               return;
             }
-            
+
             console.log(`Assigning ${author} to PR #${pr.number}`);
             await github.rest.issues.addAssignees({
               ...context.repo,

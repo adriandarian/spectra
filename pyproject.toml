@@ -137,16 +137,23 @@ addopts = [
     "-q",
     "--strict-markers",
     "--strict-config",
+    # Skip slow/heavy tests by default - run explicitly with -m "slow" etc
+    "-m", "not (slow or stress or chaos or e2e or benchmark)",
 ]
 markers = [
-    "slow: marks tests as slow",
+    "slow: marks tests as slow (skipped by default, run with -m slow)",
     "integration: marks tests as integration tests",
-    "benchmark: marks test as a performance benchmark",
-    "stress: marks tests as stress/load tests",
-    "chaos: marks tests as chaos engineering tests",
-    "e2e: marks tests as end-to-end workflow tests",
+    "benchmark: marks test as a performance benchmark (skipped by default)",
+    "stress: marks tests as stress/load tests (skipped by default)",
+    "chaos: marks tests as chaos engineering tests (skipped by default)",
+    "e2e: marks tests as end-to-end workflow tests (skipped by default)",
 ]
-# Benchmarks disabled by default; run with: pytest tests/benchmarks/ --benchmark-only
+# Heavy tests skipped by default. Run specific categories:
+#   pytest -m slow          # Run slow tests
+#   pytest -m stress        # Run stress tests
+#   pytest -m chaos         # Run chaos tests
+#   pytest -m e2e           # Run e2e tests
+#   pytest -m benchmark --benchmark-enable  # Run benchmarks
 
 [tool.coverage.run]
 source = ["src/spectra"]

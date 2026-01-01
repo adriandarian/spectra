@@ -6,7 +6,12 @@ Tests performance of domain operations including:
 - Title matching and normalization
 - Serialization
 - Epic traversal
+
+Run with:
+    pytest tests/benchmarks/ -v -m benchmark --benchmark-enable
 """
+
+import pytest
 
 from spectra.core.domain import (
     AcceptanceCriteria,
@@ -17,6 +22,10 @@ from spectra.core.domain import (
     Subtask,
     UserStory,
 )
+
+
+# Mark all tests in this module as benchmark tests (skipped by default)
+pytestmark = pytest.mark.benchmark
 
 
 # =============================================================================

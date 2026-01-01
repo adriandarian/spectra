@@ -153,13 +153,24 @@ class MarkdownParser(DocumentParserPort):
 
     @property
     def name(self) -> str:
+        """Return the parser name for display purposes."""
         return "Markdown"
 
     @property
     def supported_extensions(self) -> list[str]:
+        """Return list of file extensions this parser can handle."""
         return [".md", ".markdown"]
 
     def can_parse(self, source: str | Path) -> bool:
+        """
+        Check if this parser can handle the given source.
+
+        Args:
+            source: File path or content string to check.
+
+        Returns:
+            True if the source is a markdown file or contains story patterns.
+        """
         if isinstance(source, Path):
             return source.suffix.lower() in self.supported_extensions
 
@@ -213,6 +224,17 @@ class MarkdownParser(DocumentParserPort):
         return self.FORMAT_TABLE
 
     def parse_stories(self, source: str | Path) -> list[UserStory]:
+        """
+        Parse user stories from a markdown source.
+
+        Supports both single files and directories containing multiple story files.
+
+        Args:
+            source: File path, directory path, or markdown content string.
+
+        Returns:
+            List of parsed UserStory objects.
+        """
         # Handle directory input - parse all US-*.md files
         source_path = Path(source) if isinstance(source, str) else source
         if isinstance(source_path, Path) and source_path.is_dir():
@@ -339,6 +361,22 @@ class MarkdownParser(DocumentParserPort):
         return all_stories
 
     def parse_epic(self, source: str | Path) -> Epic | None:
+        """
+        Parse a single epic from markdown source.
+
+        Extracts epic title from the first H1 heading and parses all user stories
+        within. If the source contains multiple epics, returns only the first one.
+
+        Args:
+            source: File path or markdown content string.
+
+        Returns:
+            Epic object if stories are found, None otherwise.
+
+        Example:
+            >>> parser = MarkdownParser()
+            >>> epic = parser.parse_epic("# PROJ-100 My Epic\\n### STORY-001...")
+        """
         content = self._get_content(source)
 
         # Check if this is a multi-epic file
@@ -574,6 +612,25 @@ class MarkdownParser(DocumentParserPort):
         )
 
     def validate(self, source: str | Path) -> list[str]:
+        """
+        Validate markdown source for structural correctness.
+
+        Checks for:
+        - At least one user story present
+        - Required fields (Story Points, description with "As a")
+
+        Args:
+            source: File path or markdown content string.
+
+        Returns:
+            List of validation error messages. Empty list if valid.
+
+        Example:
+            >>> parser = MarkdownParser()
+            >>> errors = parser.validate("# Empty file")
+            >>> len(errors) > 0
+            True
+        """
         content = self._get_content(source)
         errors = []
 
@@ -615,7 +672,22 @@ class MarkdownParser(DocumentParserPort):
     # -------------------------------------------------------------------------
 
     def _get_content(self, source: str | Path) -> str:
-        """Get content from file path or string."""
+        """
+        Get content from file path or raw string.
+
+        Automatically detects whether source is a file path or raw content.
+        If source is a Path or a short string without newlines that exists
+        as a file, reads and returns file contents.
+
+        Args:
+            source: File path (Path or str) or raw markdown content.
+
+        Returns:
+            Raw markdown content string.
+
+        Raises:
+            OSError: If file path exists but cannot be read.
+        """
         if isinstance(source, Path):
             return source.read_text(encoding="utf-8")
         if isinstance(source, str):
@@ -632,7 +704,18 @@ class MarkdownParser(DocumentParserPort):
         return source
 
     def _parse_all_stories(self, content: str) -> list[UserStory]:
-        """Parse all stories from content."""
+        """
+        Parse all user stories from markdown content.
+
+        Detects the markdown format (table, inline, standalone) and uses
+        the appropriate parsing strategy. Handles both H1 and H3 story headers.
+
+        Args:
+            content: Raw markdown content containing story definitions.
+
+        Returns:
+            List of parsed UserStory objects. May be empty if no stories found.
+        """
         stories = []
 
         # Detect format to choose appropriate pattern
@@ -689,7 +772,20 @@ class MarkdownParser(DocumentParserPort):
         return stories
 
     def _parse_story(self, story_id: str, title: str, content: str) -> UserStory | None:
-        """Parse a single story from content block."""
+        """
+        Parse a single user story from a content block.
+
+        Extracts all story fields including metadata, acceptance criteria,
+        subtasks, commits, technical notes, links, comments, and sync info.
+
+        Args:
+            story_id: The story identifier (e.g., "US-001", "PROJ_123").
+            title: The story title from the header.
+            content: The markdown content block for this story.
+
+        Returns:
+            Fully populated UserStory object, or None if parsing fails.
+        """
         # Extract metadata
         story_points = self._extract_field(content, "Story Points", "0")
         priority = self._extract_field(content, "Priority", "Medium")
@@ -743,11 +839,22 @@ class MarkdownParser(DocumentParserPort):
 
     def _extract_field(self, content: str, field_name: str, default: str = "") -> str:
         """
-        Extract field value from markdown - supports table, inline, and blockquote formats.
+        Extract field value from markdown content.
 
-        Format A (Table): | **Field** | Value |
-        Format B (Inline): **Field**: Value
-        Format C (Blockquote): > **Field**: Value
+        Supports multiple formats:
+        - Table format: | **Field** | Value |
+        - Inline format: **Field**: Value
+        - Blockquote format: > **Field**: Value
+
+        Also handles field aliases (e.g., "Story Points" / "Points").
+
+        Args:
+            content: Markdown content to search.
+            field_name: Name of the field to extract.
+            default: Default value if field is not found.
+
+        Returns:
+            Extracted field value, or default if not found.
         """
         # Build list of field name variants to try
         field_variants = [field_name]
@@ -955,7 +1062,17 @@ class MarkdownParser(DocumentParserPort):
         return subtasks
 
     def _extract_commits(self, content: str) -> list[CommitRef]:
-        """Extract commits from table."""
+        """
+        Extract commit references from a "Related Commits" section.
+
+        Looks for a table with format: | `hash` | message |
+
+        Args:
+            content: Markdown content to search.
+
+        Returns:
+            List of CommitRef objects with hash and message.
+        """
         commits = []
 
         section = re.search(r"#### Related Commits\n([\s\S]*?)(?=####|\n---|\Z)", content)
@@ -974,7 +1091,17 @@ class MarkdownParser(DocumentParserPort):
         return commits
 
     def _extract_technical_notes(self, content: str) -> str:
-        """Extract technical notes section."""
+        """
+        Extract technical notes section content.
+
+        Looks for a "#### Technical Notes" section.
+
+        Args:
+            content: Markdown content to search.
+
+        Returns:
+            Technical notes text, or empty string if not found.
+        """
         section = re.search(r"#### Technical Notes\n([\s\S]*?)(?=####|\Z)", content)
 
         if section:

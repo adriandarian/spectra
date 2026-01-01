@@ -393,7 +393,7 @@ def test_jira_connection():
 ### Running Tests
 
 ```bash
-# Run all tests
+# Run all standard tests (heavy tests are skipped by default)
 pytest
 
 # Run with coverage
@@ -405,15 +405,54 @@ pytest tests/core/test_domain.py
 # Run specific test
 pytest tests/core/test_domain.py::TestUserStory::test_create_user_story_with_valid_data
 
-# Skip slow tests
-pytest -m "not slow"
-
-# Run only integration tests
-pytest -m integration
-
 # Verbose output
 pytest -v
 ```
+
+### Running Heavy/Specialized Tests
+
+By default, slow, stress, chaos, e2e, and benchmark tests are **skipped** to keep the test suite fast.
+To run these tests explicitly:
+
+```bash
+# Run slow tests (load testing, large data sets)
+pytest -m slow
+
+# Run stress tests (high load, resource limits)
+pytest -m stress
+
+# Run chaos tests (failure injection, resilience)
+pytest -m chaos
+
+# Run end-to-end workflow tests
+pytest -m e2e
+
+# Run performance benchmarks
+pytest -m benchmark --benchmark-enable
+
+# Run integration tests (mocked external services)
+pytest tests/integration/ -v
+
+# Run property-based tests (hypothesis)
+pytest tests/property/ -v
+
+# Run ALL tests including heavy ones
+pytest -m ""
+
+# Combine markers
+pytest -m "slow or stress"
+```
+
+### Test Categories
+
+| Marker | Description | Default |
+|--------|-------------|---------|
+| `slow` | Tests with large data or long runtime | Skipped |
+| `stress` | Load and stress tests | Skipped |
+| `chaos` | Chaos engineering / failure tests | Skipped |
+| `e2e` | End-to-end workflow tests | Skipped |
+| `benchmark` | Performance benchmarks | Skipped |
+| `integration` | Integration tests (mocked APIs) | Included |
 
 ### Coverage Requirements
 

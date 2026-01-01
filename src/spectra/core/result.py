@@ -344,58 +344,80 @@ class Ok(Result[T, Any]):
     """
     Success variant of Result.
 
-    Contains the success value.
+    Contains the success value. All operations that depend on the value
+    will use this value, while error-handling operations pass through unchanged.
+
+    Example:
+        >>> result = Ok(42)
+        >>> result.unwrap()  # 42
+        >>> result.map(lambda x: x * 2)  # Ok(84)
     """
 
     _value: T
 
     def is_ok(self) -> bool:
+        """Return True since this is the Ok variant."""
         return True
 
     def is_err(self) -> bool:
+        """Return False since this is the Ok variant."""
         return False
 
     def ok(self) -> T | None:
+        """Return the contained value."""
         return self._value
 
     def err(self) -> None:
-        return None
+        """Return None since this is the Ok variant."""
+        return
 
     def unwrap(self) -> T:
+        """Return the contained value."""
         return self._value
 
     def unwrap_err(self) -> Any:
+        """Raise ResultError since this is the Ok variant."""
         raise ResultError(f"Called unwrap_err on Ok: {self._value}")
 
     def unwrap_or(self, default: T) -> T:
+        """Return the contained value, ignoring the default."""
         return self._value
 
     def unwrap_or_else(self, f: Callable[[Any], T]) -> T:
+        """Return the contained value, ignoring the fallback function."""
         return self._value
 
     def expect(self, msg: str) -> T:
+        """Return the contained value, ignoring the error message."""
         return self._value
 
     def map(self, f: Callable[[T], U]) -> Result[U, Any]:
+        """Apply the function to the contained value and wrap in Ok."""
         return Ok(f(self._value))
 
     def map_err(self, f: Callable[[Any], F]) -> Result[T, F]:
+        """Return self unchanged since there's no error to map."""
         return cast(Result[T, F], self)
 
     def and_then(self, f: Callable[[T], Result[U, Any]]) -> Result[U, Any]:
+        """Apply the function to the contained value and return the result."""
         return f(self._value)
 
     def or_else(self, f: Callable[[Any], Result[T, F]]) -> Result[T, F]:
+        """Return self unchanged since there's no error to recover from."""
         return cast(Result[T, F], self)
 
     def inspect(self, f: Callable[[T], None]) -> Result[T, Any]:
+        """Call the function on the contained value for side effects."""
         f(self._value)
         return self
 
     def inspect_err(self, f: Callable[[Any], None]) -> Result[T, Any]:
+        """Return self unchanged since there's no error to inspect."""
         return self
 
     def __repr__(self) -> str:
+        """Return a string representation of the Ok result."""
         return f"Ok({self._value!r})"
 
     def __bool__(self) -> bool:
@@ -408,58 +430,80 @@ class Err(Result[Any, E]):
     """
     Error variant of Result.
 
-    Contains the error value.
+    Contains the error value. All operations that depend on success
+    will pass through unchanged, while error-handling operations use this error.
+
+    Example:
+        >>> result = Err("not found")
+        >>> result.unwrap_or("default")  # "default"
+        >>> result.map_err(lambda e: f"Error: {e}")  # Err("Error: not found")
     """
 
     _error: E
 
     def is_ok(self) -> bool:
+        """Return False since this is the Err variant."""
         return False
 
     def is_err(self) -> bool:
+        """Return True since this is the Err variant."""
         return True
 
     def ok(self) -> None:
-        return None
+        """Return None since this is the Err variant."""
+        return
 
     def err(self) -> E | None:
+        """Return the contained error."""
         return self._error
 
     def unwrap(self) -> Any:
+        """Raise ResultError with the contained error."""
         raise ResultError(f"Called unwrap on Err: {self._error}")
 
     def unwrap_err(self) -> E:
+        """Return the contained error."""
         return self._error
 
     def unwrap_or(self, default: Any) -> Any:
+        """Return the default value since this is an error."""
         return default
 
     def unwrap_or_else(self, f: Callable[[E], Any]) -> Any:
+        """Apply the fallback function to the error and return the result."""
         return f(self._error)
 
     def expect(self, msg: str) -> Any:
+        """Raise ResultError with the custom message and contained error."""
         raise ResultError(f"{msg}: {self._error}")
 
     def map(self, f: Callable[[Any], U]) -> Result[U, E]:
+        """Return self unchanged since there's no value to map."""
         return cast(Result[U, E], self)
 
     def map_err(self, f: Callable[[E], F]) -> Result[Any, F]:
+        """Apply the function to the contained error and wrap in Err."""
         return Err(f(self._error))
 
     def and_then(self, f: Callable[[Any], Result[U, E]]) -> Result[U, E]:
+        """Return self unchanged since there's no value to chain."""
         return cast(Result[U, E], self)
 
     def or_else(self, f: Callable[[E], Result[T, F]]) -> Result[T, F]:
+        """Apply the recovery function to the error and return the result."""
         return f(self._error)
 
     def inspect(self, f: Callable[[Any], None]) -> Result[Any, E]:
+        """Return self unchanged since there's no value to inspect."""
         return self
 
     def inspect_err(self, f: Callable[[E], None]) -> Result[Any, E]:
+        """Call the function on the contained error for side effects."""
         f(self._error)
         return self
 
     def __repr__(self) -> str:
+        """Return a string representation of the Err result."""
         return f"Err({self._error!r})"
 
     def __bool__(self) -> bool:

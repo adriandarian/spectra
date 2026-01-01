@@ -6,9 +6,18 @@ Tests performance of Result operations including:
 - Transformations (map, and_then)
 - Collection (collect, collect_all)
 - Unwrapping
+
+Run with:
+    pytest tests/benchmarks/ -v -m benchmark --benchmark-enable
 """
 
+import pytest
+
 from spectra.core.result import Err, Ok, Result
+
+
+# Mark all tests in this module as benchmark tests (skipped by default)
+pytestmark = pytest.mark.benchmark
 
 
 # =============================================================================

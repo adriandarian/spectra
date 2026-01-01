@@ -9,7 +9,7 @@ These tests verify system resilience under failure conditions:
 - Connection drops
 
 Run with:
-    pytest tests/chaos/ -v
+    pytest tests/chaos/ -v -m chaos
 """
 
 import asyncio
@@ -23,6 +23,10 @@ from spectra.core.ports.issue_tracker import (
     IssueData,
     IssueTrackerError,
 )
+
+
+# Mark all tests in this module as chaos tests (skipped by default)
+pytestmark = pytest.mark.chaos
 
 
 class NetworkFailureSimulator:

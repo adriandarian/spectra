@@ -39,7 +39,19 @@ ruff format src tests && ruff check src tests --fix && mypy src/spectra && pytes
 | Test | `pytest` |
 | Test + Coverage | `pytest --cov=spectra` |
 | Test Specific | `pytest tests/adapters/test_markdown_parser.py -v` |
+| Test Slow | `pytest -m slow` |
+| Test Chaos | `pytest -m chaos` |
+| Test E2E | `pytest -m e2e` |
+| Test Benchmark | `pytest -m benchmark --benchmark-enable` |
+| Test All (incl. heavy) | `pytest -m ""` |
 | Install Dev | `pip install -e ".[dev]"` |
+
+**Note:** Heavy tests (slow, stress, chaos, e2e, benchmark) are skipped by default.
+Use the specific marker commands above to run them.
+
+**⚠️ AI Agent Rule:** Do NOT automatically run heavy tests. After standard tests pass,
+ASK the user if they want to run heavy tests before executing them. Heavy tests can
+take significant time and resources.
 
 ## Code Standards
 

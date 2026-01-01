@@ -187,6 +187,7 @@ class AndSpecification(Specification[T]):
     right: Specification[T]
 
     def is_satisfied_by(self, candidate: T) -> bool:
+        """Return True if both left and right specs are satisfied."""
         return self.left.is_satisfied_by(candidate) and self.right.is_satisfied_by(candidate)
 
     def __repr__(self) -> str:
@@ -201,6 +202,7 @@ class OrSpecification(Specification[T]):
     right: Specification[T]
 
     def is_satisfied_by(self, candidate: T) -> bool:
+        """Return True if either left or right spec is satisfied."""
         return self.left.is_satisfied_by(candidate) or self.right.is_satisfied_by(candidate)
 
     def __repr__(self) -> str:
@@ -214,6 +216,7 @@ class NotSpecification(Specification[T]):
     spec: Specification[T]
 
     def is_satisfied_by(self, candidate: T) -> bool:
+        """Return True if the wrapped spec is NOT satisfied."""
         return not self.spec.is_satisfied_by(candidate)
 
     def __repr__(self) -> str:
@@ -241,6 +244,7 @@ class PredicateSpec(Specification[T]):
     name: str = "predicate"
 
     def is_satisfied_by(self, candidate: T) -> bool:
+        """Return the result of calling the predicate on the candidate."""
         return self.predicate(candidate)
 
     def __repr__(self) -> str:
@@ -252,6 +256,7 @@ class AlwaysTrue(Specification[T]):
     """Specification that always returns True."""
 
     def is_satisfied_by(self, candidate: T) -> bool:
+        """Always return True regardless of candidate."""
         return True
 
     def __repr__(self) -> str:
@@ -263,6 +268,7 @@ class AlwaysFalse(Specification[T]):
     """Specification that always returns False."""
 
     def is_satisfied_by(self, candidate: T) -> bool:
+        """Always return False regardless of candidate."""
         return False
 
     def __repr__(self) -> str:
@@ -282,6 +288,7 @@ class HasAttribute(Specification[T]):
     value: Any
 
     def is_satisfied_by(self, candidate: T) -> bool:
+        """Return True if the candidate's attribute equals the expected value."""
         actual = getattr(candidate, self.attribute, None)
         return bool(actual == self.value)
 
@@ -297,10 +304,12 @@ class AttributeIn(Specification[T]):
     values: frozenset[Any]
 
     def __init__(self, attribute: str, values: Iterable[Any]):
+        """Initialize with the attribute name and allowed values."""
         object.__setattr__(self, "attribute", attribute)
         object.__setattr__(self, "values", frozenset(values))
 
     def is_satisfied_by(self, candidate: T) -> bool:
+        """Return True if the candidate's attribute is in the allowed values."""
         actual = getattr(candidate, self.attribute, None)
         return bool(actual in self.values)
 
@@ -316,6 +325,7 @@ class AttributeMatches(Specification[T]):
     pattern: re.Pattern[str]
 
     def __init__(self, attribute: str, pattern: str | re.Pattern[str]):
+        """Initialize with the attribute name and regex pattern."""
         object.__setattr__(self, "attribute", attribute)
         if isinstance(pattern, str):
             object.__setattr__(self, "pattern", re.compile(pattern, re.IGNORECASE))
@@ -323,6 +333,7 @@ class AttributeMatches(Specification[T]):
             object.__setattr__(self, "pattern", pattern)
 
     def is_satisfied_by(self, candidate: T) -> bool:
+        """Return True if the candidate's attribute matches the regex pattern."""
         actual = getattr(candidate, self.attribute, None)
         if actual is None:
             return False
@@ -341,6 +352,7 @@ class AttributeContains(Specification[T]):
     case_sensitive: bool = False
 
     def is_satisfied_by(self, candidate: T) -> bool:
+        """Return True if the candidate's attribute contains the substring."""
         actual = getattr(candidate, self.attribute, None)
         if actual is None:
             return False
@@ -376,9 +388,11 @@ class StatusSpec(Specification[Any]):
     statuses: frozenset[str]
 
     def __init__(self, *statuses: str):
+        """Initialize with one or more allowed statuses."""
         object.__setattr__(self, "statuses", frozenset(s.lower() for s in statuses))
 
     def is_satisfied_by(self, candidate: Any) -> bool:
+        """Return True if the candidate's status is in the allowed statuses."""
         status = getattr(candidate, "status", None)
         if status is None:
             return False
@@ -403,9 +417,11 @@ class IssueTypeSpec(Specification[Any]):
     types: frozenset[str]
 
     def __init__(self, *types: str):
+        """Initialize with one or more allowed issue types."""
         object.__setattr__(self, "types", frozenset(t.lower() for t in types))
 
     def is_satisfied_by(self, candidate: Any) -> bool:
+        """Return True if the candidate's issue_type is in the allowed types."""
         issue_type = getattr(candidate, "issue_type", None)
         if issue_type is None:
             return False
@@ -420,6 +436,7 @@ class HasSubtasksSpec(Specification[Any]):
     """Specification for issues that have subtasks."""
 
     def is_satisfied_by(self, candidate: Any) -> bool:
+        """Return True if the candidate has one or more subtasks."""
         subtasks = getattr(candidate, "subtasks", None)
         if subtasks is None:
             return False
@@ -436,6 +453,7 @@ class AllSubtasksMatchSpec(Specification[Any]):
     subtask_spec: Specification[Any]
 
     def is_satisfied_by(self, candidate: Any) -> bool:
+        """Return True if all subtasks match the subtask spec (vacuously true if empty)."""
         subtasks = getattr(candidate, "subtasks", None)
         if not subtasks:
             return True  # Vacuously true for empty
@@ -452,6 +470,7 @@ class AnySubtaskMatchesSpec(Specification[Any]):
     subtask_spec: Specification[Any]
 
     def is_satisfied_by(self, candidate: Any) -> bool:
+        """Return True if any subtask matches the subtask spec."""
         subtasks = getattr(candidate, "subtasks", None)
         if not subtasks:
             return False
@@ -477,6 +496,7 @@ class TitleMatchesSpec(Specification[Any]):
     exact: bool = False
 
     def is_satisfied_by(self, candidate: Any) -> bool:
+        """Return True if the candidate's title matches the pattern."""
         title = getattr(candidate, "title", None) or getattr(candidate, "summary", None)
         if title is None:
             return False
@@ -510,6 +530,7 @@ class HasKeySpec(Specification[Any]):
     key: str
 
     def is_satisfied_by(self, candidate: Any) -> bool:
+        """Return True if the candidate's key matches (case-insensitive)."""
         candidate_key = getattr(candidate, "key", None)
         if candidate_key is None:
             return False
@@ -531,6 +552,7 @@ class KeyPrefixSpec(Specification[Any]):
     prefix: str
 
     def is_satisfied_by(self, candidate: Any) -> bool:
+        """Return True if the candidate's key starts with the prefix."""
         key = getattr(candidate, "key", None)
         if key is None:
             return False

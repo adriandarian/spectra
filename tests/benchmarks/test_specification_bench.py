@@ -5,7 +5,12 @@ Tests performance of specification operations including:
 - Evaluation (is_satisfied_by)
 - Composition (and, or, not)
 - Collection operations (filter, count, first)
+
+Run with:
+    pytest tests/benchmarks/ -v -m benchmark --benchmark-enable
 """
+
+import pytest
 
 from spectra.core.specification import (
     HasSubtasksSpec,
@@ -16,6 +21,10 @@ from spectra.core.specification import (
     all_of,
     any_of,
 )
+
+
+# Mark all tests in this module as benchmark tests (skipped by default)
+pytestmark = pytest.mark.benchmark
 
 
 # =============================================================================

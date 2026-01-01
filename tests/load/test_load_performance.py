@@ -5,10 +5,10 @@ Tests parser and sync performance with large datasets to ensure
 the system can handle real-world scale workloads.
 
 Run with:
-    pytest tests/load/ -v --benchmark-enable
+    pytest tests/load/ -v -m "slow or stress" --benchmark-enable
 
 For stress testing:
-    pytest tests/load/ -v -k stress --benchmark-enable
+    pytest tests/load/ -v -m stress --benchmark-enable
 """
 
 import random
@@ -23,6 +23,10 @@ from spectra.adapters.parsers.markdown import MarkdownParser
 from spectra.core.domain.entities import UserStory
 from spectra.core.domain.enums import Priority, Status
 from spectra.core.domain.value_objects import Description, StoryId
+
+
+# Mark all tests in this module as slow (skipped by default)
+pytestmark = pytest.mark.slow
 
 
 def generate_story_markdown(story_id: str, title: str, points: int = 5) -> str:

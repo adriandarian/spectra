@@ -5,7 +5,7 @@ These tests verify complete workflows from parsing through sync,
 testing the full integration of all components.
 
 Run with:
-    pytest tests/e2e/ -v
+    pytest tests/e2e/ -v -m e2e
 """
 
 import json
@@ -19,6 +19,10 @@ from spectra.adapters.parsers.markdown import MarkdownParser
 from spectra.core.domain.entities import Epic, UserStory
 from spectra.core.domain.enums import Priority, Status
 from spectra.core.domain.value_objects import Description, IssueKey, StoryId
+
+
+# Mark all tests in this module as e2e tests (skipped by default)
+pytestmark = pytest.mark.e2e
 
 
 class TestParseToEntityWorkflow:
