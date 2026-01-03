@@ -20,6 +20,7 @@ from datetime import datetime
 from enum import Enum
 from typing import TYPE_CHECKING, Any
 
+
 if TYPE_CHECKING:
     from spectra.application.sync.state import SyncState
 
@@ -196,7 +197,7 @@ class StateStorePort(ABC):
     """
 
     @abstractmethod
-    def save(self, state: "SyncState") -> None:
+    def save(self, state: SyncState) -> None:
         """
         Save or update a sync state.
 
@@ -211,7 +212,7 @@ class StateStorePort(ABC):
         """
 
     @abstractmethod
-    def load(self, session_id: str) -> "SyncState | None":
+    def load(self, session_id: str) -> SyncState | None:
         """
         Load a sync state by session ID.
 
@@ -357,7 +358,7 @@ class StateStorePort(ABC):
         self,
         markdown_path: str,
         epic_key: str,
-    ) -> "SyncState | None":
+    ) -> SyncState | None:
         """
         Find the most recent resumable session.
 

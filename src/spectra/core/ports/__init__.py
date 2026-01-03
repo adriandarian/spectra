@@ -51,6 +51,18 @@ from .state_store import (
 from .state_store import (
     TransactionError as StateTransactionError,
 )
+from .sync_history import (
+    ChangeRecord,
+    HistoryQuery,
+    HistoryStoreInfo,
+    RollbackError,
+    SyncHistoryEntry,
+    SyncHistoryError,
+    SyncHistoryPort,
+    SyncOutcome,
+    SyncStatistics,
+    VelocityMetrics,
+)
 
 
 __all__ = [
@@ -86,6 +98,17 @@ __all__ = [
     "StateSummary",
     "StateTransactionError",
     "StoreInfo",
+    # Sync history
+    "ChangeRecord",
+    "HistoryQuery",
+    "HistoryStoreInfo",
+    "RollbackError",
+    "SyncHistoryEntry",
+    "SyncHistoryError",
+    "SyncHistoryPort",
+    "SyncOutcome",
+    "SyncStatistics",
+    "VelocityMetrics",
     "TransientError",
     "TransitionError",
 ]
