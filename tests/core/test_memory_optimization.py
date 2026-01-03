@@ -5,6 +5,7 @@ import sys
 import threading
 import time
 import weakref
+from typing import Any
 from unittest.mock import MagicMock, patch
 
 import pytest

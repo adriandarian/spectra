@@ -21,9 +21,10 @@ from ..exit_codes import ExitCode
 from ..logging import setup_logging
 from ..output import Console
 
+
 __all__ = [
-    "run_watch",
     "run_schedule",
+    "run_watch",
     "run_webhook",
 ]
 

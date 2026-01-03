@@ -20,6 +20,7 @@ from .sync import (
 from .validation import validate_markdown
 from .watch import run_schedule, run_watch, run_webhook
 
+
 __all__ = [
     # Validation
     "validate_markdown",

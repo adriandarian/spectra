@@ -8,6 +8,7 @@ organized into logical groups.
 
 import argparse
 
+
 __all__ = ["create_parser"]
 
 
@@ -1200,9 +1201,7 @@ def _add_command_arguments(parser: argparse.ArgumentParser) -> None:
     group.add_argument(
         "--stats", action="store_true", help="Show statistics (stories, points, velocity)"
     )
-    group.add_argument(
-        "--diff", action="store_true", help="Compare local file vs tracker state"
-    )
+    group.add_argument("--diff", action="store_true", help="Compare local file vs tracker state")
     group.add_argument(
         "--import",
         dest="import_cmd",

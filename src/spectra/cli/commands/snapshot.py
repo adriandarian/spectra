@@ -8,9 +8,10 @@ This module contains handlers for snapshot-related commands:
 
 from ..exit_codes import ExitCode
 
+
 __all__ = [
-    "run_list_snapshots",
     "run_clear_snapshot",
+    "run_list_snapshots",
 ]
 
 

@@ -90,7 +90,7 @@ def collect_stats_from_file(file_path: str) -> StoryStats:
 
     for story in stories:
         # Count by status
-        status = story.status.value.lower() if story.status else "planned"
+        status = story.status.name.lower() if story.status else "planned"
         if status in ("done", "closed", "resolved", "complete"):
             stats.done += 1
             stats.points_done += story.story_points or 0

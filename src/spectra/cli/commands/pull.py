@@ -16,9 +16,10 @@ from ..exit_codes import ExitCode
 from ..logging import setup_logging
 from ..output import Console
 
+
 __all__ = [
-    "run_pull",
     "run_bidirectional_sync",
+    "run_pull",
 ]
 
 

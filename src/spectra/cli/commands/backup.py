@@ -15,11 +15,12 @@ from pathlib import Path
 from ..exit_codes import ExitCode
 from ..output import Console
 
+
 __all__ = [
-    "list_sessions",
     "list_backups",
-    "run_restore",
+    "list_sessions",
     "run_diff",
+    "run_restore",
     "run_rollback",
 ]
 

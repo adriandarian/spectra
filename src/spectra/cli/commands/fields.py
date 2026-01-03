@@ -14,9 +14,10 @@ from spectra.adapters import EnvironmentConfigProvider, JiraAdapter
 from ..exit_codes import ExitCode
 from ..output import Console, Symbols
 
+
 __all__ = [
-    "run_list_custom_fields",
     "run_generate_field_mapping",
+    "run_list_custom_fields",
     "run_list_sprints",
 ]
 

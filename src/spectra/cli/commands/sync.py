@@ -19,13 +19,14 @@ from pathlib import Path
 from ..exit_codes import ExitCode
 from ..output import Console, Symbols
 
+
 __all__ = [
+    "run_attachment_sync",
+    "run_multi_epic",
+    "run_multi_tracker_sync",
+    "run_parallel_files",
     "run_sync",
     "run_sync_links",
-    "run_multi_epic",
-    "run_parallel_files",
-    "run_multi_tracker_sync",
-    "run_attachment_sync",
 ]
 
 

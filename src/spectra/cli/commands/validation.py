@@ -4,8 +4,8 @@ Validation command handler.
 This module contains the markdown validation command handler.
 """
 
-from ..exit_codes import ExitCode
 from ..output import Console
+
 
 __all__ = ["validate_markdown"]
 

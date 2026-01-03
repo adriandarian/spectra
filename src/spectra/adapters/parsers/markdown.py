@@ -236,9 +236,19 @@ class MarkdownParser(DocumentParserPort):
             List of parsed UserStory objects.
         """
         # Handle directory input - parse all US-*.md files
-        source_path = Path(source) if isinstance(source, str) else source
-        if isinstance(source_path, Path) and source_path.is_dir():
-            return self._parse_stories_from_directory(source_path)
+        # Only try path operations if source is already a Path or looks like a valid path
+        # (short string without newlines - actual content has newlines)
+        if isinstance(source, Path):
+            if source.is_dir():
+                return self._parse_stories_from_directory(source)
+        elif isinstance(source, str) and "\n" not in source and len(source) < 4096:
+            try:
+                source_path = Path(source)
+                if source_path.is_dir():
+                    return self._parse_stories_from_directory(source_path)
+            except OSError:
+                # Invalid path characters or other OS-level path issues
+                pass
 
         content = self._get_content(source)
         self._detected_format = self._detect_format(content)
