@@ -35,6 +35,22 @@ from .issue_tracker import (
     TransientError,
     TransitionError,
 )
+from .state_store import (
+    ConnectionError as StateConnectionError,
+)
+from .state_store import (
+    MigrationError,
+    QuerySortField,
+    QuerySortOrder,
+    StateQuery,
+    StateStoreError,
+    StateStorePort,
+    StateSummary,
+    StoreInfo,
+)
+from .state_store import (
+    TransactionError as StateTransactionError,
+)
 
 
 __all__ = [
@@ -50,6 +66,7 @@ __all__ = [
     "IssueTrackerError",
     # Ports
     "IssueTrackerPort",
+    "MigrationError",
     "NotFoundError",
     "OutputAuthenticationError",
     "OutputNotFoundError",
@@ -58,7 +75,17 @@ __all__ = [
     # Parser exceptions
     "ParserError",
     "PermissionError",
+    "QuerySortField",
+    "QuerySortOrder",
     "RateLimitError",
+    # State store
+    "StateConnectionError",
+    "StateQuery",
+    "StateStoreError",
+    "StateStorePort",
+    "StateSummary",
+    "StateTransactionError",
+    "StoreInfo",
     "TransientError",
     "TransitionError",
 ]

@@ -341,7 +341,9 @@ class TestSyncSessionProjection:
 
         projection.apply(StoryMatched(story_id="S1", issue_key="J1"))
         projection.apply(StoryMatched(story_id="S2", issue_key="J2"))
-        projection.apply(StoryUpdated(issue_key="S1", field_name="status", old_value="A", new_value="B"))
+        projection.apply(
+            StoryUpdated(issue_key="S1", field_name="status", old_value="A", new_value="B")
+        )
 
         assert projection.state.stories_matched == 2
         assert projection.state.stories_updated == 1

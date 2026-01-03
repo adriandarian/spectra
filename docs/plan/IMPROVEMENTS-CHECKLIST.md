@@ -854,7 +854,7 @@ For each new tracker adapter, follow this checklist:
 
 ### Architecture
 - [x] **Event Sourcing** - Store all changes as events. Implemented `EventStorePort` interface with `FileEventStore` (JSON Lines persistence) and `MemoryEventStore` adapters. Added `EventSourcedBus` for automatic persistence, `EventReplayer` for state reconstruction, and projections for analytics (`SyncSessionProjection`, `EpicHistoryProjection`)
-- [ ] **Database Backend Option** - SQLite/PostgreSQL for large-scale state management
+- [x] **Database Backend Option** - SQLite/PostgreSQL for large-scale state management. Implemented `StateStorePort` interface with `SQLiteStateStore` (local database with WAL mode, indexed queries, transactions), `PostgresStateStore` (enterprise-grade for distributed deployments), and `FileStateStore` (backward-compatible JSON wrapper). Added migration utilities (`StateStoreMigrator`, `export_to_json`, `import_from_json`) and factory function `create_store()`
 - [ ] **Sync History Database** - SQLite for audit trail, rollback, analytics
 - [ ] **Plugin Marketplace/Registry** - Discover and install community plugins
 - [ ] **Plugin Templates** - Scaffold new plugins
